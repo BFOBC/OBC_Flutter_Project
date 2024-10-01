@@ -1,0 +1,182 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
+import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
+import '../../common/screens/DrawerScreen.dart';
+import '../../common/utils/RoleProvider.dart';
+
+class LoginCard extends StatelessWidget {
+  const LoginCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CardView(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CardView extends StatefulWidget {
+  const CardView({Key? key}) : super(key: key);
+
+  @override
+  _CardViewState createState() => _CardViewState();
+}
+
+class _CardViewState extends State<CardView> {
+  // Hardcoded email and password values
+  final TextEditingController _emailController = TextEditingController(text: 'broker@example.com');
+  final TextEditingController _passwordController = TextEditingController(text: 'password123');
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  int _selectedIndex = 0;
+
+  String get emailHint =>
+      _selectedIndex == 0 ? 'Enter Broker Email' : 'Enter Courier Email';
+
+  final List<bool> _selectedToggle = [true, false];
+  final List<String> _toggleText = ["Broker", "Courier"];
+
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      // Show the progress dialog
+      showProgressDialog(context);
+
+      try {
+        // Simulate API call delay
+        await Future.delayed(const Duration(seconds: 2));
+
+        // Set the role based on the selected toggle
+        final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+        roleProvider.setRole(_selectedIndex == 0 ? UserRole.broker : UserRole.courier);
+
+        // Hide the progress dialog after API call completes
+        hideProgressDialog(context);
+
+        // Perform navigation or any other action after login
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const DrawerScreen(),
+          ),
+        );
+      } catch (error) {
+        // Hide progress dialog in case of error
+        hideProgressDialog(context);
+        // Show error message or handle error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: $error')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(25.0),
+        child: IntrinsicWidth(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Toggle Buttons
+                ToggleButtons(
+                  isSelected: _selectedToggle,
+                  onPressed: (int index) {
+                    setState(() {
+                      _selectedIndex = index;
+                      _selectedToggle[index] = true;
+                      _selectedToggle[1 - index] = false;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  selectedBorderColor: Colors.grey,
+                  selectedColor: Colors.white,
+                  fillColor: Palette.primaryColor,
+                  color: Colors.black,
+                  constraints: const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
+                  children: _toggleText.map((text) => Text(text)).toList(),
+                ),
+                const SizedBox(height: 20.0),
+                const Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: emailHint,
+                          prefixIcon: const Icon(Icons.email),
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          return Validator.validateEmail(email: value ?? '');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter Password',
+                          prefixIcon: Icon(Icons.lock),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          return Validator.validatePassword(password: value ?? '');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16.0),
+                MaterialButton(
+                  onPressed: _submitForm,
+                  color: Colors.blue,
+                  textColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: const SizedBox(
+                      width: 250,
+                      child: Center(child: Text('Login'))),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
