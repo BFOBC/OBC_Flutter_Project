@@ -35,6 +35,11 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
   // Add a MapController to control the map
   late MapController _mapController;
 
+  LatLng _baseLocation = LatLng(40.7128, -74.0060); // Example: New York City
+  LatLng _currentLocation = LatLng(34.0522, -118.2437); // Example: Los Angeles
+  late LatLng _selectedLocation; // Will store the currently selected location
+
+
   // Add country data with short names
   final Map<String, LatLng> countryLocations = {
     'PAK': LatLng(30.3753, 69.3451), // Pakistan
@@ -55,7 +60,6 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
     ),
   ];
 
-  LatLng _selectedLocation = LatLng(30.3753, 69.3451); // Default to Pakistan
   List<String> _suggestedCountries = [];
 
   @override
@@ -189,7 +193,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             decoration: BoxDecoration(
                               color: _isBaseSelected
-                                  ? Palette.primaryColor
+                                  ? Colors.blue
                                   : Colors.transparent,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(10),
@@ -197,7 +201,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                               ),
                               border: Border.all(
                                 color: _isBaseSelected
-                                    ? Palette.primaryColor
+                                    ? Colors.blue
                                     : Colors.grey,
                               ),
                             ),
@@ -228,7 +232,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             decoration: BoxDecoration(
                               color: !_isBaseSelected
-                                  ? Palette.primaryColor
+                                  ? Colors.blue
                                   : Colors.transparent,
                               borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(10),
@@ -236,7 +240,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                               ),
                               border: Border.all(
                                 color: !_isBaseSelected
-                                    ? Palette.primaryColor
+                                    ? Colors.blue
                                     : Colors.grey,
                               ),
                             ),
@@ -262,16 +266,35 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                   // Confirm button
                   MaterialButton(
                     onPressed: () {
-                      // Message based on selection
+                      // Determine the selected location
+                      _selectedLocation = _isBaseSelected ? _baseLocation : _currentLocation;
+
+                      // Move the map to the selected location
+                      _mapController.move(_selectedLocation, 10.0);
+
+                      // Add a marker at the selected location
+                      _markers = [
+                        Marker(
+                          width: 80.0,
+                          height: 80.0,
+                          point: _selectedLocation,
+                          builder: (ctx) => const Icon(
+                            Icons.location_on,
+                            color: Colors.blue,
+                            size: 40,
+                          ),
+                        ),
+                      ];
+
+                      // Show Snackbar
                       String message = _isBaseSelected
                           ? "You are available at Base Location"
                           : "You are available at Current Location";
 
-                      // Show Snackbar
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(message),
-                          duration: const Duration(seconds: 2), // Duration of Snackbar
+                          duration: const Duration(seconds: 2),
                         ),
                       );
 
@@ -296,8 +319,6 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
       },
     );
   }
-
-
 
   CardStackWidget _buildCardStackWidget(BuildContext context) {
     return CardStackWidget(

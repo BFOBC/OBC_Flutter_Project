@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
 import 'package:provider/provider.dart';
 import '../../../res/strings.dart';
-import '../../broker/CourierMap.dart';
+import '../../courier/CourierMap.dart';
 import '../../broker/MyMissions.dart';
 import '../../broker/NotificationScreen.dart';
 import '../../broker/SettingScreen.dart';
 import '../../broker/emptyleg/SearchEmptyLeg.dart';
 import '../../chat/ChatScreen.dart';
+import '../../courier/CourierMissions.dart';
+import '../../courier/emptyleg/EmptyLegMainScreen.dart';
 import '../utils/RoleProvider.dart';
 import 'Home.dart';
 import 'NotificationsScreen.dart';
@@ -76,29 +78,55 @@ class _DrawerScreenState extends State<DrawerScreen> {
   }
 
   void _onItemSelected(String title) {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    if (roleProvider.role == UserRole.broker) {
+      _selectedWidget = const CourierMap(title: AppStrings.map);
+    } else if (roleProvider.role == UserRole.courier) {
+      _selectedWidget = const OpenStreetMapScreen(title: AppStrings.map);
+    }
     setState(() {
       switch (title) {
         case AppStrings.map:
+/*          if (roleProvider.role == UserRole.broker) {
+            _showSnackBar("I am Broker");
+            _selectedWidget = const OpenStreetMapScreen(title: AppStrings.map);
+          } else if (roleProvider.role == UserRole.courier) {
+            _showSnackBar("I am Courier");
+            _selectedWidget = const CourierMap(title: AppStrings.map);
+          }*/
           _initializeSelectedWidget();
-          _showSnackBar('Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');
+          _showSnackBar(
+              'Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');
           break;
         case AppStrings.notifications:
           _selectedWidget = const NotificationScreen();
           break;
         case AppStrings.availabilityUpdates:
-          _selectedWidget = const SearchEmptyLegScreen();
+          if (roleProvider.role == UserRole.broker) {
+            _showSnackBar("I am Broker");
+            _selectedWidget = const SearchEmptyLegScreen();
+          } else if (roleProvider.role == UserRole.courier) {
+            _showSnackBar("I am Courier");
+            _selectedWidget = const EmptyLegMainScreen();
+          }
           break;
         case AppStrings.chat:
           _selectedWidget = const ChatScreen();
           break;
         case AppStrings.myMissions:
-          _selectedWidget = const MyMissions();
+          if (roleProvider.role == UserRole.broker) {
+            _showSnackBar("I am Broker");
+            _selectedWidget = const MyMissions();
+          } else if (roleProvider.role == UserRole.courier) {
+            _showSnackBar("I am Courier");
+            _selectedWidget = const CourierMissions();
+          }
           break;
         case AppStrings.history:
         case AppStrings.inviteFriends:
         case AppStrings.faq:
         case AppStrings.settings:
-        _selectedWidget = const SettingScreen();
+          _selectedWidget = const SettingScreen();
         default:
           _selectedWidget = const OpenStreetMapScreen(title: AppStrings.map);
           break;
@@ -112,8 +140,6 @@ class _DrawerScreenState extends State<DrawerScreen> {
       SnackBar(content: Text(message)),
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
