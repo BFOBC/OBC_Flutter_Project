@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-import 'EmptyLegMainScreen.dart';
+import '../../common/utils/DateTimePicker.dart';
+import 'EmptyLegMainScreen.dart'; // for formatting date and time
 
 class FlightDetailsDialog extends StatefulWidget {
   final FlightDetails? flightDetails;
+  final int? flightIndex;
+  final bool isFromBottomSheet; // New parameter to determine how the dialog is opened
 
-  const FlightDetailsDialog({this.flightDetails, Key? key}) : super(key: key);
+  const FlightDetailsDialog({this.flightDetails, this.flightIndex, required this.isFromBottomSheet, Key? key}) : super(key: key);
 
   @override
   _FlightDetailsDialogState createState() => _FlightDetailsDialogState();
@@ -14,98 +18,124 @@ class FlightDetailsDialog extends StatefulWidget {
 class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   late TextEditingController _fromLocationController;
   late TextEditingController _toLocationController;
-  late TextEditingController _fromDateController;
-  late TextEditingController _toDateController;
+  late TextEditingController _fromDateTimeController; // Combined From Date Time
+  late TextEditingController _toDateTimeController;   // Combined To Date Time
   late TextEditingController _flightNumberController;
   late TextEditingController _capacityController;
 
   @override
   void initState() {
     super.initState();
-
-    // Initialize controllers with either passed flight details or empty strings
     _fromLocationController = TextEditingController(text: widget.flightDetails?.fromLocation ?? '');
     _toLocationController = TextEditingController(text: widget.flightDetails?.toLocation ?? '');
-    _fromDateController = TextEditingController(text: widget.flightDetails?.fromDate ?? '');
-    _toDateController = TextEditingController(text: widget.flightDetails?.toDate ?? '');
+    _fromDateTimeController = TextEditingController(text: widget.flightDetails?.fromDateTime ?? '');
+    _toDateTimeController = TextEditingController(text: widget.flightDetails?.toDateTime ?? '');
     _flightNumberController = TextEditingController(text: widget.flightDetails?.flightNumber ?? '');
     _capacityController = TextEditingController(text: widget.flightDetails?.capacity ?? '');
   }
 
   @override
-  void dispose() {
-    // Dispose of controllers when dialog is closed
-    _fromLocationController.dispose();
-    _toLocationController.dispose();
-    _fromDateController.dispose();
-    _toDateController.dispose();
-    _flightNumberController.dispose();
-    _capacityController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter Flight Details',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _buildTextField(_fromLocationController, 'From Location'),
-            const SizedBox(height: 10),
-            _buildTextField(_toLocationController, 'To Location'),
-            const SizedBox(height: 10),
-            _buildTextField(_fromDateController, 'From Date'),
-            const SizedBox(height: 10),
-            _buildTextField(_toDateController, 'To Date'),
-            const SizedBox(height: 10),
-            _buildTextField(_flightNumberController, 'Flight Number'),
-            const SizedBox(height: 10),
-            _buildTextField(_capacityController, 'Capacity'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Create new FlightDetails from input
-                FlightDetails newDetails = FlightDetails(
-                  fromLocation: _fromLocationController.text,
-                  toLocation: _toLocationController.text,
-                  fromDate: _fromDateController.text,
-                  fromTime: '12:00 PM', // Hardcoded for simplicity
-                  toDate: _toDateController.text,
-                  toTime: '2:00 PM',   // Hardcoded for simplicity
-                  flightNumber: _flightNumberController.text,
-                  capacity: _capacityController.text,
-                  userName: 'User',    // Hardcoded username
-                  rating: 5,           // Hardcoded rating
-                );
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Enter Flight Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              _buildTextField(_fromLocationController, 'From Location', false),
+              const SizedBox(height: 10),
+              _buildTextField(_toLocationController, 'To Location', false),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _fromDateTimeController,
+                decoration: InputDecoration(
+                  labelText: 'From Date & Time',
+                  border: const OutlineInputBorder(),
+                ),
+                readOnly: true, // Keep this to prevent direct editing
+                onTap: () => selectDateTime(context, _fromDateTimeController),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _toDateTimeController,
+                decoration: InputDecoration(
+                  labelText: 'To Date & Time',
+                  border: const OutlineInputBorder(),
+                ),
+                readOnly: true,
+                onTap: () => selectDateTime(context, _toDateTimeController),
+              ),
+              const SizedBox(height: 10),
+              _buildTextField(_flightNumberController, 'Flight Number', false),
+              const SizedBox(height: 10),
+              _buildTextField(_capacityController, 'Capacity', false),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  if (widget.isFromBottomSheet)
+                    ElevatedButton(
+                      onPressed: () {
+                        FlightDetails updatedDetails = FlightDetails(
+                          fromLocation: _fromLocationController.text,
+                          toLocation: _toLocationController.text,
+                          fromDateTime: _fromDateTimeController.text,
+                          toDateTime: _toDateTimeController.text,
+                          flightNumber: _flightNumberController.text,
+                          capacity: _capacityController.text,
+                          userName: 'User',
+                          rating: 5,
+                        );
+                        Navigator.of(context).pop({'action': 'update', 'details': updatedDetails, 'index': widget.flightIndex});
+                      },
+                      child: const Text('Update'),
+                    ),
+                  if (widget.isFromBottomSheet && widget.flightIndex != null)
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop({'action': 'delete', 'index': widget.flightIndex});
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  if (!widget.isFromBottomSheet)
+                    ElevatedButton(
+                      onPressed: () {
+                        FlightDetails newDetails = FlightDetails(
+                          fromLocation: _fromLocationController.text,
+                          toLocation: _toLocationController.text,
+                          fromDateTime: _fromDateTimeController.text,
+                          toDateTime: _toDateTimeController.text,
+                          flightNumber: _flightNumberController.text,
+                          capacity: _capacityController.text,
+                          userName: 'User',
+                          rating: 5,
+                        );
+                        Navigator.of(context).pop({'action': 'save', 'details': newDetails});
+                      },
+                      child: const Text('Save'),
+                    ),
 
-                // Pass data back and close the dialog
-                Navigator.of(context).pop(newDetails);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String labelText) {
+  Widget _buildTextField(TextEditingController controller, String labelText, bool isReadOnly) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: labelText,
         border: const OutlineInputBorder(),
       ),
+      readOnly: isReadOnly,
     );
   }
 }

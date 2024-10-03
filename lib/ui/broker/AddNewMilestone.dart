@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import '../common/utils/CustomDialog.dart';
+import '../common/utils/DateTimePicker.dart';
 import 'data/Task.dart';
 
 class Milestone {
@@ -158,7 +159,7 @@ class _AddNewMilestoneScreenState extends State<AddNewMilestone> {
                         border: OutlineInputBorder(),
                       ),
                       onTap: () {
-                        _selectDateAndTime(_startTimeAndDateController);
+                        selectDateTime(context,_startTimeAndDateController);
                       },
                       readOnly: true,
                     ),
@@ -170,7 +171,7 @@ class _AddNewMilestoneScreenState extends State<AddNewMilestone> {
                         border: OutlineInputBorder(),
                       ),
                       onTap: () {
-                        _selectDateAndTime(_endTimeAndDateController);
+                        selectDateTime(context,_endTimeAndDateController);
                       },
                       readOnly: true,
                     ),
@@ -345,24 +346,5 @@ class _AddNewMilestoneScreenState extends State<AddNewMilestone> {
         ],
       ),
     );
-  }
-
-  Future<void> _selectDateAndTime(TextEditingController controller) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-      if (pickedTime != null) {
-        controller.text =
-        '${pickedDate.toLocal()} ${pickedTime.hour}:${pickedTime.minute}';
-      }
-    }
   }
 }
