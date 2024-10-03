@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../common/utils/CustomDialog.dart';
 import '../../common/utils/DateTimePicker.dart';
 import 'EmptyLegMainScreen.dart'; // for formatting date and time
 
@@ -44,7 +45,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter Flight Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Add New Job', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               _buildTextField(_fromLocationController, 'From Location', false),
               const SizedBox(height: 10),
@@ -90,14 +91,27 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                           userName: 'User',
                           rating: 5,
                         );
-                        Navigator.of(context).pop({'action': 'update', 'details': updatedDetails, 'index': widget.flightIndex});
+                        CustomDialog.showCustomDialog2(
+                            context,
+                            "Job Updated"// Pass the BuildContext
+                        );
+                        Future.delayed(Duration(seconds: 2), () {
+                          Navigator.of(context).pop({'action': 'update', 'details': updatedDetails, 'index': widget.flightIndex});
+                        });
                       },
                       child: const Text('Update'),
                     ),
                   if (widget.isFromBottomSheet && widget.flightIndex != null)
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).pop({'action': 'delete', 'index': widget.flightIndex});
+                        CustomDialog.showCustomDialog2(
+                            context,
+                            "Job Deleted"// Pass the BuildContext
+                        );
+                        // Delay the pop action to allow the dialog to be seen
+                        Future.delayed(Duration(seconds: 2), () {
+                          Navigator.of(context).pop({'action': 'delete', 'index': widget.flightIndex});
+                        });
                       },
                       child: const Text('Delete', style: TextStyle(color: Colors.red)),
                     ),
@@ -114,8 +128,14 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                           userName: 'User',
                           rating: 5,
                         );
-                        Navigator.of(context).pop({'action': 'save', 'details': newDetails});
-                      },
+                        CustomDialog.showCustomDialog2(
+                            context,
+                            "Job Added"// Pass the BuildContext
+                        );
+                        // Delay the pop action to allow the dialog to be seen
+                        Future.delayed(Duration(seconds: 2), () {
+                          Navigator.of(context).pop({'action': 'save', 'details': newDetails});
+                        });                      },
                       child: const Text('Save'),
                     ),
 

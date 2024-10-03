@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../common/charts/BarChartWidget.dart';
+import '../../common/utils/CustomDialog.dart';
 import '../../common/utils/DateTimePicker.dart';
 import 'AddEmptyLegDialog.dart';
 import 'CardStackWidget.dart';
@@ -85,22 +86,67 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
       builder: (BuildContext context) {
         return Container(
           padding: const EdgeInsets.all(16.0),
+          color: Colors.grey[200], // Gray background for the bottom sheet
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: userEnteredFlightDetailsList.map((flight) {
               int flightIndex = userEnteredFlightDetailsList.indexOf(flight);
-              return Card(
-                child: ListTile(
-                  title: Text('${flight.fromLocation} to ${flight.toLocation}'),
-                  subtitle: Text('Flight: ${flight.flightNumber}, Capacity: ${flight.capacity}'),
-                  trailing: ElevatedButton(
-                    onPressed: () {
-                      // Close the bottom sheet
-                      Navigator.pop(context);
-                      // Open the flight details dialog for existing flights
-                      _showFlightDetailsDialog(context, flight, flightIndex, true);
-                    },
-                    child: const Text('View Details'),
+              return Dismissible(
+                key: Key(flight.flightNumber), // Unique key for each item
+                direction: DismissDirection.endToStart, // Swipe from right to left
+                background: Container(
+                  color: Colors.red, // Red background for the delete action
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Icon(Icons.delete, color: Colors.white), // Trash icon
+                ),
+                confirmDismiss: (direction) async {
+                  // Show custom delete confirmation dialog
+                  bool? confirmDeletion = await CustomDialog.showDeleteConfirmationDialog(
+                      context, 'Are you sure you want to delete this job?'
+                  );
+                  return confirmDeletion; // Return true if confirmed, false if canceled
+                },
+                onDismissed: (direction) {
+                  // Remove the item from the list if confirmed
+                  setState(() {
+                    userEnteredFlightDetailsList.removeAt(flightIndex);
+                  });
+
+                  // Optionally show a snackbar or confirmation
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Flight ${flight.flightNumber} deleted')),
+                  );
+                },
+                child: Card(
+                  child: Row(
+                    children: [
+                      // Blue vertical line
+                      Container(
+                        width: 10.0, // Adjust the width of the line
+                        height: 70.0, // Adjust the height according to the content
+                        color: Colors.blue,
+                      ),
+                      Expanded(
+                        child: ListTile(
+                          title: Text('${flight.fromLocation} to ${flight.toLocation}'),
+                          subtitle: Text('Flight: ${flight.flightNumber}, Capacity: ${flight.capacity}'),
+                          trailing: ElevatedButton(
+                            onPressed: () {
+                              // Close the bottom sheet
+                              Navigator.pop(context);
+                              // Open the flight details dialog for existing flights
+                              _showFlightDetailsDialog(context, flight, flightIndex, true);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue, // Blue background
+                              foregroundColor: Colors.white, // White text
+                            ),
+                            child: const Text('View Details'),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -110,6 +156,8 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
       },
     );
   }
+
+
   // Function to show a dialog for flight details (add/update)
   void _showFlightDetailsDialog(BuildContext context, FlightDetails flightDetails, int flightIndex, bool isFromAdd) {
     showDialog(
@@ -144,11 +192,7 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
       }
     });
   }
-
-
-
 }
-
 // Model class for FlightDetails
 class FlightDetails {
   String fromLocation;
