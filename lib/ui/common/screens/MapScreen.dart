@@ -445,24 +445,6 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: ['a', 'b', 'c'],
               ),
-  /*            MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(30.3753, 69.3451),
-                    builder: (ctx) => GestureDetector(
-                      onTap: _onMarkerTap,
-                      // Show search bar when marker is tapped
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ],
-              ),*/
               MarkerLayer(
                 markers: _markers,
               ),

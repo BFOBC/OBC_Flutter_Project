@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "155217089865",
+    "firebase_url": "https://obcflutter-default-rtdb.firebaseio.com",
+    "project_id": "obcflutter",
+    "storage_bucket": "obcflutter.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:155217089865:android:d678dbd733983609507698",
+        "android_client_info": {
+          "package_name": "com.example.broker_flutter_pp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJhcirGyQXqELNC5s1fcKcS9a5nVBK5EE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

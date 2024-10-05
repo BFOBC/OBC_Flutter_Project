@@ -2,7 +2,7 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    //id 'com.google.gms.google-services' // If you're using Firebase
+    id 'com.google.gms.google-services' // If you're using Firebase
 }
 
 def localProperties = new Properties()
@@ -30,7 +30,12 @@ android {
 
 
     defaultConfig{
-        multiDexEnabled true
+        applicationId "com.example.broker_flutter_pp"
+        minSdkVersion 21  // Manually set the minSdkVersion if needed
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true  // Ensures multiDex support for minSdkVersion below 21
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

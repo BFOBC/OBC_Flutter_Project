@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import '../../common/utils/CustomDialog.dart';
 import '../../common/utils/DateTimePicker.dart';
-import 'EmptyLegMainScreen.dart'; // for formatting date and time
+import 'EmptyLegMainScreen.dart';
 
 class FlightDetailsDialog extends StatefulWidget {
   final FlightDetails? flightDetails;
   final int? flightIndex;
-  final bool isFromBottomSheet; // New parameter to determine how the dialog is opened
+  final bool isFromBottomSheet;
 
   const FlightDetailsDialog({this.flightDetails, this.flightIndex, required this.isFromBottomSheet, Key? key}) : super(key: key);
 
@@ -19,143 +18,239 @@ class FlightDetailsDialog extends StatefulWidget {
 class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   late TextEditingController _fromLocationController;
   late TextEditingController _toLocationController;
-  late TextEditingController _fromDateTimeController; // Combined From Date Time
-  late TextEditingController _toDateTimeController;   // Combined To Date Time
+  late TextEditingController _fromDateTimeController;
+  late TextEditingController _toDateTimeController;
   late TextEditingController _flightNumberController;
   late TextEditingController _capacityController;
+
+  final _formKey = GlobalKey<FormState>(); // Key for form validation
 
   @override
   void initState() {
     super.initState();
-    _fromLocationController = TextEditingController(text: widget.flightDetails?.fromLocation ?? '');
-    _toLocationController = TextEditingController(text: widget.flightDetails?.toLocation ?? '');
-    _fromDateTimeController = TextEditingController(text: widget.flightDetails?.fromDateTime ?? '');
-    _toDateTimeController = TextEditingController(text: widget.flightDetails?.toDateTime ?? '');
-    _flightNumberController = TextEditingController(text: widget.flightDetails?.flightNumber ?? '');
-    _capacityController = TextEditingController(text: widget.flightDetails?.capacity ?? '');
+    _fromLocationController =
+        TextEditingController(text: widget.flightDetails?.fromLocation ?? '');
+    _toLocationController =
+        TextEditingController(text: widget.flightDetails?.toLocation ?? '');
+    _fromDateTimeController =
+        TextEditingController(text: widget.flightDetails?.fromDateTime ?? '');
+    _toDateTimeController =
+        TextEditingController(text: widget.flightDetails?.toDateTime ?? '');
+    _flightNumberController =
+        TextEditingController(text: widget.flightDetails?.flightNumber ?? '');
+    _capacityController =
+        TextEditingController(text: widget.flightDetails?.capacity ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Add New Job', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              _buildTextField(_fromLocationController, 'From Location', false),
-              const SizedBox(height: 10),
-              _buildTextField(_toLocationController, 'To Location', false),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _fromDateTimeController,
-                decoration: InputDecoration(
-                  labelText: 'From Date & Time',
-                  border: const OutlineInputBorder(),
+      child: Stack(
+        clipBehavior: Clip.none,
+        // Allow the stack to overflow for the close button
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey, // Assign form key
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Add New Job', style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                        InkWell(
+                          onTap: () {
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors
+                                  .blue, // Blue circle background color
+                            ),
+                            child: Icon(
+                                Icons.close, color: Colors.white), // Close icon
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTextField(_fromLocationController, 'From Location'),
+                    const SizedBox(height: 10),
+                    _buildTextField(_toLocationController, 'To Location'),
+                    const SizedBox(height: 10),
+                    _buildDateTimeField(
+                        _fromDateTimeController, 'From Date & Time'),
+                    const SizedBox(height: 10),
+                    _buildDateTimeField(
+                        _toDateTimeController, 'To Date & Time'),
+                    const SizedBox(height: 10),
+                    _buildTextField(_flightNumberController, 'Flight Number'),
+                    const SizedBox(height: 10),
+                    _buildTextField(_capacityController, 'Capacity'),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        if (widget.isFromBottomSheet)
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                FlightDetails updatedDetails = FlightDetails(
+                                  fromLocation: _fromLocationController.text,
+                                  toLocation: _toLocationController.text,
+                                  fromDateTime: _fromDateTimeController.text,
+                                  toDateTime: _toDateTimeController.text,
+                                  flightNumber: _flightNumberController.text,
+                                  capacity: _capacityController.text,
+                                  userName: 'User',
+                                  rating: 5,
+                                );
+                                CustomDialog.showCustomDialog2(
+                                    context, "Job Updated");
+                                Future.delayed(Duration(seconds: 2), () {
+                                  Navigator.of(context).pop({
+                                    'action': 'update',
+                                    'details': updatedDetails,
+                                    'index': widget.flightIndex
+                                  });
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              // Change button color to blue
+                              foregroundColor: Colors
+                                  .white, // Change text color to white
+                            ),
+                            child: const Text('Update'),
+                          ),
+                        if (!widget.isFromBottomSheet)
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                FlightDetails newDetails = FlightDetails(
+                                  fromLocation: _fromLocationController.text,
+                                  toLocation: _toLocationController.text,
+                                  fromDateTime: _fromDateTimeController.text,
+                                  toDateTime: _toDateTimeController.text,
+                                  flightNumber: _flightNumberController.text,
+                                  capacity: _capacityController.text,
+                                  userName: 'User',
+                                  rating: 5,
+                                );
+                                CustomDialog.showCustomDialog2(
+                                    context, "Job Added");
+                                Future.delayed(Duration(seconds: 2), () {
+                                  Navigator.of(context).pop({
+                                    'action': 'save',
+                                    'details': newDetails
+                                  });
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              // Change button color to blue
+                              foregroundColor: Colors
+                                  .white, // Change text color to white
+                            ),
+                            child: const Text('Save'),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-                readOnly: true, // Keep this to prevent direct editing
-                onTap: () => selectDateTime(context, _fromDateTimeController),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _toDateTimeController,
-                decoration: InputDecoration(
-                  labelText: 'To Date & Time',
-                  border: const OutlineInputBorder(),
-                ),
-                readOnly: true,
-                onTap: () => selectDateTime(context, _toDateTimeController),
-              ),
-              const SizedBox(height: 10),
-              _buildTextField(_flightNumberController, 'Flight Number', false),
-              const SizedBox(height: 10),
-              _buildTextField(_capacityController, 'Capacity', false),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (widget.isFromBottomSheet)
-                    ElevatedButton(
-                      onPressed: () {
-                        FlightDetails updatedDetails = FlightDetails(
-                          fromLocation: _fromLocationController.text,
-                          toLocation: _toLocationController.text,
-                          fromDateTime: _fromDateTimeController.text,
-                          toDateTime: _toDateTimeController.text,
-                          flightNumber: _flightNumberController.text,
-                          capacity: _capacityController.text,
-                          userName: 'User',
-                          rating: 5,
-                        );
-                        CustomDialog.showCustomDialog2(
-                            context,
-                            "Job Updated"// Pass the BuildContext
-                        );
-                        Future.delayed(Duration(seconds: 2), () {
-                          Navigator.of(context).pop({'action': 'update', 'details': updatedDetails, 'index': widget.flightIndex});
-                        });
-                      },
-                      child: const Text('Update'),
-                    ),
-                  if (widget.isFromBottomSheet && widget.flightIndex != null)
-                    ElevatedButton(
-                      onPressed: () {
-                        CustomDialog.showCustomDialog2(
-                            context,
-                            "Job Deleted"// Pass the BuildContext
-                        );
-                        // Delay the pop action to allow the dialog to be seen
-                        Future.delayed(Duration(seconds: 2), () {
-                          Navigator.of(context).pop({'action': 'delete', 'index': widget.flightIndex});
-                        });
-                      },
-                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                    ),
-                  if (!widget.isFromBottomSheet)
-                    ElevatedButton(
-                      onPressed: () {
-                        FlightDetails newDetails = FlightDetails(
-                          fromLocation: _fromLocationController.text,
-                          toLocation: _toLocationController.text,
-                          fromDateTime: _fromDateTimeController.text,
-                          toDateTime: _toDateTimeController.text,
-                          flightNumber: _flightNumberController.text,
-                          capacity: _capacityController.text,
-                          userName: 'User',
-                          rating: 5,
-                        );
-                        CustomDialog.showCustomDialog2(
-                            context,
-                            "Job Added"// Pass the BuildContext
-                        );
-                        // Delay the pop action to allow the dialog to be seen
-                        Future.delayed(Duration(seconds: 2), () {
-                          Navigator.of(context).pop({'action': 'save', 'details': newDetails});
-                        });                      },
-                      child: const Text('Save'),
-                    ),
-
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String labelText, bool isReadOnly) {
-    return TextField(
+  // Build text field with validation logic
+  Widget _buildTextField(TextEditingController controller, String labelText) {
+    return TextFormField(
       controller: controller,
       decoration: InputDecoration(
         labelText: labelText,
         border: const OutlineInputBorder(),
       ),
-      readOnly: isReadOnly,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return '$labelText is required';
+        }
+        if ((labelText == 'From Location' || labelText == 'To Location') &&
+            value.length != 3) {
+          return '$labelText must be exactly 3 characters';
+        }
+        return null;
+      },
     );
+  }
+
+  // Build date time field with date restrictions
+  Widget _buildDateTimeField(TextEditingController controller,
+      String labelText) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
+      ),
+      readOnly: true,
+      onTap: () => selectDateTime(context, controller),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return '$labelText is required';
+        }
+        return null;
+      },
+    );
+  }
+
+  Future<void> selectDateTime(BuildContext context,
+      TextEditingController controller) async {
+    DateTime now = DateTime.now();
+
+    // Pick date
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year, now.month + 6),
+    );
+
+    if (pickedDate != null) {
+      // Pick time
+      TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(now),
+      );
+
+      if (pickedTime != null) {
+        // Combine date and time
+        DateTime combinedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        String formattedDateTime = DateFormat('yyyy-MM-dd HH:mm').format(
+            combinedDateTime);
+        setState(() {
+          controller.text = formattedDateTime; // Save combined date and time
+        });
+      }
+    }
   }
 }

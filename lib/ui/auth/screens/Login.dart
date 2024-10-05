@@ -33,8 +33,8 @@ class CardView extends StatefulWidget {
 
 class _CardViewState extends State<CardView> {
   // Hardcoded email and password values
-  final TextEditingController _emailController = TextEditingController(text: 'broker@example.com');
-  final TextEditingController _passwordController = TextEditingController(text: 'password123');
+  final TextEditingController _emailController = TextEditingController(text: 'broker@gmail.com');
+  final TextEditingController _passwordController = TextEditingController(text: '123456');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   int _selectedIndex = 0;
