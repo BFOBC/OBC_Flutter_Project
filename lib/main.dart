@@ -3,8 +3,13 @@ import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensures binding is initialized
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     MultiProvider(
       providers: [

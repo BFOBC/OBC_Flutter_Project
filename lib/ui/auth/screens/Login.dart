@@ -5,19 +5,45 @@ import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
 import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
 import '../../common/screens/DrawerScreen.dart';
 import '../../common/utils/RoleProvider.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:http/http.dart' as http;
+import 'dart:convert'; // Import for JSON parsing
+
+// User model
+class PigeonUserDetail {
+  final String id; // User ID
+  final String email; // User email
+  final String role; // User role
+
+  PigeonUserDetail({
+    required this.id,
+    required this.email,
+    required this.role,
+  });
+
+  factory PigeonUserDetail.fromJson(Map<String, dynamic> json) {
+    return PigeonUserDetail(
+      id: json['id'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      role: json['role'] as String? ?? '',
+    );
+  }
+}
 
 class LoginCard extends StatelessWidget {
   const LoginCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CardView(),
-          ],
+    return Scaffold(
+      body: Container(
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CardView(),
+            ],
+          ),
         ),
       ),
     );
@@ -32,7 +58,6 @@ class CardView extends StatefulWidget {
 }
 
 class _CardViewState extends State<CardView> {
-  // Hardcoded email and password values
   final TextEditingController _emailController = TextEditingController(text: 'broker@gmail.com');
   final TextEditingController _passwordController = TextEditingController(text: '123456');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -45,14 +70,21 @@ class _CardViewState extends State<CardView> {
   final List<bool> _selectedToggle = [true, false];
   final List<String> _toggleText = ["Broker", "Courier"];
 
-  void _submitForm() async {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       // Show the progress dialog
       showProgressDialog(context);
 
       try {
-        // Simulate API call delay
-        await Future.delayed(const Duration(seconds: 2));
+        // Firebase authentication
+        final auth = FirebaseAuth.instance;
+        UserCredential userCredential = await auth.signInWithEmailAndPassword(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+
+        // Fetch user details after successful login
+        PigeonUserDetail userDetail = await fetchUserDetails(userCredential.user!.uid);
 
         // Set the role based on the selected toggle
         final roleProvider = Provider.of<RoleProvider>(context, listen: false);
@@ -61,20 +93,54 @@ class _CardViewState extends State<CardView> {
         // Hide the progress dialog after API call completes
         hideProgressDialog(context);
 
-        // Perform navigation or any other action after login
+        // Navigate to the next screen
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const DrawerScreen(),
           ),
         );
-      } catch (error) {
+      } on FirebaseAuthException catch (e) {
         // Hide progress dialog in case of error
         hideProgressDialog(context);
-        // Show error message or handle error
+
+        // Show Firebase-specific error message
+        String errorMessage;
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'No user found for that email.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Wrong password provided for that user.';
+            break;
+          default:
+            errorMessage = 'Login failed: ${e.message}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      } catch (error) {
+        hideProgressDialog(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login failed: $error')),
         );
       }
+    }
+  }
+
+  Future<PigeonUserDetail> fetchUserDetails(String userId) async {
+    final response = await http.get(Uri.parse('https://your-api.com/users/$userId'));
+
+    if (response.statusCode == 200) {
+      // Attempt to parse the JSON
+      try {
+        final Map<String, dynamic> jsonData = jsonDecode(response.body);
+        return PigeonUserDetail.fromJson(jsonData);
+      } catch (e) {
+        throw Exception('Failed to parse user details: $e');
+      }
+    } else {
+      throw Exception('Failed to load user details: ${response.reasonPhrase}');
     }
   }
 
@@ -94,7 +160,6 @@ class _CardViewState extends State<CardView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Toggle Buttons
                 ToggleButtons(
                   isSelected: _selectedToggle,
                   onPressed: (int index) {
