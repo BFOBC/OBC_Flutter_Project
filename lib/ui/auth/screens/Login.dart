@@ -1,18 +1,23 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
 import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
 import '../../common/screens/DrawerScreen.dart';
+import '../../common/utils/DateTimePicker.dart';
 import '../../common/utils/RoleProvider.dart';
+import '../AuthenticationService.dart';
 
 class LoginCard extends StatelessWidget {
   const LoginCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: const Center(
+    return const Scaffold(
+      backgroundColor: Colors.grey, // Set the background color to gray
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -32,51 +37,80 @@ class CardView extends StatefulWidget {
 }
 
 class _CardViewState extends State<CardView> {
-  // Hardcoded email and password values
   final TextEditingController _emailController = TextEditingController(text: 'broker@gmail.com');
   final TextEditingController _passwordController = TextEditingController(text: '123456');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   int _selectedIndex = 0;
-
-  String get emailHint =>
-      _selectedIndex == 0 ? 'Enter Broker Email' : 'Enter Courier Email';
-
   final List<bool> _selectedToggle = [true, false];
   final List<String> _toggleText = ["Broker", "Courier"];
 
+  String get emailHint =>
+      _selectedIndex == 0 ? 'Enter Broker Email' : 'Enter Courier Email';
   void _submitForm() async {
+    try {
+      FirebaseApp app = Firebase.app(); // Check if Firebase is initialized
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Initialized Firebase App: ${app.name}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Firebase initialization error')),
+      );
+      return; // Stop execution if Firebase isn't initialized
+    }
+
     if (_formKey.currentState!.validate()) {
-      // Show the progress dialog
-      showProgressDialog(context);
-
+      showProgressDialog(context); // Show loading dialog
+/*
       try {
-        // Simulate API call delay
-        await Future.delayed(const Duration(seconds: 2));
-
-        // Set the role based on the selected toggle
-        final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-        roleProvider.setRole(_selectedIndex == 0 ? UserRole.broker : UserRole.courier);
-
-        // Hide the progress dialog after API call completes
-        hideProgressDialog(context);
-
-        // Perform navigation or any other action after login
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const DrawerScreen(),
-          ),
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
-      } catch (error) {
-        // Hide progress dialog in case of error
-        hideProgressDialog(context);
-        // Show error message or handle error
+
+        User? user = userCredential.user;
+        if (user != null) {
+          doLogin(user);
+        } else {
+          throw FirebaseAuthException(
+            code: 'user-not-found',
+            message: 'User not found',
+          );
+        }
+      } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $error')),
+          SnackBar(content: Text('Login Error: ${e.message}')),
         );
-      }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred: $e')),
+        );
+      } finally {
+        hideProgressDialog(context); // Ensure dialog is hidden after completion
+      }*/
+      doLogin();
+
     }
   }
+  void doLogin(/*User user*/) {
+    Future.delayed(const Duration(seconds: 3), () {
+      // Hide the progress dialog after 3 seconds
+      hideProgressDialog(context);
+
+      // Set the user role based on the selected index
+      Provider.of<RoleProvider>(context, listen: false).setRole(
+        _selectedIndex == 0 ? UserRole.broker : UserRole.courier,
+      );
+
+      // Navigate to the DrawerScreen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const DrawerScreen()),
+      );
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +128,6 @@ class _CardViewState extends State<CardView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Toggle Buttons
                 ToggleButtons(
                   isSelected: _selectedToggle,
                   onPressed: (int index) {
@@ -124,41 +157,29 @@ class _CardViewState extends State<CardView> {
                   ),
                 ),
                 const SizedBox(height: 20.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: emailHint,
-                          prefixIcon: const Icon(Icons.email),
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          return Validator.validateEmail(email: value ?? '');
-                        },
-                      ),
-                    ),
-                  ],
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: emailHint,
+                    prefixIcon: const Icon(Icons.email),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    return Validator.validateEmail(email: value ?? '');
+                  },
                 ),
                 const SizedBox(height: 16.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Enter Password',
-                          prefixIcon: Icon(Icons.lock),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          return Validator.validatePassword(password: value ?? '');
-                        },
-                      ),
-                    ),
-                  ],
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Password',
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    return Validator.validatePassword(password: value ?? '');
+                  },
                 ),
                 const SizedBox(height: 16.0),
                 MaterialButton(
@@ -169,8 +190,9 @@ class _CardViewState extends State<CardView> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   child: const SizedBox(
-                      width: 250,
-                      child: Center(child: Text('Login'))),
+                    width: 250,
+                    child: Center(child: Text('Login')),
+                  ),
                 ),
               ],
             ),

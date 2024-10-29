@@ -2,9 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:pie_chart/pie_chart.dart';
 import '../../res/custom_colors.dart';
-import '../auth/widgets/CustomWidgets.dart';
 import 'BasicInfo.dart';
 import 'ManageLegsAndMilestones.dart';
 import 'Passports.dart';  // Import the Passports widget

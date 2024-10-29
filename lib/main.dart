@@ -1,10 +1,13 @@
 import 'package:broker_flutter_pp/ui/broker/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(
     MultiProvider(
       providers: [
