@@ -20,7 +20,7 @@ class Milestone {
 
 class AddNewMilestone extends StatefulWidget {
   final Task? data; // Replace YourDataType with the actual type of your data object
-  const AddNewMilestone({Key? key, this.data}) : super(key: key);
+  const AddNewMilestone({super.key, this.data});
 
   @override
   _AddNewMilestoneScreenState createState() => _AddNewMilestoneScreenState();

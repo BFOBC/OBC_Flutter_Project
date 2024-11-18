@@ -30,5 +30,7 @@ class Validator {
     return null;
   }
 
-  static String? validatePhoneNumber({required String phoneNumber}) {}
+  static String? validatePhoneNumber({required String phoneNumber}) {
+    return null;
+  }
 }

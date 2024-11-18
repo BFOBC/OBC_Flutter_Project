@@ -1,13 +1,8 @@
 import 'dart:async';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
-import 'package:broker_flutter_pp/ui/common/screens/PermissionScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../broker/PlaceNewJob.dart';
-import '../../courier/MainScreen.dart';
-import '../charts/CircularChartScreen.dart';
-import 'MapScreen.dart';
 
 
 class SplashScreen extends StatefulWidget {

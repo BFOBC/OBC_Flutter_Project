@@ -8,7 +8,7 @@ import 'ViewCourierMission.dart';
 
 
 class CourierMissions extends StatefulWidget {
-  const CourierMissions({Key? key}) : super(key: key);
+  const CourierMissions({super.key});
 
   @override
   _CourierMissionsState createState() => _CourierMissionsState();

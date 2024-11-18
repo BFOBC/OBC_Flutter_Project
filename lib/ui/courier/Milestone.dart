@@ -19,7 +19,7 @@ class Milestone {
 
 class AddNewMilestone extends StatefulWidget {
   final Task? data; // Replace YourDataType with the actual type of your data object
-  const AddNewMilestone({Key? key, this.data}) : super(key: key);
+  const AddNewMilestone({super.key, this.data});
 
 
   @override
@@ -418,7 +418,7 @@ class _AddNewMilestoneScreenState extends State<AddNewMilestone> {
         );
 
         // Format the date and time into a readable string
-        String formattedDateTime = "${selectedDateTime.toLocal()}".split(' ')[0] + ' ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
+        String formattedDateTime = '${"${selectedDateTime.toLocal()}".split(' ')[0]} ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
 
         // Update the TextEditingController
         controller.text = formattedDateTime;

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'models/CourierProfileData.dart';
 import 'models/Visa.dart';
@@ -8,12 +9,12 @@ class CourierProfile extends StatefulWidget {
   final List<Passport> passports;
   final CourierProfileData courierProfile;
 
-  CourierProfile({
-    Key? key,
+  const CourierProfile({
+    super.key,
     required this.courierProfile,
     required this.visas,
     required this.passports,
-  }) : super(key: key);
+  });
 
   @override
   _CourierProfileState createState() => _CourierProfileState();
@@ -168,6 +169,29 @@ class _CourierProfileState extends State<CourierProfile> {
       },
     );
   }
+  Future<void> _saveCourierProfile() async {
+  try {
+    final data = widget.courierProfile.toMap();
+
+    print("Saving data: $data"); // Debugging the data to verify output
+
+    await FirebaseFirestore.instance
+        .collection('couriers')
+        .doc(widget.courierProfile.courierID)
+        .set(data);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Profile saved successfully!')),
+    );
+  } catch (e) {
+    print("Error saving profile: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save profile: $e')),
+    );
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -271,9 +295,10 @@ class _CourierProfileState extends State<CourierProfile> {
 
               // Save button
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   // Add your save logic here
                   print("Saving profile...");
+                  await _saveCourierProfile();
                 },
                 child: const Text('Save'),
               ),

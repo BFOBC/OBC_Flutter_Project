@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
 
 class CustomDialog {
   static void showCustomDialog(BuildContext context, Widget image, Text text) {

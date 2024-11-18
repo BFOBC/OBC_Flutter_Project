@@ -31,7 +31,7 @@ android {
 
     defaultConfig{
         applicationId "com.example.broker_flutter_pp"
-        minSdkVersion 21  // Manually set the minSdkVersion if needed
+        minSdkVersion 23  // Manually set the minSdkVersion if needed
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -55,7 +55,7 @@ android {
         applicationId "com.example.broker_flutter_pp"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion flutter.minSdkVersion
+        minSdkVersion 23
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -76,4 +76,6 @@ flutter {
 
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    implementation("com.google.firebase:firebase-analytics")
 }

@@ -15,4 +15,8 @@ class CourierProfileData {
     required this.email,
     required this.paymentTerms,// This should now be a list of strings
   });
+
+  String? get courierID => null;
+
+  toMap() {}
 }

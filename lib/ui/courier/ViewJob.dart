@@ -5,7 +5,7 @@ import '../broker/data/Task.dart';
 
 class ViewJob extends StatefulWidget {
   final Task? data; // The Task object received
-  const ViewJob({Key? key, this.data}) : super(key: key);
+  const ViewJob({super.key, this.data});
 
   @override
   _ViewJobState createState() => _ViewJobState();
@@ -154,7 +154,7 @@ class _ViewJobState extends State<ViewJob> {
           selectedTime.minute,
         );
 
-        String formattedDateTime = "${selectedDateTime.toLocal()}".split(' ')[0] + ' ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
+        String formattedDateTime = '${"${selectedDateTime.toLocal()}".split(' ')[0]} ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
         controller.text = formattedDateTime;
       }
     }

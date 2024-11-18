@@ -12,11 +12,11 @@ class MainScreen extends StatefulWidget {
   final String userImage;
 
   const MainScreen({
-    Key? key,
+    super.key,
     required this.userName,
     required this.rating,
     required this.userImage,
-  }) : super(key: key);
+  });
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -126,7 +126,7 @@ class CircularChart extends StatelessWidget {
   final Map<String, double> dataMap;
   final List<Color> colorList;
 
-  CircularChart({required this.dataMap, required this.colorList});
+  const CircularChart({super.key, required this.dataMap, required this.colorList});
 
   @override
   Widget build(BuildContext context) {

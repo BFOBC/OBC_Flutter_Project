@@ -7,7 +7,7 @@ class FlightDetailsCard extends StatelessWidget {
   final FlightDetails flightDetails;
   final VoidCallback onViewDetails;
 
-  const FlightDetailsCard({required this.flightDetails, required this.onViewDetails, Key? key}) : super(key: key);
+  const FlightDetailsCard({required this.flightDetails, required this.onViewDetails, super.key});
 
   @override
   Widget build(BuildContext context) {

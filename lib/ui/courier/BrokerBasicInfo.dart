@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class BrokerBasicInfo extends StatelessWidget {
   final String name;
 
-  BrokerBasicInfo({required this.name});
+  const BrokerBasicInfo({super.key, required this.name});
 
   @override
   Widget build(BuildContext context) {

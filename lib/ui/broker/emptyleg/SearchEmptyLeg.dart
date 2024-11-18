@@ -22,7 +22,7 @@ class FlightData {
 }
 
 class SearchEmptyLegScreen extends StatefulWidget {
-  const SearchEmptyLegScreen({Key? key}) : super(key: key);
+  const SearchEmptyLegScreen({super.key});
 
   @override
   _SearchEmptyLegScreenState createState() => _SearchEmptyLegScreenState();

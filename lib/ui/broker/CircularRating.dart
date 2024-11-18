@@ -5,7 +5,7 @@ class CircularRating extends StatelessWidget {
   final Map<String, double> dataMap;
   final List<Color> colorList;
 
-  CircularRating({required this.dataMap, required this.colorList});
+  const CircularRating({super.key, required this.dataMap, required this.colorList});
 
   @override
   Widget build(BuildContext context) {

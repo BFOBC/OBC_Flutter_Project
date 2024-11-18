@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class NotificationsScreen extends StatelessWidget {
   final String title;
-  const NotificationsScreen({Key? key, required this.title}) : super(key: key);
+  const NotificationsScreen({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {

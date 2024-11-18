@@ -7,7 +7,7 @@ import 'ManageLegsAndMilestones.dart';
 import 'CircularRating.dart'; // Assuming you have this class imported
 
 class MyMissions extends StatefulWidget {
-  const MyMissions({Key? key}) : super(key: key);
+  const MyMissions({super.key});
 
   @override
   _MyMissionsState createState() => _MyMissionsState();

@@ -41,53 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBxmgWeGJIkknyK09OCodKEkp_w4tw_-eU',
-    appId: '1:155217089865:web:b95e1616d6047587507698',
-    messagingSenderId: '155217089865',
-    projectId: 'obcflutter',
-    authDomain: 'obcflutter.firebaseapp.com',
-    databaseURL: 'https://obcflutter-default-rtdb.firebaseio.com',
-    storageBucket: 'obcflutter.appspot.com',
-    measurementId: 'G-F2L431PMS1',
+    apiKey: 'AIzaSyBZyojFbtz7d-QdfTcYEJZwuOPrY2Akd0g',
+    appId: '1:942521666785:web:66645eede650e25e373ba0',
+    messagingSenderId: '942521666785',
+    projectId: 'bf-obc-flutter',
+    authDomain: 'bf-obc-flutter.firebaseapp.com',
+    storageBucket: 'bf-obc-flutter.firebasestorage.app',
+    measurementId: 'G-2KK4SM09JE',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDJhcirGyQXqELNC5s1fcKcS9a5nVBK5EE',
-    appId: '1:155217089865:android:d678dbd733983609507698',
-    messagingSenderId: '155217089865',
-    projectId: 'obcflutter',
-    databaseURL: 'https://obcflutter-default-rtdb.firebaseio.com',
-    storageBucket: 'obcflutter.appspot.com',
+    apiKey: 'AIzaSyBiLOkyU5ENKbuWSV1G-HZgL5bTM9Fha4w',
+    appId: '1:942521666785:android:9f2fae267d2b2fe9373ba0',
+    messagingSenderId: '942521666785',
+    projectId: 'bf-obc-flutter',
+    storageBucket: 'bf-obc-flutter.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDUuc73L-SjzqsbeZ-oOhy0vDMi7xHqkXU',
-    appId: '1:155217089865:ios:b808f353d98e260c507698',
-    messagingSenderId: '155217089865',
-    projectId: 'obcflutter',
-    databaseURL: 'https://obcflutter-default-rtdb.firebaseio.com',
-    storageBucket: 'obcflutter.appspot.com',
+    apiKey: 'AIzaSyD9VOwBxCVZYS2QCWiQcgWCU4UQq_ZwOVQ',
+    appId: '1:942521666785:ios:a79c5c0669c8dbc6373ba0',
+    messagingSenderId: '942521666785',
+    projectId: 'bf-obc-flutter',
+    storageBucket: 'bf-obc-flutter.firebasestorage.app',
     iosBundleId: 'com.example.brokerFlutterPp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDUuc73L-SjzqsbeZ-oOhy0vDMi7xHqkXU',
-    appId: '1:155217089865:ios:b808f353d98e260c507698',
-    messagingSenderId: '155217089865',
-    projectId: 'obcflutter',
-    databaseURL: 'https://obcflutter-default-rtdb.firebaseio.com',
-    storageBucket: 'obcflutter.appspot.com',
+    apiKey: 'AIzaSyD9VOwBxCVZYS2QCWiQcgWCU4UQq_ZwOVQ',
+    appId: '1:942521666785:ios:a79c5c0669c8dbc6373ba0',
+    messagingSenderId: '942521666785',
+    projectId: 'bf-obc-flutter',
+    storageBucket: 'bf-obc-flutter.firebasestorage.app',
     iosBundleId: 'com.example.brokerFlutterPp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBxmgWeGJIkknyK09OCodKEkp_w4tw_-eU',
-    appId: '1:155217089865:web:d6b65141911bff2a507698',
-    messagingSenderId: '155217089865',
-    projectId: 'obcflutter',
-    authDomain: 'obcflutter.firebaseapp.com',
-    databaseURL: 'https://obcflutter-default-rtdb.firebaseio.com',
-    storageBucket: 'obcflutter.appspot.com',
-    measurementId: 'G-2YN7B192RB',
+    apiKey: 'AIzaSyBZyojFbtz7d-QdfTcYEJZwuOPrY2Akd0g',
+    appId: '1:942521666785:web:eef756611e9c75ae373ba0',
+    messagingSenderId: '942521666785',
+    projectId: 'bf-obc-flutter',
+    authDomain: 'bf-obc-flutter.firebaseapp.com',
+    storageBucket: 'bf-obc-flutter.firebasestorage.app',
+    measurementId: 'G-CGHXDHTZHX',
   );
 }

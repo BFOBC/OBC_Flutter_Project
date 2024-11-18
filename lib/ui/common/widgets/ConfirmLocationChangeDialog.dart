@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ConfirmLocationChangeDialog extends StatelessWidget {
   final Function onConfirm; // Function to call when "Yes" is pressed
 
-  const ConfirmLocationChangeDialog({Key? key, required this.onConfirm}) : super(key: key);
+  const ConfirmLocationChangeDialog({super.key, required this.onConfirm});
 
   @override
   Widget build(BuildContext context) {

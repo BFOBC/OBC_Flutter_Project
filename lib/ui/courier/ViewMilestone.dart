@@ -19,7 +19,7 @@ class Milestone {
 class ViewMilestone extends StatefulWidget {
   final Milestone milestone;
 
-  const ViewMilestone({Key? key, required this.milestone}) : super(key: key);
+  const ViewMilestone({super.key, required this.milestone});
 
   @override
   _ViewMilestoneState createState() => _ViewMilestoneState();

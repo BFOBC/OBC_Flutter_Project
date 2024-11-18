@@ -9,7 +9,7 @@ class FlightDetailsDialog extends StatefulWidget {
   final int? flightIndex;
   final bool isFromBottomSheet;
 
-  const FlightDetailsDialog({this.flightDetails, this.flightIndex, required this.isFromBottomSheet, Key? key}) : super(key: key);
+  const FlightDetailsDialog({this.flightDetails, this.flightIndex, required this.isFromBottomSheet, super.key});
 
   @override
   _FlightDetailsDialogState createState() => _FlightDetailsDialogState();

@@ -1,43 +1,86 @@
-import 'dart:ffi';
-import 'Passport.dart';
-import 'Visa.dart';
+class CourierProfile {
+  String courierID;
+  String name;
+  String email;
+  String profilePicture;
+  String phoneNumber;
+  int jobCompleted;
+  String currentLocation;
+  String baseLocation;
+  bool isOnline;
+  String availabilityStatus;
+  bool isAllowedToOperate;
+  bool haveDrivingLicense;
+  bool willingToFirstLastMile;
+  bool haveCar;
+  List<Visa> visas;
+  List<Passport> passports;
 
-class CourierProfileData {
-  final String courierID; // read only
-  final String name; // read only
-  final String password;
-  final String email; // read only
-  final String profilePicture;
-  final String phoneNumber;
-  final Double jobCompleted; // Number of jobs completed first get from DB then increment
-  final Double currentLocation; // get from map or GPS
-  final Double baseLocation; // can add or change by courier from airport list on map
-  final Bool isOnline; // can change by courier nav drawer
-  final Bool availabilityStatus; // true - false
-  final Bool isAllowedToOperate; // admin will allow
-  final Bool haveDrivingLicense;
-  final Bool willingToFirstLastMile;
-  final Bool haveCar;
-  final List<Visa> visa;
-  final List<Passport> passport;
-
-  CourierProfileData({
+  CourierProfile({
     required this.courierID,
     required this.name,
-    required this.password,
-    required this.visa,
-    required this.passport,
     required this.email,
-    required this.haveDrivingLicense,
-    required this.willingToFirstLastMile,
-    required this.haveCar,
-    required this.jobCompleted,
-    required this.currentLocation,
-    required this.baseLocation,
-    required this.isOnline,
-    required this.availabilityStatus,
-    required this.isAllowedToOperate,
-    required this.profilePicture,
-    required this.phoneNumber
+    this.profilePicture = "",
+    this.phoneNumber = "",
+    this.jobCompleted = 0,
+    this.currentLocation = "",
+    this.baseLocation = "",
+    this.isOnline = false,
+    this.availabilityStatus = "",
+    this.isAllowedToOperate = false,
+    this.haveDrivingLicense = false,
+    this.willingToFirstLastMile = false,
+    this.haveCar = false,
+    this.visas = const [],
+    this.passports = const [],
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'courierID': courierID,
+      'name': name,
+      'email': email,
+      'profilePicture': profilePicture.isEmpty ? "" : profilePicture,
+      'phoneNumber': phoneNumber.isEmpty ? "" : phoneNumber,
+      'jobCompleted': jobCompleted,
+      'currentLocation': currentLocation.isEmpty ? "" : currentLocation,
+      'baseLocation': baseLocation.isEmpty ? "" : baseLocation,
+      'isOnline': isOnline,
+      'availabilityStatus': availabilityStatus.isEmpty ? "" : availabilityStatus,
+      'isAllowedToOperate': isAllowedToOperate,
+      'haveDrivingLicense': haveDrivingLicense,
+      'willingToFirstLastMile': willingToFirstLastMile,
+      'haveCar': haveCar,
+      'visas': visas.isNotEmpty ? visas.map((visa) => visa.toMap()).toList() : [],
+      'passports': passports.isNotEmpty ? passports.map((passport) => passport.toMap()).toList() : [],
+    };
+  }
+}
+
+class Visa {
+  String countryName;
+  DateTime? expiryDate;
+
+  Visa({required this.countryName, this.expiryDate});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'countryName': countryName.isEmpty ? "" : countryName,
+      'expiryDate': expiryDate != null ? expiryDate!.toIso8601String() : "",
+    };
+  }
+}
+
+class Passport {
+  String countryName;
+  DateTime? expiryDate;
+
+  Passport({required this.countryName, this.expiryDate});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'countryName': countryName.isEmpty ? "" : countryName,
+      'expiryDate': expiryDate != null ? expiryDate!.toIso8601String() : "",
+    };
+  }
 }

@@ -8,10 +8,10 @@ class CircularChartScreen extends StatelessWidget {
 
   // Constructor to accept data
   const CircularChartScreen({
-    Key? key,
+    super.key,
     required this.dataMap,
     required this.colorList,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

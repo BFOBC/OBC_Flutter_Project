@@ -2,7 +2,7 @@ import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:flutter/material.dart';
 class CustomFormField extends StatelessWidget {
   const CustomFormField({
-    Key? key,
+    super.key,
     required TextEditingController controller,
     required FocusNode focusNode,
     required TextInputType keyboardType,
@@ -20,8 +20,7 @@ class CustomFormField extends StatelessWidget {
         _inputAction = inputAction,
         _label = label,
         _hint = hint,
-        _validator = validator,
-        super(key: key);
+        _validator = validator;
 
   final TextEditingController _emailController;
   final FocusNode _emailFocusNode;

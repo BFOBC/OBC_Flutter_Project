@@ -14,7 +14,7 @@ import '../widgets/ConfirmLocationChangeDialog.dart';
 class OpenStreetMapScreen extends StatefulWidget {
   final String title;
 
-  const OpenStreetMapScreen({Key? key, required this.title}) : super(key: key);
+  const OpenStreetMapScreen({super.key, required this.title});
 
   @override
   _OpenStreetMapScreenState createState() => _OpenStreetMapScreenState();
@@ -35,8 +35,8 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
   // Add a MapController to control the map
   late MapController _mapController;
 
-  LatLng _baseLocation = LatLng(40.7128, -74.0060); // Example: New York City
-  LatLng _currentLocation = LatLng(34.0522, -118.2437); // Example: Los Angeles
+  final LatLng _baseLocation = LatLng(40.7128, -74.0060); // Example: New York City
+  final LatLng _currentLocation = LatLng(34.0522, -118.2437); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
 
 
@@ -47,7 +47,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
     'USA': LatLng(37.0902, -95.7129), // USA
   };
   // Define the markers list
-  List<Marker> _markers = [
+ /* List<Marker> _markers = [
     Marker(
       width: 80.0,
       height: 80.0,
@@ -58,7 +58,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
         size: 40,
       ),
     ),
-  ];
+  ];*/
 
   List<String> _suggestedCountries = [];
 
@@ -108,7 +108,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
               _mapController.move(_selectedLocation, 5.0);  // Move the camera to the new location
 
               // Add a new marker at the selected location
-              _markers = [
+              /*_markers = [
                 Marker(
                   width: 80.0,
                   height: 80.0,
@@ -119,7 +119,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                     size: 40,
                   ),
                 ),
-              ];
+              ];*/
               // Reset the search text to clear the search bar
               _searchText = "";
               // Optionally, you can also reset the suggestions
@@ -273,7 +273,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                       _mapController.move(_selectedLocation, 10.0);
 
                       // Add a marker at the selected location
-                      _markers = [
+                      /*_markers = [
                         Marker(
                           width: 80.0,
                           height: 80.0,
@@ -284,7 +284,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                             size: 40,
                           ),
                         ),
-                      ];
+                      ];*/
 
                       // Show Snackbar
                       String message = _isBaseSelected
@@ -339,7 +339,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
     return Center(
       child: CustomPaint(
         painter: RadarPainter(_radarAnimation.value),
-        child: Container(
+        child: SizedBox(
           width: 300,
           height: 300,
         ),
@@ -436,8 +436,8 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              center: LatLng(30.3753, 69.3451),
-              zoom: 5.0,
+              initialCenter: LatLng(30.3753, 69.3451),
+              initialZoom: 5.0,
             ),
             children: [
               TileLayer(
@@ -445,9 +445,9 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: ['a', 'b', 'c'],
               ),
-              MarkerLayer(
+              /*MarkerLayer(
                 markers: _markers,
-              ),
+              ),*/
             ],
           ),
           if (_isSearchBarVisible) // Conditionally render the search bar

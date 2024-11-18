@@ -2,7 +2,7 @@ import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({Key? key}) : super(key: key);
+  const ChatScreen({super.key});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -85,9 +85,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 // Send button
                 FloatingActionButton(
                   onPressed: _sendMessage,
-                  child: const Icon(Icons.send),
                   backgroundColor: Palette.primaryColor,
                   mini: true,
+                  child: const Icon(Icons.send),
                 ),
               ],
             ),
@@ -103,10 +103,10 @@ class ChatBubble extends StatelessWidget {
   final String text;
 
   const ChatBubble({
-    Key? key,
+    super.key,
     required this.isSender,
     required this.text,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

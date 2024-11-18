@@ -11,7 +11,7 @@ import '../../courier/models/Visa.dart';
 import '../utils/RoleProvider.dart';
 
 class CustomDrawerHeader extends StatelessWidget {
-  const CustomDrawerHeader({Key? key}) : super(key: key);
+  const CustomDrawerHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -119,10 +119,10 @@ class CustomSwitch extends StatefulWidget {
   final ValueChanged<bool> onChanged;
 
   const CustomSwitch({
-    Key? key,
+    super.key,
     required this.value,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   _CustomSwitchState createState() => _CustomSwitchState();

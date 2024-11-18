@@ -15,6 +15,8 @@ class MyApp extends StatelessWidget {
 }*/
 
 class ToggleLoginRegisterScreen extends StatefulWidget {
+  const ToggleLoginRegisterScreen({super.key});
+
   @override
   _ToggleLoginRegisterScreenState createState() => _ToggleLoginRegisterScreenState();
 }
@@ -67,6 +69,8 @@ class _ToggleLoginRegisterScreenState extends State<ToggleLoginRegisterScreen> {
 
 // Login Screen
 class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -96,6 +100,8 @@ class LoginScreen extends StatelessWidget {
 
 // Register Screen
 class RegisterScreen extends StatelessWidget {
+  const RegisterScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(

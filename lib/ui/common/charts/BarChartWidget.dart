@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class BarChartWidget extends StatelessWidget {
-  const BarChartWidget({Key? key}) : super(key: key);
+  const BarChartWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

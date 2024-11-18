@@ -5,7 +5,7 @@ import '../common/utils/CustomDialog.dart';
 import 'Milestone.dart';
 
 class JobDetails extends StatelessWidget {
-  const JobDetails({Key? key}) : super(key: key);
+  const JobDetails({super.key});
 
   @override
   Widget build(BuildContext context) {

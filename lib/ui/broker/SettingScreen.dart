@@ -2,7 +2,7 @@ import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:flutter/material.dart';
 
 class SettingScreen extends StatelessWidget {
-  const SettingScreen({Key? key}) : super(key: key);
+  const SettingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

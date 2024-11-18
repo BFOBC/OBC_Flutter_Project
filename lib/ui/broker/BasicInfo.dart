@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class BasicInfo extends StatelessWidget {
   final String name;
 
-  BasicInfo({required this.name});
+  const BasicInfo({super.key, required this.name});
 
   @override
   Widget build(BuildContext context) {

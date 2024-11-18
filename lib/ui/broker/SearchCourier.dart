@@ -16,11 +16,11 @@ class SearchCourier extends StatefulWidget {
   final String userImage;
 
   const SearchCourier({
-    Key? key,
+    super.key,
     required this.userName,
     required this.rating,
     required this.userImage,
-  }) : super(key: key);
+  });
 
   @override
   _SearchCourierState createState() => _SearchCourierState();
@@ -47,7 +47,7 @@ class _SearchCourierState extends State<SearchCourier> {
   ];
 
   // Toggle state for the buttons
-  List<bool> _selectedToggle = [true, false, false, false];
+  final List<bool> _selectedToggle = [true, false, false, false];
 
   // Define the toggle button labels
   final List<String> _toggleText = ['Basic Info', 'Passports', 'Visas', 'Rating'];

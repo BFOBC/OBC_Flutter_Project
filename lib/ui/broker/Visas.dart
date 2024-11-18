@@ -18,9 +18,9 @@ class Visas extends StatelessWidget {
   final List<Visa> visas;
 
   const Visas({
-    Key? key,
+    super.key,
     required this.visas,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

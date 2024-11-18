@@ -1,34 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
 import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
 import '../../common/screens/DrawerScreen.dart';
 import '../../common/utils/RoleProvider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
-import 'package:http/http.dart' as http;
-import 'dart:convert'; // Import for JSON parsing
-
-// User model
-class PigeonUserDetail {
-  final String id; // User ID
-  final String email; // User email
-  final String role; // User role
-
-  PigeonUserDetail({
-    required this.id,
-    required this.email,
-    required this.role,
-  });
-
-  factory PigeonUserDetail.fromJson(Map<String, dynamic> json) {
-    return PigeonUserDetail(
-      id: json['id'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      role: json['role'] as String? ?? '',
-    );
-  }
-}
 
 class LoginCard extends StatelessWidget {
   const LoginCard({super.key});
@@ -51,7 +30,7 @@ class LoginCard extends StatelessWidget {
 }
 
 class CardView extends StatefulWidget {
-  const CardView({Key? key}) : super(key: key);
+  const CardView({super.key});
 
   @override
   _CardViewState createState() => _CardViewState();
@@ -72,38 +51,42 @@ class _CardViewState extends State<CardView> {
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // Show the progress dialog
       showProgressDialog(context);
 
       try {
-        // Firebase authentication
         final auth = FirebaseAuth.instance;
         UserCredential userCredential = await auth.signInWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
 
-        // Fetch user details after successful login
-        PigeonUserDetail userDetail = await fetchUserDetails(userCredential.user!.uid);
-
-        // Set the role based on the selected toggle
+        // Get role from selected index
         final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-        roleProvider.setRole(_selectedIndex == 0 ? UserRole.broker : UserRole.courier);
+        final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
+        roleProvider.setRole(role);
 
-        // Hide the progress dialog after API call completes
+        // Store user info in Firestore based on role
+        final firestore = FirebaseFirestore.instance;
+        final collectionName = _selectedIndex == 0 ? 'broker' : 'courier';
+        final user = userCredential.user;
+
+        if (user != null) {
+          await firestore.collection(collectionName).doc(user.uid).set({
+            'email': user.email,
+            'uid': user.uid,
+          });
+        }
+
         hideProgressDialog(context);
 
-        // Navigate to the next screen
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const DrawerScreen(),
           ),
         );
       } on FirebaseAuthException catch (e) {
-        // Hide progress dialog in case of error
         hideProgressDialog(context);
 
-        // Show Firebase-specific error message
         String errorMessage;
         switch (e.code) {
           case 'user-not-found':
@@ -125,22 +108,6 @@ class _CardViewState extends State<CardView> {
           SnackBar(content: Text('Login failed: $error')),
         );
       }
-    }
-  }
-
-  Future<PigeonUserDetail> fetchUserDetails(String userId) async {
-    final response = await http.get(Uri.parse('https://your-api.com/users/$userId'));
-
-    if (response.statusCode == 200) {
-      // Attempt to parse the JSON
-      try {
-        final Map<String, dynamic> jsonData = jsonDecode(response.body);
-        return PigeonUserDetail.fromJson(jsonData);
-      } catch (e) {
-        throw Exception('Failed to parse user details: $e');
-      }
-    } else {
-      throw Exception('Failed to load user details: ${response.reasonPhrase}');
     }
   }
 

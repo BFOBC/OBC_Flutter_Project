@@ -16,7 +16,7 @@ import 'Home.dart';
 import 'NotificationsScreen.dart';
 
 class DrawerScreen extends StatefulWidget {
-  const DrawerScreen({Key? key}) : super(key: key);
+  const DrawerScreen({super.key});
 
   @override
   _DrawerScreenState createState() => _DrawerScreenState();
@@ -191,11 +191,11 @@ class DrawerItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const DrawerItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

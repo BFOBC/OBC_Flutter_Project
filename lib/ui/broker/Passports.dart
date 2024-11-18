@@ -18,9 +18,9 @@ class Passports extends StatelessWidget {
   final List<Passport> passports;
 
   const Passports({
-    Key? key,
+    super.key,
     required this.passports,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

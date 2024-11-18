@@ -6,7 +6,7 @@ import 'AddEmptyLegDialog.dart';
 import 'CardStackWidget.dart';
 
 class EmptyLegMainScreen extends StatefulWidget {
-  const EmptyLegMainScreen({Key? key}) : super(key: key);
+  const EmptyLegMainScreen({super.key});
 
   @override
   _EmptyLegMainScreenState createState() => _EmptyLegMainScreenState();

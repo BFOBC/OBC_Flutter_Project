@@ -6,7 +6,7 @@ import 'EmptyLegMainScreen.dart';
 class CardStackWidget extends StatelessWidget {
   final List<FlightDetails> flightDetailsList;
 
-  const CardStackWidget({Key? key, required this.flightDetailsList}) : super(key: key);
+  const CardStackWidget({super.key, required this.flightDetailsList});
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,7 @@ import '../data/Task.dart';
 
 class TaskViewModel extends ChangeNotifier {
   // List to store all tasks
-  List<Task> _tasks = [];
+  final List<Task> _tasks = [];
 
   List<Task> get tasks => _tasks;
 

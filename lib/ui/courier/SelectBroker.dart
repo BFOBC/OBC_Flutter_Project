@@ -13,11 +13,11 @@ class SelectBroker extends StatefulWidget {
   final String userImage;
 
   const SelectBroker({
-    Key? key,
+    super.key,
     required this.userName,
     required this.rating,
     required this.userImage,
-  }) : super(key: key);
+  });
 
   @override
   _SearchCourierState createState() => _SearchCourierState();
@@ -40,7 +40,7 @@ class _SearchCourierState extends State<SelectBroker> {
     Colors.blue,
   ];
 
-  List<bool> _selectedToggle = [true, false]; // Default is 'Basic Info' selected
+  final List<bool> _selectedToggle = [true, false]; // Default is 'Basic Info' selected
   final List<String> _toggleText = ['Basic Info', 'Rating'];
 
   void _onTogglePressed(int index) {

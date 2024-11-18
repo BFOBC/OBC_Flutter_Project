@@ -9,7 +9,7 @@ import 'AddNewMilestone.dart';      // Import the Add New Milestone screen
 
 class ManageLegsAndMilestones extends StatefulWidget {
   final Task? data; // Replace YourDataType with the actual type of your data object
-  const ManageLegsAndMilestones({Key? key, this.data}) : super(key: key);
+  const ManageLegsAndMilestones({super.key, this.data});
 
   @override
   _ManageLegsAndMilestonesState createState() => _ManageLegsAndMilestonesState();

@@ -9,16 +9,16 @@ import '../broker/SearchCourier.dart';
 class CourierMap extends StatefulWidget {
   final String title;
 
-  const CourierMap({Key? key, required this.title}) : super(key: key);
+  const CourierMap({super.key, required this.title});
 
   @override
   _OpenStreetMapScreenState createState() => _OpenStreetMapScreenState();
 }
 
 class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProviderStateMixin {
-  bool _isSearching = false; // Radar animation state
-  bool _showMarkers = false; // Controls marker display after radar animation
-  List<Marker> _markers = []; // List of markers
+  final bool _isSearching = false; // Radar animation state
+  final bool _showMarkers = false; // Controls marker display after radar animation
+  final List<Marker> _markers = []; // List of markers
 
   late AnimationController _radarController;
   late Animation<double> _radarAnimation;
@@ -40,7 +40,7 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
   }
 
   // Handle search input and trigger radar animation and markers
-  void _onSearch(String query) {
+  /*void _onSearch(String query) {
     if (query.isNotEmpty) {
       setState(() {
         _isSearching = true;
@@ -61,14 +61,14 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
         _isSearching = false;
       });
     }
-  }
+  }*/
 
   // Radar animation widget
   Widget _buildRadarAnimation() {
     return Center(
       child: CustomPaint(
         painter: RadarPainter(_radarAnimation.value),
-        child: Container(
+        child: SizedBox(
           width: 300,
           height: 300,
         ),
@@ -76,7 +76,7 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
     );
   }
 
-  // Generate mock markers with random locations and data
+  /*// Generate mock markers with random locations and data
   List<Marker> _generateMockMarkers() {
     List<Marker> mockMarkers = [];
     for (int i = 0; i < 4; i++) {
@@ -106,7 +106,7 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
       mockMarkers.add(marker);
     }
     return mockMarkers;
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -115,8 +115,8 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
         // Map Widget
         FlutterMap(
           options: MapOptions(
-            center: LatLng(30.3753, 69.3451), // Initial map center
-            zoom: 5.0, // Initial zoom level
+            initialCenter: LatLng(30.3753, 69.3451), // Initial map center
+            initialZoom: 5.0, // Initial zoom level
           ),
           children: [
             TileLayer(
@@ -151,7 +151,6 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
                 const SizedBox(width: 10.0),
                 Expanded(
                   child: TextField(
-                    onChanged: _onSearch,
                     decoration: const InputDecoration(
                       hintText: 'Search Location',
                       border: InputBorder.none,

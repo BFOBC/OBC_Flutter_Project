@@ -16,7 +16,7 @@ class ViewCourierMission extends StatefulWidget {
     endTimeAndDate: '2024-10-05 05:00 PM',
     status: 'In Progress',
   );
-  ViewCourierMission({Key? key, this.data}) : super(key: key);
+  ViewCourierMission({super.key, this.data});
 
   @override
   _ViewCourierMissionState createState() => _ViewCourierMissionState();

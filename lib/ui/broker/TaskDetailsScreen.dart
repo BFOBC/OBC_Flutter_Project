@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class TaskDetailsScreen extends StatelessWidget {
   final Map<String, String> taskDetails;
 
-  const TaskDetailsScreen({Key? key, required this.taskDetails}) : super(key: key);
+  const TaskDetailsScreen({super.key, required this.taskDetails});
 
   @override
   Widget build(BuildContext context) {

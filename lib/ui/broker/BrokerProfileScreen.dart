@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class BrokerProfileScreen extends StatefulWidget {
   final BrokerProfileData profile;
 
-  const BrokerProfileScreen({Key? key, required this.profile}) : super(key: key);
+  const BrokerProfileScreen({super.key, required this.profile});
 
   @override
   _BrokerProfileScreenState createState() => _BrokerProfileScreenState();

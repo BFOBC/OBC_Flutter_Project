@@ -3,7 +3,7 @@ import 'data/Task.dart';
 
 class PlaceNewJob extends StatefulWidget {
   final Task? data; // The Task object received
-  const PlaceNewJob({Key? key, this.data}) : super(key: key);
+  const PlaceNewJob({super.key, this.data});
 
   @override
   PlaceNewJobState createState() => PlaceNewJobState();
@@ -152,7 +152,7 @@ class PlaceNewJobState extends State<PlaceNewJob> {
           selectedTime.minute,
         );
 
-        String formattedDateTime = "${selectedDateTime.toLocal()}".split(' ')[0] + ' ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
+        String formattedDateTime = '${"${selectedDateTime.toLocal()}".split(' ')[0]} ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
         controller.text = formattedDateTime;
       }
     }
