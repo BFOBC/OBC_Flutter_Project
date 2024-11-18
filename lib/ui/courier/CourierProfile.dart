@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../common/utils/dialog_utils.dart';
 import 'models/CourierProfileData.dart';
 import 'models/Visa.dart';
 import 'models/Passport.dart';
@@ -175,13 +177,18 @@ class _CourierProfileState extends State<CourierProfile> {
 
     print("Saving data: $data"); // Debugging the data to verify output
 
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+    final userUID = currentUser.uid;
     await FirebaseFirestore.instance
-        .collection('couriers')
-        .doc(widget.courierProfile.courierID)
-        .set(data);
-
+        .collection('courier')
+        .doc(userUID)
+        .set(data, SetOptions(merge: true));
+    hideProgressDialog(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Profile saved successfully!')),
+      const SnackBar(content: Text('Profile saved successfully')),
     );
   } catch (e) {
     print("Error saving profile: $e");
@@ -212,11 +219,11 @@ class _CourierProfileState extends State<CourierProfile> {
               ),
               const SizedBox(height: 20),
               // Profile Information in rounded containers with white backgrounds
-              _buildProfileField('ID', widget.courierProfile.id),
+              _buildProfileField('ID', widget.courierProfile.id.toString()),
               const SizedBox(height: 10),
-              _buildProfileField('Name', widget.courierProfile.name),
+              _buildProfileField('Name', widget.courierProfile.name.toString()),
               const SizedBox(height: 10),
-              _buildNonEditableField('Email', widget.courierProfile.email),
+              _buildNonEditableField('Email', widget.courierProfile.email.toString()),
               // Email non-editable
               const SizedBox(height: 5),
 
@@ -298,6 +305,7 @@ class _CourierProfileState extends State<CourierProfile> {
                 onPressed: () async {
                   // Add your save logic here
                   print("Saving profile...");
+                  showProgressDialog(context);
                   await _saveCourierProfile();
                 },
                 child: const Text('Save'),

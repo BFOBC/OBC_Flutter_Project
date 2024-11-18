@@ -1,22 +1,49 @@
 class CourierProfileData {
-  final String id;
-  final String name;
-  final String website;
-  final String country;
-  final List<String> license;  // Make sure license is a List<String>
-  final String email;
-  final String paymentTerms;
+  final String? id; // Nullable
+  final String? name; // Nullable
+  final String? website; // Nullable
+  final String? country; // Nullable
+  final List<String>? license; // Nullable
+  final String? email; // Nullable
+  final String? paymentTerms; // Nullable
+
   CourierProfileData({
-    required this.id,
-    required this.name,
-    required this.website,
-    required this.country,
-    required this.license,
-    required this.email,
-    required this.paymentTerms,// This should now be a list of strings
+    this.id,
+    this.name,
+    this.website,
+    this.country,
+    this.license,
+    this.email,
+    this.paymentTerms,
   });
 
-  String? get courierID => null;
+  // Method to convert to Map and ignore null values
+  Map<String, dynamic> toMap() {
+    final data = <String, dynamic>{};
 
-  toMap() {}
+    if (id != null) data['id'] = id;
+    if (name != null) data['name'] = name;
+    if (website != null) data['website'] = website;
+    if (country != null) data['country'] = country;
+    if (license != null) data['license'] = license;
+    if (email != null) data['email'] = email;
+    if (paymentTerms != null) data['paymentTerms'] = paymentTerms;
+
+    return data;
+  }
+
+  // Factory method to create an instance from a Map
+  factory CourierProfileData.fromMap(Map<String, dynamic> map) {
+    return CourierProfileData(
+      id: map['id'] as String?,
+      name: map['name'] as String?,
+      website: map['website'] as String?,
+      country: map['country'] as String?,
+      license: (map['license'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      email: map['email'] as String?,
+      paymentTerms: map['paymentTerms'] as String?,
+    );
+  }
+
+  String? get courierID => id;
 }
