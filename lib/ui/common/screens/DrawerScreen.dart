@@ -1,3 +1,4 @@
+import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/MapScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
@@ -8,7 +9,7 @@ import '../../broker/MyMissions.dart';
 import '../../broker/NotificationScreen.dart';
 import '../../broker/SettingScreen.dart';
 import '../../broker/emptyleg/SearchEmptyLeg.dart';
-import '../../chat/ChatScreen.dart';
+import '../../chat/ChatDetailScreen.dart';
 import '../../courier/CourierMissions.dart';
 import '../../courier/emptyleg/EmptyLegMainScreen.dart';
 import '../utils/RoleProvider.dart';
@@ -102,21 +103,19 @@ class _DrawerScreenState extends State<DrawerScreen> {
         case AppStrings.availabilityUpdates:
           if (roleProvider.role == UserRole.broker) {
             _showSnackBar("I am Broker");
-            _selectedWidget = const SearchEmptyLegScreen();
+            _selectedWidget =  SearchEmptyLegScreen();
           } else if (roleProvider.role == UserRole.courier) {
             _showSnackBar("I am Courier");
             _selectedWidget = const EmptyLegMainScreen();
           }
           break;
         case AppStrings.chat:
-          _selectedWidget = const ChatScreen();
+          _selectedWidget = ChatListScreen();
           break;
         case AppStrings.myMissions:
           if (roleProvider.role == UserRole.broker) {
-            _showSnackBar("I am Broker");
             _selectedWidget = const MyMissions();
           } else if (roleProvider.role == UserRole.courier) {
-            _showSnackBar("I am Courier");
             _selectedWidget = const CourierMissions();
           }
           break;

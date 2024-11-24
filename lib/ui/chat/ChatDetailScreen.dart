@@ -1,45 +1,58 @@
-import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+class ChatDetailScreen extends StatefulWidget {
+  final String chatId;
+  ChatDetailScreen({required this.chatId});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  _ChatDetailScreenState createState() => _ChatDetailScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _textController = TextEditingController();
-  final List<String> _messages = [
-    'This is a chat message 1',  // Hardcoded message 1
-    'This is a chat message 2',  // Hardcoded message 2
-    'This is a chat message 3',  // Hardcoded message 3
-  ];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void _sendMessage() {
+  // Function to send a message
+  void _sendMessage() async {
     if (_textController.text.isNotEmpty) {
-      setState(() {
-        _messages.add(_textController.text); // Add the new message to the list
-      });
-      _textController.clear(); // Clear the text input field
+      try {
+        String currentUserID=getCurrentUserId();
+        await _firestore.collection('chats').add({
+          'message': _textController.text,
+          'senderId': currentUserID,
+          'receiverId': widget.chatId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        _textController.clear();
+      } catch (error, stackTrace) {
+        print('Exception: $error');
+        print('StackTrace: $stackTrace');
+      }
     }
+  }
+  String getCurrentUserId() {
+    // Replace this with your actual logic to retrieve the user ID
+    return FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: true, // Removes back button
-        backgroundColor: Palette.secondaryColor, // Set header background color
+        automaticallyImplyLeading: true,
+        backgroundColor: Palette.secondaryColor,
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Space between text and image
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'Bilawal',
               style: TextStyle(color: Colors.white, fontSize: 14),
             ),
             Image.asset(
-              'assets/avatar.png', // Replace with your asset image path
+              'assets/avatar.png',
               width: 40,
               height: 40,
             ),
@@ -49,23 +62,38 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(10),
-              itemCount: _messages.length, // Show all messages, including hardcoded ones
-              itemBuilder: (context, index) {
-                return ChatBubble(
-                  isSender: index % 2 == 0, // Alternate sender and receiver
-                  text: _messages[index],
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('chats')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(10),
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final text = message['message'] ?? '';
+                    final isSender = message['senderId'] == getCurrentUserId; // Replace with dynamic check
+                    return ChatBubble(
+                      isSender: isSender,
+                      text: text,
+                    );
+                  },
                 );
               },
             ),
           ),
-          // Input field with Send button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
               children: [
-                // Text input field
                 Expanded(
                   child: TextField(
                     controller: _textController,
@@ -82,7 +110,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Send button
                 FloatingActionButton(
                   onPressed: _sendMessage,
                   backgroundColor: Palette.primaryColor,

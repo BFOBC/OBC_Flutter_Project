@@ -1,3 +1,6 @@
+import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
+import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
+
 class CourierProfile {
   String courierID;
   String name;
@@ -51,36 +54,14 @@ class CourierProfile {
       'haveDrivingLicense': haveDrivingLicense,
       'willingToFirstLastMile': willingToFirstLastMile,
       'haveCar': haveCar,
-      'visas': visas.isNotEmpty ? visas.map((visa) => visa.toMap()).toList() : [],
-      'passports': passports.isNotEmpty ? passports.map((passport) => passport.toMap()).toList() : [],
-    };
-  }
-}
+      'visas': visas.isNotEmpty ? visas.map((visa) => visa!.toMap()).toList() : [],
+      'passports': passports.isNotEmpty
+          ? passports
+          .map((passport) => passport?.toMap()) // This will work now that toMap is defined
+          .toList()
+          : [],
 
-class Visa {
-  String countryName;
-  DateTime? expiryDate;
 
-  Visa({required this.countryName, this.expiryDate});
-
-  Map<String, dynamic> toMap() {
-    return {
-      'countryName': countryName.isEmpty ? "" : countryName,
-      'expiryDate': expiryDate != null ? expiryDate!.toIso8601String() : "",
-    };
-  }
-}
-
-class Passport {
-  String countryName;
-  DateTime? expiryDate;
-
-  Passport({required this.countryName, this.expiryDate});
-
-  Map<String, dynamic> toMap() {
-    return {
-      'countryName': countryName.isEmpty ? "" : countryName,
-      'expiryDate': expiryDate != null ? expiryDate!.toIso8601String() : "",
     };
   }
 }

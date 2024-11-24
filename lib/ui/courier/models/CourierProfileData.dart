@@ -1,3 +1,9 @@
+
+
+import '../../common/models/CourierProfileData.dart';
+import '../../common/models/Passport.dart';
+import '../../common/models/Visa.dart';
+
 class CourierProfileData {
   final String? id; // Nullable
   final String? name; // Nullable
@@ -6,6 +12,8 @@ class CourierProfileData {
   final List<String>? license; // Nullable
   final String? email; // Nullable
   final String? paymentTerms; // Nullable
+  final List<Visa> visas;
+  final List<Passport> passports;
 
   CourierProfileData({
     this.id,
@@ -15,6 +23,8 @@ class CourierProfileData {
     this.license,
     this.email,
     this.paymentTerms,
+    required this.visas,
+    required this.passports,
   });
 
   // Method to convert to Map and ignore null values
@@ -42,7 +52,8 @@ class CourierProfileData {
       license: (map['license'] as List<dynamic>?)?.map((e) => e as String).toList(),
       email: map['email'] as String?,
       paymentTerms: map['paymentTerms'] as String?,
-    );
+      visas: (map['visa'] as List<dynamic>?)!.map((e) => e as Visa).toList(),
+      passports: (map['passport'] as List<dynamic>?)!.map((e) => e as Passport).toList());
   }
 
   String? get courierID => id;

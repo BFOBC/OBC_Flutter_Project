@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
 
-class Passport {
-  final String name;
-  final String passportNumber;
-  final String issueDate;
-  final String expiryDate;
+import '../common/models/CourierProfileData.dart';
+import '../common/models/Passport.dart';
 
-  Passport({
-    required this.name,
-    required this.passportNumber,
-    required this.issueDate,
-    required this.expiryDate,
-  });
-}
 
 class Passports extends StatelessWidget {
   final List<Passport> passports;
@@ -62,7 +52,7 @@ class Passports extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Name: ${passport.name}',
+            'Name: ${passport.countryName}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16.0,

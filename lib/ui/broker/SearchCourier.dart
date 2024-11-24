@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
+import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -123,13 +125,13 @@ class _SearchCourierState extends State<SearchCourier> {
                   Passports(
                     passports: [
                       Passport(
-                        name: 'John Doe',
+                        countryName: 'John Doe',
                         passportNumber: 'A123456789',
                         issueDate: '2020-01-01',
                         expiryDate: '2030-01-01',
                       ),
                       Passport(
-                        name: 'Jane Doe',
+                        countryName: 'Jane Doe',
                         passportNumber: 'B987654321',
                         issueDate: '2021-02-15',
                         expiryDate: '2031-02-15',
@@ -139,17 +141,15 @@ class _SearchCourierState extends State<SearchCourier> {
                 if (_showVisas)
                   Visas(
                     visas: [
-                      Visa(
+/*                      Visa(
                         country: 'Country A',
                         countryFlagUrl: 'https://example.com/flagA.png',
                         visaExpiryDate: '2025-12-31',
                         visaIssueDate: '2023-01-01',
-                      ),
+                      ),*/
                       Visa(
-                        country: 'Country B',
-                        countryFlagUrl: 'https://example.com/flagB.png',
-                        visaExpiryDate: '2026-06-30',
-                        visaIssueDate: '2024-02-15',
+                        countryName: 'Country B',
+                        expiryDate: '2026-06-30',
                       ),
                     ],
                   ),

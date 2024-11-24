@@ -1,23 +1,15 @@
+import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
+import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../common/utils/dialog_utils.dart';
 import 'models/CourierProfileData.dart';
-import 'models/Visa.dart';
-import 'models/Passport.dart';
 
 class CourierProfile extends StatefulWidget {
-  final List<Visa> visas;
-  final List<Passport> passports;
   final CourierProfileData courierProfile;
 
-  const CourierProfile({
-    super.key,
-    required this.courierProfile,
-    required this.visas,
-    required this.passports,
-  });
-
+  const CourierProfile({super.key, required this.courierProfile});
   @override
   _CourierProfileState createState() => _CourierProfileState();
 }
@@ -35,17 +27,17 @@ class _CourierProfileState extends State<CourierProfile> {
   void initState() {
     super.initState();
     // Initialize controllers for existing visas and passports
-    _visaCountryControllers = widget.visas
+    _visaCountryControllers = widget.courierProfile.visas
         .map((visa) => TextEditingController(text: visa.countryName))
         .toList();
-    _visaExpiryControllers = widget.visas
-        .map((visa) => TextEditingController(text: visa.expiryDate))
+    _visaExpiryControllers = widget.courierProfile.visas
+        .map((visa) => TextEditingController(text: visa.expiryDate.toString()))
         .toList();
-    _passportCountryControllers = widget.passports
+    _passportCountryControllers = widget.courierProfile.passports
         .map((passport) => TextEditingController(text: passport.countryName))
         .toList();
-    _passportExpiryControllers = widget.passports
-        .map((passport) => TextEditingController(text: passport.expiryDate))
+    _passportExpiryControllers = widget.courierProfile.passports
+        .map((passport) => TextEditingController(text: passport.expiryDate.toString()))
         .toList();
   }
 
@@ -71,6 +63,8 @@ class _CourierProfileState extends State<CourierProfile> {
   void _showAddDialog(String type) {
     TextEditingController countryController = TextEditingController();
     TextEditingController expiryController = TextEditingController();
+    TextEditingController passportNumberController = TextEditingController();
+    TextEditingController issueDateController = TextEditingController();
 
     showDialog(
       context: context,
@@ -82,11 +76,11 @@ class _CourierProfileState extends State<CourierProfile> {
             children: [
               TextField(
                 controller: countryController,
-                decoration: const InputDecoration(hintText: 'Country'),
+                decoration: InputDecoration(hintText: 'Country'),
               ),
               TextField(
                 controller: expiryController,
-                decoration: const InputDecoration(hintText: 'Expiry Date'),
+                decoration: InputDecoration(hintText: 'Expiry Date'),
               ),
             ],
           ),
@@ -96,9 +90,9 @@ class _CourierProfileState extends State<CourierProfile> {
                 if (type == 'Visa') {
                   setState(() {
                     // Add the new visa to the list
-                    widget.visas.add(Visa(
+                    widget.courierProfile.visas.add(Visa(
                       countryName: countryController.text,
-                      expiryDate: expiryController.text,
+                      expiryDate:  DateTime.parse(expiryController.text).toString(),
                     ));
                     // Also, add controllers for the new visa
                     _visaCountryControllers.add(
@@ -109,9 +103,11 @@ class _CourierProfileState extends State<CourierProfile> {
                 } else if (type == 'Passport') {
                   setState(() {
                     // Add the new passport to the list
-                    widget.passports.add(Passport(
+                    widget.courierProfile.passports.add(Passport(
                       countryName: countryController.text,
-                      expiryDate: expiryController.text,
+                      passportNumber: "test134",
+                      expiryDate:  DateTime.parse(expiryController.text).toString(),
+                      issueDate:  DateTime.parse(expiryController.text).toString(),
                     ));
                     // Also, add controllers for the new passport
                     _passportCountryControllers.add(
@@ -122,11 +118,11 @@ class _CourierProfileState extends State<CourierProfile> {
                 }
                 Navigator.of(context).pop();
               },
-              child: const Text('Add'),
+              child: Text('Add'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
             ),
           ],
         );
@@ -148,23 +144,23 @@ class _CourierProfileState extends State<CourierProfile> {
                 setState(() {
                   if (type == 'Visa') {
                     // Remove the visa from the list
-                    widget.visas.removeAt(index);
+                    widget.courierProfile.visas.removeAt(index);
                     _visaCountryControllers.removeAt(index);
                     _visaExpiryControllers.removeAt(index);
                   } else if (type == 'Passport') {
                     // Remove the passport from the list
-                    widget.passports.removeAt(index);
+                    widget.courierProfile.passports.removeAt(index);
                     _passportCountryControllers.removeAt(index);
                     _passportExpiryControllers.removeAt(index);
                   }
                 });
                 Navigator.of(context).pop();
               },
-              child: const Text('Delete'),
+              child: Text('Delete'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
             ),
           ],
         );
@@ -172,31 +168,31 @@ class _CourierProfileState extends State<CourierProfile> {
     );
   }
   Future<void> _saveCourierProfile() async {
-  try {
-    final data = widget.courierProfile.toMap();
+    try {
+      final data = widget.courierProfile.toMap();
 
-    print("Saving data: $data"); // Debugging the data to verify output
+      print("Saving data: $data"); // Debugging the data to verify output
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      return;
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        return;
+      }
+      final userUID = currentUser.uid;
+      await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(userUID)
+          .set(data, SetOptions(merge: true));
+      hideProgressDialog(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile saved successfully')),
+      );
+    } catch (e) {
+      print("Error saving profile: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save profile: $e')),
+      );
     }
-    final userUID = currentUser.uid;
-    await FirebaseFirestore.instance
-        .collection('courier')
-        .doc(userUID)
-        .set(data, SetOptions(merge: true));
-    hideProgressDialog(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile saved successfully')),
-    );
-  } catch (e) {
-    print("Error saving profile: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to save profile: $e')),
-    );
   }
-}
 
 
 
@@ -213,7 +209,7 @@ class _CourierProfileState extends State<CourierProfile> {
           child: Column(
             children: [
               // Avatar
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 50,
                 backgroundImage: AssetImage('assets/avatar.png'),
               ),
@@ -259,7 +255,7 @@ class _CourierProfileState extends State<CourierProfile> {
                         ],
                       ),
                     ),
-                    const Divider(), // Optional divider between switches
+                    Divider(), // Optional divider between switches
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: Row(
@@ -277,7 +273,7 @@ class _CourierProfileState extends State<CourierProfile> {
                         ],
                       ),
                     ),
-                    const Divider(), // Optional divider between switches
+                    Divider(), // Optional divider between switches
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: Row(
@@ -379,7 +375,7 @@ class _CourierProfileState extends State<CourierProfile> {
         title: Text(countryController.text),
         subtitle: Text('Expiry Date: ${expiryController.text}'),
         trailing: IconButton(
-          icon: const Icon(Icons.delete, color: Colors.red),
+          icon: Icon(Icons.delete, color: Colors.red),
           onPressed: () => _showDeleteConfirmation(index, type),
         ),
       ),
