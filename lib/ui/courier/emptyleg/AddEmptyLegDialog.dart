@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../common/utils/CustomDialog.dart';
@@ -44,8 +45,9 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
         TextEditingController(text: widget.flightDetails?.capacity ?? '');
   }
 
-  Future<void> _saveToFirestore() async {
+  Future<void> _saveToFirStore() async {
   try {
+    String courierID=getCurrentUserId();
     await FirebaseFirestore.instance.collection('emptyLegs').add({
       'fromLocation': _fromLocationController.text,
       'toLocation': _toLocationController.text,
@@ -54,12 +56,17 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       'flightNumber': _flightNumberController.text,
       'capacity': _capacityController.text,
       'createdAt': DateTime.now().toIso8601String(),
+      'courierID':courierID
     });
     CustomDialog.showCustomDialog2(context, "Empty Leg Added Successfully");
   } catch (e) {
     CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
   }
 }
+  String getCurrentUserId() {
+    // Replace this with your actual logic to retrieve the user ID
+    return FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+  }
 
 
   @override
@@ -156,7 +163,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
                                 // Instead of manually creating FlightDetails, directly call _saveToFirestore// 
-                                _saveToFirestore();
+                                _saveToFirStore();
                                 }
                                 },
                                 style: ElevatedButton.styleFrom(

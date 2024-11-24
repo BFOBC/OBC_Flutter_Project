@@ -1,7 +1,11 @@
+import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
+import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import '../../common/utils/CustomDialog.dart';
 
 class FlightData {
   final DateTime fromDateTime; // Change to DateTime
@@ -22,13 +26,13 @@ class FlightData {
 }
 
 class SearchEmptyLegScreen extends StatefulWidget {
-  const SearchEmptyLegScreen({super.key});
-
+  SearchEmptyLegScreen({super.key});
   @override
   _SearchEmptyLegScreenState createState() => _SearchEmptyLegScreenState();
 }
 
 class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
+  String courierID="";
   final TextEditingController _searchController1 = TextEditingController();
   final TextEditingController _searchController2 = TextEditingController();
   
@@ -52,6 +56,10 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     FirebaseFirestore.instance.collection('emptyLegs').snapshots().listen((snapshot) {
       final List<FlightData> flightList = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
+
+         courierID = data['courierID'] is String
+            ? (data['courierID'] as String)
+            : data['courierID'].toString();
 
         // Safely parse fromDateTime and toDateTime
         final fromDateTime = data['fromDateTime'] is Timestamp
@@ -88,7 +96,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 }
 
 
-
   double _calculateProgress(DateTime start, DateTime end) {
     final DateTime now = DateTime.now().toUtc();
 
@@ -100,18 +107,16 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     return (now.difference(start).inMinutes / end.difference(start).inMinutes);
   }
 
-// Function to display dialog with Flight Details
-  void _showFlightDialog(FlightData flight) {
+  void _showFlightDialog(BuildContext context, FlightData flight) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            // This will track whether the booking is made
             bool isBooked = false;
 
             return AlertDialog(
-              titlePadding: EdgeInsets.zero, // Remove default padding for the close button
+              titlePadding: EdgeInsets.zero,
               title: Stack(
                 children: [
                   const Padding(
@@ -145,7 +150,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   const SizedBox(height: 8),
                   Text('Capacity: ${flight.capacity}'),
                   const SizedBox(height: 20),
-                  // Centered button with manual state change
                   Center(
                     child: isBooked
                         ? const Icon(
@@ -155,8 +159,9 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                     )
                         : ElevatedButton(
                       onPressed: () {
+                        _sendBookRequest();
                         setState(() {
-                          isBooked = true; // Trigger button to icon change
+                          isBooked = true;
                         });
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -165,14 +170,28 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   ),
                 ],
               ),
+              actions: [
+                // Chat button at the bottom-right of the dialog
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the dialog
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) =>  ChatDetailScreen(chatId:courierID))); // Navigate to chat screen
+                    },
+                    backgroundColor: Colors.blue,
+                    child: const Icon(Icons.chat),
+                  ),
+                ),
+              ],
             );
           },
         );
       },
     );
   }
-
-
 
 
 
@@ -231,7 +250,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   double progress = _calculateProgress(flight.fromDateTime, flight.toDateTime);
 
                   return GestureDetector(
-                    onTap: () => _showFlightDialog(flight), // Show dialog on item click
+                    onTap: () => _showFlightDialog(context,flight), // Show dialog on item click
                     child: Card(
                       color: Colors.white,
                       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -321,4 +340,29 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     _searchController2.dispose();
     super.dispose();
   }
+  String getCurrentUserId() {
+    // Replace this with your actual logic to retrieve the user ID
+    return FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+  }
+
+  Future<void> _sendBookRequest() async {
+    try {
+      String brokerID = getCurrentUserId();
+      // Generate a custom nodeID (you can replace this with any unique value generator)
+      String nodeID = FirebaseFirestore.instance.collection('emptyLegRequests').doc().id;
+
+      await FirebaseFirestore.instance.collection('emptyLegRequests').doc(nodeID).set({
+        'nodeID': nodeID, // Add nodeID explicitly
+        'brokerID': brokerID,
+        'status': false,
+        'requestDateTime': DateTime.now().toIso8601String(),
+        'courierID': courierID,
+      });
+
+      CustomDialog.showCustomDialog2(context, "Request Successfully");
+    } catch (e) {
+      CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
+    }
+  }
+
 }

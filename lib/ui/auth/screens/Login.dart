@@ -52,7 +52,6 @@ class _CardViewState extends State<CardView> {
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       showProgressDialog(context);
-
       try {
         final auth = FirebaseAuth.instance;
         UserCredential userCredential = await auth.signInWithEmailAndPassword(
@@ -134,6 +133,11 @@ class _CardViewState extends State<CardView> {
                       _selectedIndex = index;
                       _selectedToggle[index] = true;
                       _selectedToggle[1 - index] = false;
+                      if (_selectedIndex==0) {
+                        _emailController.text='broker@gmail.com';
+                      } else{
+                        _emailController.text='courier@gmail.com';
+                      }
                     });
                   },
                   borderRadius: BorderRadius.circular(10),
