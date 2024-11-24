@@ -1,5 +1,10 @@
 import 'package:broker_flutter_pp/ui/broker/data/BrokerProfileData.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import '../common/utils/RoleProvider.dart';
 
 class BrokerProfileScreen extends StatefulWidget {
   final BrokerProfileData profile;
@@ -13,20 +18,26 @@ class BrokerProfileScreen extends StatefulWidget {
 class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   List<TextEditingController> _licenseControllers = [];
   final TextEditingController _paymentTermsController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
+
+
 
   @override
   void initState() {
     super.initState();
-    // Initialize text controllers with existing licenses and profile information
-    _licenseControllers = widget.profile.license
-        .map((license) => TextEditingController(text: license))
-        .toList();
+    _nameController.text = widget.profile.name;
+    _websiteController.text = widget.profile.website;
+    _countryController.text = widget.profile.country;
     _paymentTermsController.text = widget.profile.paymentTerms;
+
+    _licenseControllers = widget.profile.license.map((license) => TextEditingController(text: license)).toList();
   }
+
 
   @override
   void dispose() {
-    // Dispose of all controllers when the widget is disposed
     for (var controller in _licenseControllers) {
       controller.dispose();
     }
@@ -34,19 +45,58 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     super.dispose();
   }
 
-  // Adds a new license text field
+  // Ensure user is authenticated
+  Future<User> _ensureAuthenticated() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      user = (await FirebaseAuth.instance.signInAnonymously()).user;
+    }
+    return user!;
+  }
+
+  Future<void> _saveProfile() async {
+  try {
+    final firestore = FirebaseFirestore.instance;
+    final updatedLicenses = _licenseControllers.map((c) => c.text).toList();
+
+    final updatedProfile = BrokerProfileData(
+      id: widget.profile.id,
+      name: _nameController.text,
+      website: _websiteController.text,
+      country: _countryController.text,
+      license: updatedLicenses,
+      email: widget.profile.email,
+      paymentTerms: _paymentTermsController.text,
+    );
+
+    // Save to Firestore
+    await firestore.collection('broker').add(updatedProfile.toMap());
+
+    // Update profile in RoleProvider
+    Provider.of<RoleProvider>(context, listen: false).updateProfile(updatedProfile);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile saved successfully!')),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error saving profile: $e')),
+    );
+  }
+}
+
+
   void _addLicenseField() {
     setState(() {
       _licenseControllers.add(TextEditingController());
     });
   }
 
-  // Removes a specific license field
   void _removeLicenseField(int index) {
     setState(() {
       _licenseControllers.removeAt(index);
       if (_licenseControllers.isEmpty) {
-        _addLicenseField(); // Add a new empty field if all are removed
+        _addLicenseField();
       }
     });
   }
@@ -54,7 +104,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200], // Set a light background
+      backgroundColor: Colors.grey[200],
       appBar: AppBar(
         title: const Text('Broker Profile'),
       ),
@@ -63,23 +113,19 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           padding: const EdgeInsets.all(20.0),
           child: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Circular avatar centered at the top
                 Stack(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 50,
-                      backgroundImage: AssetImage('assets/avatar.png'), // Replace with your asset
+                      backgroundImage: AssetImage('assets/avatar.png'),
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: GestureDetector(
-                        onTap: () {
-                          // Action for edit (optional)
-                        },
+                        onTap: () {},
                         child: const CircleAvatar(
                           radius: 16,
                           backgroundColor: Colors.blue,
@@ -94,37 +140,25 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // Profile Information in rounded containers with white backgrounds
                 _buildProfileField('ID', widget.profile.id),
                 const SizedBox(height: 10),
-                _buildProfileField('Name', widget.profile.name),
+                _buildEditableField('Name', _nameController),
                 const SizedBox(height: 10),
-                _buildNonEditableField('Email', widget.profile.email), // Email non-editable
+                _buildNonEditableField('Email', widget.profile.email),
                 const SizedBox(height: 10),
-                _buildProfileField('Website', widget.profile.website),
+                _buildEditableField('Website', _websiteController),
                 const SizedBox(height: 10),
-                _buildProfileField('Country', widget.profile.country),
+                _buildEditableField('Country', _countryController),
                 const SizedBox(height: 10),
-
-                // Editable field for Payment Terms with margin
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10.0),
                   child: _buildEditableField('Payment Terms', _paymentTermsController),
                 ),
-
                 const SizedBox(height: 10),
-
-                // License List in one card
                 _buildLicenseCard(),
                 const SizedBox(height: 20),
-
-                // Save button at the end
                 ElevatedButton(
-                  onPressed: () {
-                    // Add your save logic here
-                    print("Saving profile...");
-                  },
+                  onPressed: _saveProfile,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                     shape: RoundedRectangleBorder(
@@ -152,14 +186,14 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
       decoration: BoxDecoration(
-        color: Colors.white, // White background for the container
-        borderRadius: BorderRadius.circular(10.0), // Rounded corners
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10.0),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 2,
             blurRadius: 5,
-            offset: const Offset(0, 3), // changes position of shadow
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -186,19 +220,18 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     );
   }
 
-  // Helper widget for non-editable field (like email)
   Widget _buildNonEditableField(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
       decoration: BoxDecoration(
-        color: Colors.white, // White background for the container
-        borderRadius: BorderRadius.circular(10.0), // Rounded corners
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10.0),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 2,
             blurRadius: 5,
-            offset: const Offset(0, 3), // changes position of shadow
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -225,7 +258,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     );
   }
 
-  // Helper widget for editable fields
   Widget _buildEditableField(String label, TextEditingController controller) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
@@ -270,19 +302,18 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     );
   }
 
-  // Modified License List - all licenses in one card
   Widget _buildLicenseCard() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
       decoration: BoxDecoration(
-        color: Colors.white, // White background for the container
-        borderRadius: BorderRadius.circular(10.0), // Rounded corners
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10.0),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 2,
             blurRadius: 5,
-            offset: const Offset(0, 3), // changes position of shadow
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -298,7 +329,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // Display licenses in one container
           for (int i = 0; i < _licenseControllers.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 10.0),

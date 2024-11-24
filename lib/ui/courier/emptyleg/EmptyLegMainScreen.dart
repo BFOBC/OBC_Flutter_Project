@@ -60,7 +60,7 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Expanded(
+            const Expanded(
               child: BarChartWidget(), // Custom widget
             ),
             const SizedBox(height: 16),

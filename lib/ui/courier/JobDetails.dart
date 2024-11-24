@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../common/utils/CustomDialog.dart';
 import 'Milestone.dart';

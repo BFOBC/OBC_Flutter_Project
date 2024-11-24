@@ -1,6 +1,4 @@
 // Helper function to create header buttons with equal width
-import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../res/custom_colors.dart';

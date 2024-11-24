@@ -1,13 +1,7 @@
-import 'package:broker_flutter_pp/res/custom_colors.dart';
-import 'package:broker_flutter_pp/ui/broker/data/BrokerProfileData.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart'; // Import the BrokerProfileScreen
-import 'package:broker_flutter_pp/ui/courier/models/CourierProfileData.dart';
 import 'package:provider/provider.dart';
 
-import '../../courier/CourierProfile.dart';
-import '../../courier/models/Passport.dart';
-import '../../courier/models/Visa.dart';
 import '../utils/RoleProvider.dart';
 
 class CustomDrawerHeader extends StatelessWidget {
@@ -15,41 +9,15 @@ class CustomDrawerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Create a Profile object
-    final brokerProfile = BrokerProfileData(
-      id: 'OBC001',
-      name: 'John Doe',
-      website: 'www.johndoe.com',
-      country: 'USA',
-      license: ['XYZ-1234', 'ABC-5678', 'DEF-9012'],  // List of licenses
-      email: "broker@gmail.com",
-      paymentTerms: "hehe"
-    );
-    final courierProfile = CourierProfileData(
-      id: 'OBC001',
-      name: 'John Doe',
-      website: 'www.johndoe.com',
-      country: 'USA',
-      license: ['XYZ-1234', 'ABC-5678', 'DEF-9012'],  // List of licenses
-      email: "courier@gmail.com",
-      paymentTerms: "hehe"
-    );
-    List<Visa> visas = [
-      Visa(countryName: 'USA', expiryDate: '2025-12-31'),
-      Visa(countryName: 'Canada', expiryDate: '2026-01-15'),
-    ];
+    final brokerProfile = Provider.of<RoleProvider>(context).profile;
 
-    List<Passport> passports = [
-      Passport(countryName: 'Pakistan', expiryDate: '2030-05-20'),
-      Passport(countryName: 'UAE', expiryDate: '2028-09-12'),
-    ];
     return DrawerHeader(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.green, Colors.blueAccent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-        ), // Update the color as needed
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -62,38 +30,25 @@ class CustomDrawerHeader extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: () {
-                    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-                    if (roleProvider.role == UserRole.broker) {
-                      // Navigate to BrokerProfileScreen when the avatar is tapped
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>  BrokerProfileScreen(profile: brokerProfile,)),
-                      );
-                    } else if (roleProvider.role == UserRole.courier) {
-                      // Navigate to CourierProfile when the avatar is tapped
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CourierProfile(
-                          courierProfile:courierProfile,
-                          visas: visas,
-                          passports: passports,
-                        ),),
-                      );
-                    }
-
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BrokerProfileScreen(profile: brokerProfile),
+                      ),
+                    );
                   },
                   child: const CircleAvatar(
                     backgroundColor: Colors.white,
                     radius: 25,
-                    backgroundImage: AssetImage('assets/avatar.png'), // Replace with your image asset
+                    backgroundImage: AssetImage('assets/avatar.png'),
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'OBC001',
-                  style: TextStyle(
+                Text(
+                  brokerProfile.id,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14, // Adjust font size to fit well
+                    fontSize: 14,
                   ),
                 ),
               ],

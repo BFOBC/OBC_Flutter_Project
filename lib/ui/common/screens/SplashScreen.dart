@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
          //  builder: (context) =>                OpenStreetMapScreen(),
           // builder: (context) =>                AddNewEmptyLegScreen(),
-           builder: (context) =>                LoginCard(),
+           builder: (context) =>                const LoginCard(),
 
       //  builder: (context) =>  CircularChartScreen(dataMap: chartData,
         //  colorList: chartColors),

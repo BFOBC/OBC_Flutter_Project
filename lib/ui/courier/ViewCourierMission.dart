@@ -1,9 +1,6 @@
 import 'package:broker_flutter_pp/ui/broker/data/Task.dart';
-import 'package:broker_flutter_pp/ui/common/utils/CustomDialog.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
-import '../auth/widgets/CustomWidgets.dart';
-import '../common/screens/DrawerScreen.dart';
 import 'ViewJob.dart';
 import 'ViewMilestone.dart';
 

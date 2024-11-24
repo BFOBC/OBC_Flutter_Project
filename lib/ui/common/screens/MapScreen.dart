@@ -35,16 +35,16 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
   // Add a MapController to control the map
   late MapController _mapController;
 
-  final LatLng _baseLocation = LatLng(40.7128, -74.0060); // Example: New York City
-  final LatLng _currentLocation = LatLng(34.0522, -118.2437); // Example: Los Angeles
+  final LatLng _baseLocation = const LatLng(40.7128, -74.0060); // Example: New York City
+  final LatLng _currentLocation = const LatLng(34.0522, -118.2437); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
 
 
   // Add country data with short names
   final Map<String, LatLng> countryLocations = {
-    'PAK': LatLng(30.3753, 69.3451), // Pakistan
-    'GER': LatLng(51.1657, 10.4515), // Germany
-    'USA': LatLng(37.0902, -95.7129), // USA
+    'PAK': const LatLng(30.3753, 69.3451), // Pakistan
+    'GER': const LatLng(51.1657, 10.4515), // Germany
+    'USA': const LatLng(37.0902, -95.7129), // USA
   };
   // Define the markers list
  /* List<Marker> _markers = [
@@ -339,7 +339,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
     return Center(
       child: CustomPaint(
         painter: RadarPainter(_radarAnimation.value),
-        child: SizedBox(
+        child: const SizedBox(
           width: 300,
           height: 300,
         ),
@@ -435,7 +435,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(
+            options: const MapOptions(
               initialCenter: LatLng(30.3753, 69.3451),
               initialZoom: 5.0,
             ),
@@ -443,7 +443,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
               TileLayer(
                 urlTemplate:
                     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: ['a', 'b', 'c'],
+                subdomains: const ['a', 'b', 'c'],
               ),
               /*MarkerLayer(
                 markers: _markers,

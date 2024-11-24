@@ -82,11 +82,11 @@ class _CourierProfileState extends State<CourierProfile> {
             children: [
               TextField(
                 controller: countryController,
-                decoration: InputDecoration(hintText: 'Country'),
+                decoration: const InputDecoration(hintText: 'Country'),
               ),
               TextField(
                 controller: expiryController,
-                decoration: InputDecoration(hintText: 'Expiry Date'),
+                decoration: const InputDecoration(hintText: 'Expiry Date'),
               ),
             ],
           ),
@@ -122,11 +122,11 @@ class _CourierProfileState extends State<CourierProfile> {
                 }
                 Navigator.of(context).pop();
               },
-              child: Text('Add'),
+              child: const Text('Add'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -160,11 +160,11 @@ class _CourierProfileState extends State<CourierProfile> {
                 });
                 Navigator.of(context).pop();
               },
-              child: Text('Delete'),
+              child: const Text('Delete'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -213,7 +213,7 @@ class _CourierProfileState extends State<CourierProfile> {
           child: Column(
             children: [
               // Avatar
-              CircleAvatar(
+              const CircleAvatar(
                 radius: 50,
                 backgroundImage: AssetImage('assets/avatar.png'),
               ),
@@ -259,7 +259,7 @@ class _CourierProfileState extends State<CourierProfile> {
                         ],
                       ),
                     ),
-                    Divider(), // Optional divider between switches
+                    const Divider(), // Optional divider between switches
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: Row(
@@ -277,7 +277,7 @@ class _CourierProfileState extends State<CourierProfile> {
                         ],
                       ),
                     ),
-                    Divider(), // Optional divider between switches
+                    const Divider(), // Optional divider between switches
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: Row(
@@ -379,7 +379,7 @@ class _CourierProfileState extends State<CourierProfile> {
         title: Text(countryController.text),
         subtitle: Text('Expiry Date: ${expiryController.text}'),
         trailing: IconButton(
-          icon: Icon(Icons.delete, color: Colors.red),
+          icon: const Icon(Icons.delete, color: Colors.red),
           onPressed: () => _showDeleteConfirmation(index, type),
         ),
       ),

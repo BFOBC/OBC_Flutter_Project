@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart'; // Assuming it's correctly imported
-import 'package:broker_flutter_pp/ui/broker/BasicInfo.dart';
 
 import 'BrokerBasicInfo.dart';
 import 'JobDetails.dart'; // Assuming BasicInfo widget is implemented

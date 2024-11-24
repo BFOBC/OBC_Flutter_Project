@@ -24,7 +24,7 @@ class BarChartWidget extends StatelessWidget {
             BarChartGroupData(x: i, barRods: [
               BarChartRodData(
                 toY: (i * 2 + 10).toDouble(), // Example data
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [Colors.green, Colors.blue], // Gradient colors
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
@@ -44,15 +44,15 @@ class BarChartWidget extends StatelessWidget {
               },
             ),
           ),
-          bottomTitles: AxisTitles(
+          bottomTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false), // Hide bottom titles
           ),
-          rightTitles: AxisTitles(
+          rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false), // Hide right titles
           ),
         ),
         borderData: FlBorderData(show: true),
-        gridData: FlGridData(show: true),
+        gridData: const FlGridData(show: true),
       ),
     );
   }

@@ -16,7 +16,7 @@ class CardStackWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 8), // Spacing between title and cards
+        const SizedBox(height: 8), // Spacing between title and cards
         SizedBox(
           height: screenHeight * 0.25, // Adjust height based on screen size
           child: ListView.builder(
@@ -42,7 +42,7 @@ class CardStackWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildCardHeader(details), // Add header with user details
-            SizedBox(height: 8), // Spacing below the header
+            const SizedBox(height: 8), // Spacing below the header
             Expanded(
               child: SingleChildScrollView(
                 child: _buildFlightDetails(details), // Flight details
@@ -65,33 +65,33 @@ class CardStackWidget extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'From:',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  Text('Location: ${details.fromLocation}', style: TextStyle(fontSize: 12)),
-                  Text('Date: ${details.fromDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Time: ${details.toDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Flight Number: ${details.flightNumber}', style: TextStyle(fontSize: 12)),
-                  Text('Capacity: ${details.capacity}', style: TextStyle(fontSize: 12)),
+                  Text('Location: ${details.fromLocation}', style: const TextStyle(fontSize: 12)),
+                  Text('Date: ${details.fromDateTime}', style: const TextStyle(fontSize: 12)),
+                  Text('Time: ${details.toDateTime}', style: const TextStyle(fontSize: 12)),
+                  Text('Flight Number: ${details.flightNumber}', style: const TextStyle(fontSize: 12)),
+                  Text('Capacity: ${details.capacity}', style: const TextStyle(fontSize: 12)),
                 ],
               ),
             ),
-            SizedBox(width: 16), // Space between From and To columns
+            const SizedBox(width: 16), // Space between From and To columns
             // To Label and Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
+                  const Text(
                     'To:',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  Text('Location: ${details.toLocation}', style: TextStyle(fontSize: 12)),
-                  Text('Date: ${details.toDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Time: ${details.fromDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Flight Number: ${details.flightNumber}', style: TextStyle(fontSize: 12)),
-                  Text('Capacity: ${details.capacity}', style: TextStyle(fontSize: 12)),
+                  Text('Location: ${details.toLocation}', style: const TextStyle(fontSize: 12)),
+                  Text('Date: ${details.toDateTime}', style: const TextStyle(fontSize: 12)),
+                  Text('Time: ${details.fromDateTime}', style: const TextStyle(fontSize: 12)),
+                  Text('Flight Number: ${details.flightNumber}', style: const TextStyle(fontSize: 12)),
+                  Text('Capacity: ${details.capacity}', style: const TextStyle(fontSize: 12)),
                 ],
               ),
             ),
@@ -112,14 +112,14 @@ class CardStackWidget extends StatelessWidget {
             fit: BoxFit.cover,
           ),
         ),
-        SizedBox(width: 8), // Spacing between image and text
+        const SizedBox(width: 8), // Spacing between image and text
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 details.userName,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ), // User name
               Row(
                 children: List.generate(5, (index) {
@@ -134,7 +134,7 @@ class CardStackWidget extends StatelessWidget {
           ),
         ),
         IconButton(
-          icon: Icon(Icons.chat, color: Colors.blue),
+          icon: const Icon(Icons.chat, color: Colors.blue),
           onPressed: () {
             // Action for chat button
             // Navigate to chat screen or show chat dialog

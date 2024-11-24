@@ -49,7 +49,7 @@ class CustomFormField extends StatelessWidget {
       validator: (value) => _validator(value!),
       decoration: InputDecoration(
         labelText: isLabelEnabled ? _label : null,
-        labelStyle: TextStyle(color: Palette.firebaseYellow),
+        labelStyle: const TextStyle(color: Palette.firebaseYellow),
         hintText: _hint,
         hintStyle: TextStyle(
           color: Palette.firebaseGrey.withOpacity(0.5),
@@ -60,7 +60,7 @@ class CustomFormField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: Palette.firebaseAmber,
             width: 2,
           ),

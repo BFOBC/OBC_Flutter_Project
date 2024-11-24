@@ -35,7 +35,7 @@ class _ToggleLoginRegisterScreenState extends State<ToggleLoginRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Login/Register Toggle Screen"),
+        title: const Text("Login/Register Toggle Screen"),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -55,12 +55,12 @@ class _ToggleLoginRegisterScreenState extends State<ToggleLoginRegisterScreen> {
             selectedColor: Colors.white,
             fillColor: Colors.blueAccent,
             color: Colors.black,
-            constraints: BoxConstraints(minHeight: 40.0, minWidth: 100.0),
+            constraints: const BoxConstraints(minHeight: 40.0, minWidth: 100.0),
             children: _toggleText.map((text) => Text(text)).toList(),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Conditional rendering of screens based on the toggle selection
-          _selectedIndex == 0 ? LoginScreen() : RegisterScreen(),
+          _selectedIndex == 0 ? const LoginScreen() : const RegisterScreen(),
         ],
       ),
     );
@@ -77,20 +77,20 @@ class LoginScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          TextField(
+          const TextField(
             decoration: InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
           ),
-          SizedBox(height: 10),
-          TextField(
+          const SizedBox(height: 10),
+          const TextField(
             obscureText: true,
             decoration: InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
               // Handle login logic
             },
-            child: Text('Login'),
+            child: const Text('Login'),
           ),
         ],
       ),
@@ -108,24 +108,24 @@ class RegisterScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          TextField(
+          const TextField(
             decoration: InputDecoration(labelText: 'Username', border: OutlineInputBorder()),
           ),
-          SizedBox(height: 10),
-          TextField(
+          const SizedBox(height: 10),
+          const TextField(
             decoration: InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
           ),
-          SizedBox(height: 10),
-          TextField(
+          const SizedBox(height: 10),
+          const TextField(
             obscureText: true,
             decoration: InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
               // Handle registration logic
             },
-            child: Text('Register'),
+            child: const Text('Register'),
           ),
         ],
       ),

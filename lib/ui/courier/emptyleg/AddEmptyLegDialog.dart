@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../common/utils/CustomDialog.dart';
@@ -24,6 +25,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   late TextEditingController _capacityController;
 
   final _formKey = GlobalKey<FormState>(); // Key for form validation
+  final CollectionReference emptyLegCollection = FirebaseFirestore.instance.collection('emptyLegs');
 
   @override
   void initState() {
@@ -41,6 +43,24 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     _capacityController =
         TextEditingController(text: widget.flightDetails?.capacity ?? '');
   }
+
+  Future<void> _saveToFirestore() async {
+  try {
+    await FirebaseFirestore.instance.collection('emptyLegs').add({
+      'fromLocation': _fromLocationController.text,
+      'toLocation': _toLocationController.text,
+      'fromDateTime': _fromDateTimeController.text,
+      'toDateTime': _toDateTimeController.text,
+      'flightNumber': _flightNumberController.text,
+      'capacity': _capacityController.text,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    CustomDialog.showCustomDialog2(context, "Empty Leg Added Successfully");
+  } catch (e) {
+    CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -69,12 +89,12 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                           },
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors
                                   .blue, // Blue circle background color
                             ),
-                            child: Icon(
+                            child: const Icon(
                                 Icons.close, color: Colors.white), // Close icon
                           ),
                         ),
@@ -114,7 +134,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                                 );
                                 CustomDialog.showCustomDialog2(
                                     context, "Job Updated");
-                                Future.delayed(Duration(seconds: 2), () {
+                                Future.delayed(const Duration(seconds: 2), () {
                                   Navigator.of(context).pop({
                                     'action': 'update',
                                     'details': updatedDetails,
@@ -135,34 +155,17 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                           ElevatedButton(
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
-                                FlightDetails newDetails = FlightDetails(
-                                  fromLocation: _fromLocationController.text,
-                                  toLocation: _toLocationController.text,
-                                  fromDateTime: _fromDateTimeController.text,
-                                  toDateTime: _toDateTimeController.text,
-                                  flightNumber: _flightNumberController.text,
-                                  capacity: _capacityController.text,
-                                  userName: 'User',
-                                  rating: 5,
-                                );
-                                CustomDialog.showCustomDialog2(
-                                    context, "Job Added");
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.of(context).pop({
-                                    'action': 'save',
-                                    'details': newDetails
-                                  });
-                                });
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              // Change button color to blue
-                              foregroundColor: Colors
-                                  .white, // Change text color to white
-                            ),
-                            child: const Text('Save'),
-                          ),
+                                // Instead of manually creating FlightDetails, directly call _saveToFirestore// 
+                                _saveToFirestore();
+                                }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue, // Change button color to blue
+                                  foregroundColor: Colors.white, // Change text color to white
+                                ),
+                                  child: const Text('Save'),
+                                  ),
+
                       ],
                     ),
                   ],

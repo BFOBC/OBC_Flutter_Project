@@ -1,10 +1,8 @@
 import 'package:broker_flutter_pp/ui/chat/profileScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
-import '../common/charts/CircularChartScreen.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-import '../broker/PlaceNewJob.dart';
 
 class MainScreen extends StatefulWidget {
   final String userName;

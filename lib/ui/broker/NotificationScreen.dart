@@ -76,7 +76,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 // Show Snackbar with Undo action
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Notification dismissed'),
+                    content: const Text('Notification dismissed'),
                     action: SnackBarAction(
                       label: 'Undo',
                       onPressed: () {

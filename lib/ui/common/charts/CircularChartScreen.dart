@@ -17,7 +17,7 @@ class CircularChartScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Circular Chart Example'),
+        title: const Text('Circular Chart Example'),
       ),
       body: Center(
         child: PieChart(

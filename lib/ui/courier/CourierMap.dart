@@ -68,7 +68,7 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
     return Center(
       child: CustomPaint(
         painter: RadarPainter(_radarAnimation.value),
-        child: SizedBox(
+        child: const SizedBox(
           width: 300,
           height: 300,
         ),
@@ -114,14 +114,14 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
       children: [
         // Map Widget
         FlutterMap(
-          options: MapOptions(
+          options: const MapOptions(
             initialCenter: LatLng(30.3753, 69.3451), // Initial map center
             initialZoom: 5.0, // Initial zoom level
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              subdomains: ['a', 'b', 'c'],
+              subdomains: const ['a', 'b', 'c'],
             ),
             if (_showMarkers) MarkerLayer(markers: _markers), // Show markers after search
           ],
@@ -145,13 +145,13 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
                 ),
               ],
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.search, color: Colors.grey),
-                const SizedBox(width: 10.0),
+                Icon(Icons.search, color: Colors.grey),
+                SizedBox(width: 10.0),
                 Expanded(
                   child: TextField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Search Location',
                       border: InputBorder.none,
                     ),

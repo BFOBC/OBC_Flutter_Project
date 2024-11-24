@@ -1,11 +1,15 @@
+import 'package:flutter/material.dart';
+
 class BrokerProfileData {
-  final String id;
-  final String name;
-  final String website;
-  final String country;
-  final List<String> license;  // Make sure license is a List<String>
-  final String email;
-  final String paymentTerms;
+  String id;
+  String name;
+  String website;
+  String country;
+  List<String> license;
+  String email;
+  String paymentTerms;
+  String? docId;
+
   BrokerProfileData({
     required this.id,
     required this.name,
@@ -13,6 +17,39 @@ class BrokerProfileData {
     required this.country,
     required this.license,
     required this.email,
-    required this.paymentTerms,// This should now be a list of strings
+    required this.paymentTerms,
+    this.docId,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'website': website,
+      'country': country,
+      'license': license,
+      'email': email,
+      'paymentTerms': paymentTerms,
+      'docId': docId,
+    };
+  }
+}
+
+class BrokerProfileProvider with ChangeNotifier {
+  BrokerProfileData _profile = BrokerProfileData(
+    id: 'OBC001',
+    name: '',
+    website: '',
+    country: '',
+    license: ['', '', ''],
+    email: "",
+    paymentTerms: "",
+  );
+
+  BrokerProfileData get profile => _profile;
+
+  void updateProfile(BrokerProfileData updatedProfile) {
+    _profile = updatedProfile;
+    notifyListeners();
+  }
 }

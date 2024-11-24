@@ -1,7 +1,6 @@
 import 'package:broker_flutter_pp/ui/courier/emptyleg/EmptyLegMainScreen.dart';
 import 'package:flutter/material.dart';
 
-import 'AddEmptyLegDialog.dart';
 
 class FlightDetailsCard extends StatelessWidget {
   final FlightDetails flightDetails;
