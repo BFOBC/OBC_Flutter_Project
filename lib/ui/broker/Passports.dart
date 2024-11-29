@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-import '../common/models/CourierProfileData.dart';
 import '../common/models/Passport.dart';
 
 

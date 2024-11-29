@@ -13,7 +13,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => RoleProvider()),  // Initialize RoleProvider
+        ChangeNotifierProvider(create: (_) => RoleProvider()), // Initialize RoleProvider
         ChangeNotifierProvider(create: (context) => TaskViewModel()), // Initialize TaskViewModel
       ],
       child: const MyApp(),

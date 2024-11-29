@@ -228,4 +228,17 @@ class FlightDetails {
       rating: 0,
     );
   }
+
+  factory FlightDetails.fromMap(Map<String, dynamic> map) {
+    return FlightDetails(
+      userName: map['userName'] ?? 'Unknown',
+      rating: (map['rating'] ?? 0).toDouble(),
+      fromLocation: map['fromLocation'] ?? '',
+      toLocation: map['toLocation'] ?? '',
+      fromDateTime: map['fromDateTime'] ?? '',
+      toDateTime: map['toDateTime'] ?? '',
+      flightNumber: map['flightNumber'] ?? '',
+      capacity: map['capacity'] ?? 0,
+    );
+  }
 }

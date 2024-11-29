@@ -1,4 +1,7 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/CardStackWidget.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/EmptyLegMainScreen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -19,6 +22,9 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
   final bool _isSearching = false; // Radar animation state
   final bool _showMarkers = false; // Controls marker display after radar animation
   final List<Marker> _markers = []; // List of markers
+  List<Map<String, dynamic>> emptyLegRequests = [];
+bool isLoading = true;
+
 
   late AnimationController _radarController;
   late Animation<double> _radarAnimation;
@@ -26,12 +32,41 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
   @override
   void initState() {
     super.initState();
+    fetchEmptyLegRequests();
     _radarController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _radarAnimation = Tween<double>(begin: 0, end: 300).animate(_radarController)
       ..addListener(() {
         setState(() {});
       });
   }
+
+  Future<void> fetchEmptyLegRequests() async {
+  try {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('emptyLegRequests')
+        .get();
+
+    setState(() {
+      emptyLegRequests = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'brokerID': data['brokerID'] ?? '',
+          'courierID': data['courierID'] ?? '',
+          'nodeID': data['nodeID'] ?? '',
+          'requestDateTime': data['requestDateTime'] ?? '',
+          'status': data['status'] ?? false,
+        };
+      }).toList();
+      isLoading = false;
+    });
+  } catch (e) {
+    print("Error fetching data: $e");
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
 
   @override
   void dispose() {
@@ -167,6 +202,29 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
           Positioned.fill(
             child: _buildRadarAnimation(),
           ),
+
+          // Cards at the bottom of the screen
+if (!isLoading && emptyLegRequests.isNotEmpty)
+  Positioned(
+    bottom: 20.0,
+    left: 0,
+    right: 0,
+    child: CardStackWidget(
+      flightDetailsList: emptyLegRequests.map((data) {
+        return FlightDetails(
+          userName: data['userName'],
+          rating: data['rating'],
+          fromLocation: data['fromLocation'],
+          toLocation: data['toLocation'],
+          fromDateTime: data['fromDateTime'],
+          toDateTime: data['toDateTime'],
+          flightNumber: data['flightNumber'],
+          capacity: data['capacity'],
+        );
+      }).toList(),
+    ),
+  ),
+
       ],
     );
   }
