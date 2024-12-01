@@ -2,7 +2,7 @@ import '../../common/models/Passport.dart';
 import '../../common/models/Visa.dart';
 
 class CourierProfileData {
-  final String? id; // Nullable
+  String? id; // Nullable
   late final String? name; // Nullable
   final String? website; // Nullable
   final String? country; // Nullable

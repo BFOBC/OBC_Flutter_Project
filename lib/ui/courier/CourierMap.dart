@@ -22,7 +22,7 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
   final bool _isSearching = false; // Radar animation state
   final bool _showMarkers = false; // Controls marker display after radar animation
   final List<Marker> _markers = []; // List of markers
-  List<Map<String, dynamic>> emptyLegRequests = [];
+  late Future<List<emptyLegRequests>> _requests;
 bool isLoading = true;
 
 
@@ -32,7 +32,7 @@ bool isLoading = true;
   @override
   void initState() {
     super.initState();
-    fetchEmptyLegRequests();
+     _requests = fetchemptyLegRequests();
     _radarController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _radarAnimation = Tween<double>(begin: 0, end: 300).animate(_radarController)
       ..addListener(() {
@@ -40,30 +40,26 @@ bool isLoading = true;
       });
   }
 
-  Future<void> fetchEmptyLegRequests() async {
+  Future<List<emptyLegRequests>> fetchemptyLegRequests() async {
   try {
-    final querySnapshot = await FirebaseFirestore.instance
+    final snapshot = await FirebaseFirestore.instance
         .collection('emptyLegRequests')
         .get();
 
-    setState(() {
-      emptyLegRequests = querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return {
-          'brokerID': data['brokerID'] ?? '',
-          'courierID': data['courierID'] ?? '',
-          'nodeID': data['nodeID'] ?? '',
-          'requestDateTime': data['requestDateTime'] ?? '',
-          'status': data['status'] ?? false,
-        };
-      }).toList();
-      isLoading = false;
-    });
+    if (snapshot.docs.isEmpty) {
+      debugPrint("No documents found in 'emptyLegRequests'.");
+      return [];
+    }
+
+    // Debug log each document's data
+    for (var doc in snapshot.docs) {
+      debugPrint("Document: ${doc.data()}");
+    }
+
+    return snapshot.docs.map((doc) => emptyLegRequests.fromFirestore(doc)).toList();
   } catch (e) {
-    print("Error fetching data: $e");
-    setState(() {
-      isLoading = false;
-    });
+    debugPrint("Error fetching empty leg requests: $e");
+    return [];
   }
 }
 
@@ -203,33 +199,69 @@ bool isLoading = true;
             child: _buildRadarAnimation(),
           ),
 
-          // Cards at the bottom of the screen
-if (!isLoading && emptyLegRequests.isNotEmpty)
-  Positioned(
-    bottom: 20.0,
-    left: 0,
-    right: 0,
-    child: CardStackWidget(
-      flightDetailsList: emptyLegRequests.map((data) {
-        return FlightDetails(
-          userName: data['userName'],
-          rating: data['rating'],
-          fromLocation: data['fromLocation'],
-          toLocation: data['toLocation'],
-          fromDateTime: data['fromDateTime'],
-          toDateTime: data['toDateTime'],
-          flightNumber: data['flightNumber'],
-          capacity: data['capacity'],
-        );
-      }).toList(),
-    ),
-  ),
-
-      ],
-    );
-  }
+          // Bottom section for the cards
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 200,
+              color: Colors.white,
+              child: FutureBuilder<List<emptyLegRequests>>(
+            future: _requests,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                // While waiting for data, show a loading spinner
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                // If an error occurs, display the error message
+                return Center(
+                  child: Text("Error: ${snapshot.error}"),
+                );
+              } else if (snapshot.hasData && snapshot.data!.isEmpty) {
+                // If no data is found, show "No requests found"
+                return const Center(
+                  child: Text("No requests found"),
+                );
+              } else if (snapshot.hasData) {
+                // If data is available, display the requests
+                return ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    final request = snapshot.data![index];
+                    return Card(
+                      child: ListTile(
+                        title: Text("Broker ID: ${request.brokerID}"),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Courier ID: ${request.courierID}"),
+                            Text(
+                              "Request Time: ${request.requestDateTime}",
+                            ),
+                          ],
+                        ),
+                        trailing: request.status
+                            ? const Icon(Icons.check, color: Colors.green)
+                            : const Icon(Icons.pending, color: Colors.orange),
+                      ),
+                    );
+                  },
+                );
+              } else {
+                // Catch-all for unexpected scenarios
+                return const Center(
+                  child: Text("Unexpected state. Please try again."),
+                );
+              }
+            },
+          ),
+        ),
+      ),
+    ],
+  );
 }
-
+}
 // Custom painter to draw the radar effect
 class RadarPainter extends CustomPainter {
   final double radius;
@@ -250,4 +282,32 @@ class RadarPainter extends CustomPainter {
   bool shouldRepaint(RadarPainter oldDelegate) {
     return oldDelegate.radius != radius;
   }
+}
+
+class emptyLegRequests {
+  final String brokerID;
+  final String courierID;
+  final String nodeID;
+  final DateTime requestDateTime;
+  final bool status;
+
+  emptyLegRequests({
+    required this.brokerID,
+    required this.courierID,
+    required this.nodeID,
+    required this.requestDateTime,
+    required this.status,
+  });
+
+  factory emptyLegRequests.fromFirestore(DocumentSnapshot doc) {
+  Map data = doc.data() as Map<String, dynamic>;
+  return emptyLegRequests(
+    brokerID: data['brokerID'] ?? '',
+    courierID: data['courierID'] ?? '',
+    nodeID: data['nodeID'] ?? '',
+    requestDateTime: DateTime.parse(data['requestDateTime']),
+    status: data['status'] ?? false,
+    );
+  }
+
 }

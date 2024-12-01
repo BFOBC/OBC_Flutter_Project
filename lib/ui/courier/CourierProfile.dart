@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../common/utils/dialog_utils.dart';
 import 'models/CourierProfileData.dart';
 
 class CourierProfile extends StatefulWidget {
@@ -26,22 +25,17 @@ class _CourierProfileState extends State<CourierProfile> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-
   TextEditingController _nameController = TextEditingController();
-
   List<TextEditingController> _visaCountryControllers = [];
   List<TextEditingController> _visaExpiryControllers = [];
   List<TextEditingController> _passportCountryControllers = [];
   List<TextEditingController> _passportExpiryControllers = [];
-  
   List<Visa> visas = [];
   List<Passport> passports = [];
-  
   String? _profilePictureUrl;
   bool _hasCar = false; // State for the switch
   bool _willingToDoFirstLastMile = false; // State for the switch
   bool _hasDrivingLicence = false; // State for the switch
-
 
   late CourierProfileData _editableProfile;
 
@@ -54,7 +48,6 @@ class _CourierProfileState extends State<CourierProfile> {
   Future<void> _initializeProfile() async {
     _currentUser = FirebaseAuth.instance.currentUser!;
     final doc = await _firestore.collection('courier').doc(_currentUser.uid).get();
-  
 
     if (doc.exists) {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
@@ -70,6 +63,7 @@ class _CourierProfileState extends State<CourierProfile> {
             [];
         _nameController.text = doc['name'] ?? 'N/A';
         widget.courierProfile.email = _currentUser .email; // Assuming email is part of courierProfile
+        widget.courierProfile.id = _currentUser .uid;
       });
     }
   }
