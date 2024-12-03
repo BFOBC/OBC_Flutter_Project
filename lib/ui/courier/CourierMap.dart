@@ -1,4 +1,7 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/CardStackWidget.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/EmptyLegMainScreen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -19,6 +22,9 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
   final bool _isSearching = false; // Radar animation state
   final bool _showMarkers = false; // Controls marker display after radar animation
   final List<Marker> _markers = []; // List of markers
+  late Future<List<emptyLegRequests>> _requests;
+bool isLoading = true;
+
 
   late AnimationController _radarController;
   late Animation<double> _radarAnimation;
@@ -26,12 +32,37 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
   @override
   void initState() {
     super.initState();
+     _requests = fetchemptyLegRequests();
     _radarController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _radarAnimation = Tween<double>(begin: 0, end: 300).animate(_radarController)
       ..addListener(() {
         setState(() {});
       });
   }
+
+  Future<List<emptyLegRequests>> fetchemptyLegRequests() async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('emptyLegRequests')
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      debugPrint("No documents found in 'emptyLegRequests'.");
+      return [];
+    }
+
+    // Debug log each document's data
+    for (var doc in snapshot.docs) {
+      debugPrint("Document: ${doc.data()}");
+    }
+
+    return snapshot.docs.map((doc) => emptyLegRequests.fromFirestore(doc)).toList();
+  } catch (e) {
+    debugPrint("Error fetching empty leg requests: $e");
+    return [];
+  }
+}
+
 
   @override
   void dispose() {
@@ -167,11 +198,70 @@ class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProvi
           Positioned.fill(
             child: _buildRadarAnimation(),
           ),
-      ],
-    );
-  }
-}
 
+          // Bottom section for the cards
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 200,
+              color: Colors.white,
+              child: FutureBuilder<List<emptyLegRequests>>(
+            future: _requests,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                // While waiting for data, show a loading spinner
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                // If an error occurs, display the error message
+                return Center(
+                  child: Text("Error: ${snapshot.error}"),
+                );
+              } else if (snapshot.hasData && snapshot.data!.isEmpty) {
+                // If no data is found, show "No requests found"
+                return const Center(
+                  child: Text("No requests found"),
+                );
+              } else if (snapshot.hasData) {
+                // If data is available, display the requests
+                return ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    final request = snapshot.data![index];
+                    return Card(
+                      child: ListTile(
+                        title: Text("Broker ID: ${request.brokerID}"),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Courier ID: ${request.courierID}"),
+                            Text(
+                              "Request Time: ${request.requestDateTime}",
+                            ),
+                          ],
+                        ),
+                        trailing: request.status
+                            ? const Icon(Icons.check, color: Colors.green)
+                            : const Icon(Icons.pending, color: Colors.orange),
+                      ),
+                    );
+                  },
+                );
+              } else {
+                // Catch-all for unexpected scenarios
+                return const Center(
+                  child: Text("Unexpected state. Please try again."),
+                );
+              }
+            },
+          ),
+        ),
+      ),
+    ],
+  );
+}
+}
 // Custom painter to draw the radar effect
 class RadarPainter extends CustomPainter {
   final double radius;
@@ -192,4 +282,32 @@ class RadarPainter extends CustomPainter {
   bool shouldRepaint(RadarPainter oldDelegate) {
     return oldDelegate.radius != radius;
   }
+}
+
+class emptyLegRequests {
+  final String brokerID;
+  final String courierID;
+  final String nodeID;
+  final DateTime requestDateTime;
+  final bool status;
+
+  emptyLegRequests({
+    required this.brokerID,
+    required this.courierID,
+    required this.nodeID,
+    required this.requestDateTime,
+    required this.status,
+  });
+
+  factory emptyLegRequests.fromFirestore(DocumentSnapshot doc) {
+  Map data = doc.data() as Map<String, dynamic>;
+  return emptyLegRequests(
+    brokerID: data['brokerID'] ?? '',
+    courierID: data['courierID'] ?? '',
+    nodeID: data['nodeID'] ?? '',
+    requestDateTime: DateTime.parse(data['requestDateTime']),
+    status: data['status'] ?? false,
+    );
+  }
+
 }

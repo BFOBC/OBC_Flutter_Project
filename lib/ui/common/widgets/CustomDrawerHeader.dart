@@ -40,13 +40,13 @@ class CustomDrawerHeader extends StatelessWidget {
                       // Navigate to BrokerProfileScreen when the avatar is tapped
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  BrokerProfileScreen(profile: brokerProfile,)),
+                        MaterialPageRoute(builder: (context) =>  BrokerProfileScreen(brokerProfile: brokerProfile,)),
                       );
                     } else if (roleProvider.role == UserRole.courier) {
                       // Navigate to CourierProfile when the avatar is tapped
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  CourierProfile(courierProfile: courierProfile,)),
+                        MaterialPageRoute(builder: (context) =>  CourierProfile(courierProfile: courierProfile, visas: [], passports: [],)),
                       );
                     }
 

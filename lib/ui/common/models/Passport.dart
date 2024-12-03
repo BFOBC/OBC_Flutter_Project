@@ -11,7 +11,7 @@ class Passport {
     required this.expiryDate,
   });
 
-  // Define the toMap() method
+  // Convert Passport object to a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'countryName': countryName,
@@ -19,5 +19,15 @@ class Passport {
       'issueDate': issueDate,
       'expiryDate': expiryDate,
     };
+  }
+
+  // Create Passport object from Firestore Map
+  factory Passport.fromMap(Map<String, dynamic> map) {
+    return Passport(
+      countryName: map['countryName'],
+      passportNumber: map['passportNumber'],
+      issueDate: map['issueDate'],
+      expiryDate: map['expiryDate'],
+    );
   }
 }
