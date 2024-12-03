@@ -3,6 +3,9 @@ import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../data/DatabaseHelper.dart';
+import '../AirportsScreen.dart';
+
 
 
 class SplashScreen extends StatefulWidget {
@@ -23,6 +26,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> checkLocationPermissions() async {
+    final dbHelper = DatabaseHelper();
+    await dbHelper.importAirportsInBackground(context, 'assets/airports.json');
+/*    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) =>  AirportsScreen(),
+        // builder: (context) =>  CircularChartScreen(),
+      ),
+    );*/
     // Check if location permissions are already granted
     if (await Permission.location.isGranted) {
       // Permissions are already granted, navigate to login screen
