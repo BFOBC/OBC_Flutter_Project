@@ -2,8 +2,21 @@ import 'package:flutter/material.dart';
 
 class BrokerBasicInfo extends StatelessWidget {
   final String name;
+  final String email;
+  final String phone;
+  final String address;
+  final String website;
+  final String company;
 
-  const BrokerBasicInfo({super.key, required this.name});
+  const BrokerBasicInfo({
+    Key? key,
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.address,
+    required this.website,
+    required this.company,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,15 +30,15 @@ class BrokerBasicInfo extends StatelessWidget {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          _buildInfoCard('Company Name', name),
+          _buildInfoCard('Company Name', company),
           const SizedBox(height: 10),
-          _buildInfoCard('Email', 'johndoe@example.com'),
+          _buildInfoCard('Email', email),
           const SizedBox(height: 10),
-          _buildInfoCard('Phone', '+1234567890'),
+          _buildInfoCard('Phone', phone),
           const SizedBox(height: 10),
-          _buildInfoCard('Address', '123 Main Street'),
+          _buildInfoCard('Address', address),
           const SizedBox(height: 10),
-          _buildInfoCard('Website', 'broker.com'),
+          _buildInfoCard('Website', website),
         ],
       ),
     );

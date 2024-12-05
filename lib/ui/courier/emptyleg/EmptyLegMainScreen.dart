@@ -65,7 +65,7 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
             ),
             const SizedBox(height: 16),
             if (flightDetailsList.isNotEmpty)
-              CardStackWidget(flightDetailsList: flightDetailsList), // Custom widget
+              CardStackWidget(flightDetailsList: flightDetailsList, emptyLegRequestIds: [],), // Custom widget
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {

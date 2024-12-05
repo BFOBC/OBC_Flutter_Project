@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -30,6 +31,9 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
   late Animation<double> _radarAnimation;
   bool _isBaseSelected = true;
   String _searchText = ""; // This holds the text in the search bar
+  String brokerName = '';
+  String brokerContact = '';
+  bool isLoading = true;
 
 
   // Add a MapController to control the map
@@ -38,6 +42,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
   final LatLng _baseLocation = const LatLng(40.7128, -74.0060); // Example: New York City
   final LatLng _currentLocation = const LatLng(34.0522, -118.2437); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
+  List<Map<String, dynamic>> brokerInfoList = [];
 
 
   // Add country data with short names
@@ -74,7 +79,43 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
           });
     _mapController = MapController();
     _onSearch("abc");
+    fetchBrokerDetails();
   }
+
+  Future<void> fetchBrokerDetails() async {
+    try {
+      // Fetch all broker documents from Firestore
+      QuerySnapshot brokerDocsSnapshot = await FirebaseFirestore.instance
+          .collection('broker')
+          .get();
+
+      if (brokerDocsSnapshot.docs.isNotEmpty) {
+        setState(() {
+          // Create a list of broker data
+          brokerInfoList = brokerDocsSnapshot.docs.map((doc) {
+            return {
+              'name': doc['name'] ?? 'Unknown Broker',
+              'contact': doc['contact'] ?? 'No Contact Info',
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          // If no brokers are found
+          brokerInfoList = [{'name': 'No Brokers Found', 'contact': '', 'image': '', 'rating': 0.0}];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        brokerInfoList = [{'name': 'Error fetching data', 'contact': '', 'image': '', 'rating': 0.0}];
+        isLoading = false;
+      });
+      print('Error: $e');
+    }
+  }
+
 
   @override
   void dispose() {
@@ -355,9 +396,10 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
       // var color = Color((Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
       var color = Colors.white;
 
-      var userName = 'User ${i + 1}';
+      var userName = 'Broker ${i + 1}';
       var userImage = 'https://via.placeholder.com/150';
       var rating = Random().nextDouble() * 5;
+      var brokerID;
 
       list.add(
         CardModel(
@@ -365,16 +407,16 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
           shadowColor: Colors.black.withOpacity(0.2),
           child: GestureDetector(
             onTap: () {
+              
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => SelectBroker(
-                    userName: userName,
-                    rating: rating,
-                    userImage: userImage,
+                     brokerID: brokerID,
                   ),
                 ),
               );
+              
             },
             child: SizedBox(
               height: 150,
@@ -399,7 +441,7 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Colors.black,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -429,106 +471,104 @@ class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(30.3753, 69.3451),
-              initialZoom: 5.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c'],
-              ),
-              /*MarkerLayer(
-                markers: _markers,
-              ),*/
-            ],
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: const MapOptions(
+            initialCenter: LatLng(30.3753, 69.3451),
+            initialZoom: 5.0,
           ),
-          if (_isSearchBarVisible) // Conditionally render the search bar
-            Positioned(
-              top: 40.0,
-              left: 20.0,
-              right: 20.0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.search, color: Colors.grey),
-                        const SizedBox(width: 10.0),
-                        Expanded(
-                          child: TextField(
-                            onChanged: _onSearchAirport,
-                            decoration: const InputDecoration(
-                              hintText: 'Search Location',
-                              border: InputBorder.none,
-                            ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              subdomains: const ['a', 'b', 'c'],
+            ),
+            /*MarkerLayer(
+              markers: _markers,
+            ),*/
+          ],
+        ),
+        if (_isSearchBarVisible) // Conditionally render the search bar
+          Positioned(
+            top: 40.0,
+            left: 20.0,
+            right: 20.0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.search, color: Colors.grey),
+                      const SizedBox(width: 10.0),
+                      Expanded(
+                        child: TextField(
+                          onChanged: _onSearchAirport,
+                          decoration: const InputDecoration(
+                            hintText: 'Search Location',
+                            border: InputBorder.none,
                           ),
                         ),
-                      ],
-                    ),
-                    // Suggest country codes based on the search
-                    if (_suggestedCountries.isNotEmpty)
-                      ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _suggestedCountries.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            title: Text(_suggestedCountries[index]),
-                            onTap: () {
-                              _onCountrySelected(_suggestedCountries[index]);
-                            },
-                          );
-                        },
                       ),
-                  ],
-                ),
+                    ],
+                  ),
+                  // Suggest country codes based on the search
+                  if (_suggestedCountries.isNotEmpty)
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _suggestedCountries.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(_suggestedCountries[index]),
+                          onTap: () {
+                            _onCountrySelected(_suggestedCountries[index]);
+                          },
+                        );
+                      },
+                    ),
+                ],
               ),
             ),
-          Positioned.fill(
-            child: _buildRadarAnimation(), // Radar animation always visible
           ),
-          Positioned(
-            bottom: 20.0,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SizedBox(
-                height: 300,
-                child: _buildCardStackWidget(context), // Card stack always visible
-              ),
+        Positioned.fill(
+          child: _buildRadarAnimation(), // Radar animation always visible
+        ),
+        Positioned(
+          bottom: 20.0,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: SizedBox(
+              height: 300,
+              child: _buildCardStackWidget(context), // Card stack always visible
             ),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openBottomSheet,
-        backgroundColor: Colors.red,
-        child: const Icon(Icons.accessibility),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
+        ),
+      ],
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: _openBottomSheet,
+      backgroundColor: Colors.red,
+      child: const Icon(Icons.accessibility),
+    ),
+    floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+  );
 }
-
+}
 class RadarPainter extends CustomPainter {
   final double radius;
 

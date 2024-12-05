@@ -1,146 +1,190 @@
-import 'package:flutter/cupertino.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/EmptyLegMainScreen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
 
-import 'EmptyLegMainScreen.dart';
+class CardStackWidget extends StatefulWidget {
+  final List<String> emptyLegRequestIds;
 
-class CardStackWidget extends StatelessWidget {
-  final List<FlightDetails> flightDetailsList;
+  const CardStackWidget({Key? key, required this.emptyLegRequestIds, required List<FlightDetails> flightDetailsList}) : super(key: key);
 
-  const CardStackWidget({super.key, required this.flightDetailsList});
+  @override
+  _CardStackWidgetState createState() => _CardStackWidgetState();
+}
+
+class _CardStackWidgetState extends State<CardStackWidget> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  List<Map<String, dynamic>> brokerRequests = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBrokerRequests();
+  }
+
+  Future<void> _fetchBrokerRequests() async {
+    try {
+      List<Map<String, dynamic>> requests = [];
+
+      for (String requestId in widget.emptyLegRequestIds) {
+        final requestDoc = await _firestore.collection('emptyLegRequests').doc(requestId).get();
+
+        if (requestDoc.exists) {
+          final requestData = requestDoc.data()!;
+          final String brokerId = requestData['brokerID'] ?? '';
+
+          if (brokerId.isNotEmpty) {
+            final brokerDoc = await _firestore.collection('broker').doc(brokerId).get();
+
+            if (brokerDoc.exists) {
+              final brokerData = brokerDoc.data()!;
+              requests.add({
+                'brokerId': brokerId,
+                'brokerName': brokerData['name'] ?? 'Unknown Broker',
+                'profileUrl': brokerData['profileUrl'] ?? 'https://via.placeholder.com/150',
+                'rating': brokerData['rating'] ?? 0,
+                'fromLocation': requestData['fromLocation'] ?? 'N/A',
+                'toLocation': requestData['toLocation'] ?? 'N/A',
+                'requestDate': requestData['date'] ?? 'N/A',
+                'capacity': requestData['capacity'] ?? 'N/A',
+              });
+            }
+          }
+        }
+      }
+
+      setState(() {
+        brokerRequests = requests;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching broker requests: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height; // Get screen height
-    final screenWidth = MediaQuery.of(context).size.width; // Get screen width
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8), // Spacing between title and cards
-        SizedBox(
-          height: screenHeight * 0.25, // Adjust height based on screen size
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: flightDetailsList.length,
-            itemBuilder: (context, index) {
-              return _buildCard(flightDetailsList[index], screenWidth);
-            },
+    return isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : brokerRequests.isEmpty
+            ? const Center(child: Text("No requests found"))
+            : ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: brokerRequests.length,
+                itemBuilder: (context, index) {
+                  return _buildBrokerCard(brokerRequests[index], screenWidth);
+                },
+              );
+  }
+
+  Widget _buildBrokerCard(Map<String, dynamic> brokerDetails, double screenWidth) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BrokerDetailsScreen(brokerDetails: brokerDetails),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCard(FlightDetails details, double screenWidth) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(right: 8.0),
-      child: Container(
-        width: screenWidth * 0.7, // Adjusted width for cards
-        padding: const EdgeInsets.all(8.0), // Padding inside the card
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCardHeader(details), // Add header with user details
-            const SizedBox(height: 8), // Spacing below the header
-            Expanded(
-              child: SingleChildScrollView(
-                child: _buildFlightDetails(details), // Flight details
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFlightDetails(FlightDetails details) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // From Label and Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'From:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text('Location: ${details.fromLocation}', style: const TextStyle(fontSize: 12)),
-                  Text('Date: ${details.fromDateTime}', style: const TextStyle(fontSize: 12)),
-                  Text('Time: ${details.toDateTime}', style: const TextStyle(fontSize: 12)),
-                  Text('Flight Number: ${details.flightNumber}', style: const TextStyle(fontSize: 12)),
-                  Text('Capacity: ${details.capacity}', style: const TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16), // Space between From and To columns
-            // To Label and Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text(
-                    'To:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text('Location: ${details.toLocation}', style: const TextStyle(fontSize: 12)),
-                  Text('Date: ${details.toDateTime}', style: const TextStyle(fontSize: 12)),
-                  Text('Time: ${details.fromDateTime}', style: const TextStyle(fontSize: 12)),
-                  Text('Flight Number: ${details.flightNumber}', style: const TextStyle(fontSize: 12)),
-                  Text('Capacity: ${details.capacity}', style: const TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCardHeader(FlightDetails details) {
-    return Row(
-      children: [
-        ClipOval(
-          child: Image.asset(
-            'assets/avatar.png', // Replace with your image asset path
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(width: 8), // Spacing between image and text
-        Expanded(
+        );
+      },
+      child: Card(
+        elevation: 4,
+        margin: const EdgeInsets.all(8.0),
+        child: Container(
+          width: screenWidth * 0.7,
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                details.userName,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ), // User name
+              Row(
+                children: [
+                  ClipOval(
+                    child: Image.network(
+                      brokerDetails['profileUrl'],
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      brokerDetails['brokerName'],
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text('From: ${brokerDetails['fromLocation']}'),
+              Text('To: ${brokerDetails['toLocation']}'),
+              Text('Date: ${brokerDetails['requestDate']}'),
+              Text('Capacity: ${brokerDetails['capacity']}'),
+              const Spacer(),
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < details.rating ? Icons.star : Icons.star_border,
-                    color: index < details.rating ? Colors.amber : Colors.grey,
-                    size: 16,
+                    index < (brokerDetails['rating'] as int).round()
+                        ? Icons.star
+                        : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
                   );
                 }),
               ),
             ],
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.chat, color: Colors.blue),
-          onPressed: () {
-            // Action for chat button
-            // Navigate to chat screen or show chat dialog
-          },
+      ),
+    );
+  }
+}
+
+class BrokerDetailsScreen extends StatelessWidget {
+  final Map<String, dynamic> brokerDetails;
+
+  const BrokerDetailsScreen({Key? key, required this.brokerDetails}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(brokerDetails['brokerName'])),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: ClipOval(
+                child: Image.network(
+                  brokerDetails['profileUrl'],
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Name: ${brokerDetails['brokerName']}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text('Rating: ${brokerDetails['rating']}'),
+            const Divider(height: 20),
+            Text('Request Details:', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('From: ${brokerDetails['fromLocation']}'),
+            Text('To: ${brokerDetails['toLocation']}'),
+            Text('Date: ${brokerDetails['requestDate']}'),
+            Text('Capacity: ${brokerDetails['capacity']}'),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

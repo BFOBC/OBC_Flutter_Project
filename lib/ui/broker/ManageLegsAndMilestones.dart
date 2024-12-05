@@ -33,8 +33,8 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       // Validate PlaceNewJob screen
       isValid = (context.findAncestorStateOfType<PlaceNewJobState>()?.validate() ?? false);
     } else {
-      // Validate AddNewMilestone screen
-      // isValid = (context.findAncestorStateOfType<_AddNewMilestoneScreenState>()?.validate() ?? false);
+      //Validate AddNewMilestone screen
+      isValid = (context.findAncestorStateOfType<AddNewMilestoneScreenState>()?.validateInputs() ?? false);
     }
 
     if (!isValid) {
