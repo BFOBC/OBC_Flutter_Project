@@ -25,7 +25,8 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.example.broker_flutter_pp"
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdkVersion 34
+    //compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
 

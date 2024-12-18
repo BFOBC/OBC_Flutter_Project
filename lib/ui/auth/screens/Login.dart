@@ -48,7 +48,6 @@ class _CardViewState extends State<CardView> {
 
   final List<bool> _selectedToggle = [true, false];
   final List<String> _toggleText = ["Broker", "Courier"];
-
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       showProgressDialog(context);
@@ -70,10 +69,25 @@ class _CardViewState extends State<CardView> {
         final user = userCredential.user;
 
         if (user != null) {
-          await firestore.collection(collectionName).doc(user.uid).set({
-            'email': user.email,
-            'uid': user.uid,
-          });
+          // Check if the document already exists
+          DocumentSnapshot userDoc = await firestore.collection(collectionName).doc(user.uid).get();
+
+          if (userDoc.exists) {
+            // If the document exists, update only the email and UID fields
+            await firestore.collection(collectionName).doc(user.uid).update({
+              'email': user.email,
+              'uid': user.uid,
+            });
+          } else {
+            // If the document does not exist, create a new one with all fields
+            await firestore.collection(collectionName).doc(user.uid).set({
+              'email': user.email,
+              'uid': user.uid,
+              // Add other necessary user details if needed, for example:
+              // 'name': 'User Name',
+              // 'profilePicture': 'URL',
+            });
+          }
         }
 
         hideProgressDialog(context);
@@ -95,7 +109,7 @@ class _CardViewState extends State<CardView> {
             errorMessage = 'Wrong password provided for that user.';
             break;
           default:
-            errorMessage = 'Login failed: ${e.message}';
+            errorMessage = 'Login failed: Invalid Credentials';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

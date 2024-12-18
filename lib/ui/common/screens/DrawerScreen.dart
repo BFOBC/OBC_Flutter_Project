@@ -9,7 +9,6 @@ import '../../broker/MyMissions.dart';
 import '../../broker/NotificationScreen.dart';
 import '../../broker/SettingScreen.dart';
 import '../../broker/emptyleg/SearchEmptyLeg.dart';
-import '../../chat/ChatDetailScreen.dart';
 import '../../courier/CourierMissions.dart';
 import '../../courier/emptyleg/EmptyLegMainScreen.dart';
 import '../utils/RoleProvider.dart';
@@ -86,13 +85,6 @@ class _DrawerScreenState extends State<DrawerScreen> {
     setState(() {
       switch (title) {
         case AppStrings.map:
-/*          if (roleProvider.role == UserRole.broker) {
-            _showSnackBar("I am Broker");
-            _selectedWidget = const OpenStreetMapScreen(title: AppStrings.map);
-          } else if (roleProvider.role == UserRole.courier) {
-            _showSnackBar("I am Courier");
-            _selectedWidget = const CourierMap(title: AppStrings.map);
-          }*/
           _initializeSelectedWidget();
           _showSnackBar(
               'Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');
@@ -103,7 +95,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
         case AppStrings.availabilityUpdates:
           if (roleProvider.role == UserRole.broker) {
             _showSnackBar("I am Broker");
-            _selectedWidget =  SearchEmptyLegScreen();
+            _selectedWidget = SearchEmptyLegScreen();
           } else if (roleProvider.role == UserRole.courier) {
             _showSnackBar("I am Courier");
             _selectedWidget = const EmptyLegMainScreen();
@@ -143,42 +135,74 @@ class _DrawerScreenState extends State<DrawerScreen> {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
     var title = roleProvider.role == UserRole.broker ? 'Broker' : 'Courier';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        automaticallyImplyLeading: false,
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
+    return WillPopScope(
+      onWillPop: () async {
+        bool shouldExit = await _showExitDialog(context);
+        return shouldExit; // Return Future<bool> indicating whether to exit
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(title),
+          automaticallyImplyLeading: false,
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              );
+            },
+          ),
         ),
-      ),
-      drawer: Drawer(
-        child: Column(
-          children: [
-            const CustomDrawerHeader(),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: _drawerItems.keys.map((String key) {
-                  return DrawerItem(
-                    icon: _drawerItems[key]!['icon'],
-                    title: _drawerItems[key]!['title'],
-                    onTap: () => _onItemSelected(key),
-                  );
-                }).toList(),
+        drawer: Drawer(
+          child: Column(
+            children: [
+              CustomDrawerHeader(),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: _drawerItems.keys.map((String key) {
+                    return DrawerItem(
+                      icon: _drawerItems[key]!['icon'],
+                      title: _drawerItems[key]!['title'],
+                      onTap: () => _onItemSelected(key),
+                    );
+                  }).toList(),
+                ),
               ),
+            ],
+          ),
+        ),
+        body: _selectedWidget,
+      ),
+    );
+  }
+
+  Future<bool> _showExitDialog(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Exit"),
+          content: const Text("Are you sure you want to exit the app?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // Don't exit
+              },
+              child: const Text("No"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // Exit
+              },
+              child: const Text("Yes"),
             ),
           ],
-        ),
-      ),
-      body: _selectedWidget,
-    );
+        );
+      },
+    ) ?? false; // Default to not exiting if dialog is dismissed
   }
 }
 

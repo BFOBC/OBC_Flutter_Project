@@ -68,7 +68,7 @@ class _CourierProfileState extends State<CourierProfile> {
     }
   }
 
-  Future<void> _updateFirestore(String field, dynamic value) async {
+  Future<void> _updateFireStore(String field, dynamic value) async {
     try {
         await _firestore.collection('courier').doc(_currentUser.uid).set({
     'name': _nameController.text.isEmpty ? 'N/A' : _nameController.text,
@@ -212,7 +212,7 @@ Future<void> _saveProfile() async {
                     visas.remove(visa);
                   }
                   visas.add(newVisa);
-                  await _updateFirestore('visas', visas.map((v) => v.toMap()).toList());
+                  await _updateFireStore('visas', visas.map((v) => v.toMap()).toList());
                 } else if (type == 'Passport') {
                   Passport newPassport = Passport(
                     countryName: countryController.text,
@@ -224,7 +224,7 @@ Future<void> _saveProfile() async {
                     passports.remove(passport);
                   }
                   passports.add(newPassport);
-                  await _updateFirestore('passports', passports.map((p) => p.toMap()).toList());
+                  await _updateFireStore('passports', passports.map((p) => p.toMap()).toList());
                 }
                 Navigator.of(context).pop();
               },
@@ -256,10 +256,10 @@ Future<void> _saveProfile() async {
               onPressed: () async {
                 if (type == 'Visa' && visa != null) {
                   visas.remove(visa);
-                  await _updateFirestore('visas', visas.map((v) => v.toMap()).toList());
+                  await _updateFireStore('visas', visas.map((v) => v.toMap()).toList());
                 } else if (type == 'Passport' && passport != null) {
                   passports.remove(passport);
-                  await _updateFirestore(
+                  await _updateFireStore(
                       'passports', passports.map((p) => p.toMap()).toList());
                 }
                 Navigator.of(context).pop();
