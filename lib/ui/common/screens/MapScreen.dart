@@ -12,16 +12,16 @@ import '../../courier/MainScreen.dart';
 import '../utils/CustomDialog.dart';
 import '../widgets/ConfirmLocationChangeDialog.dart';
 
-class OpenStreetMapScreen extends StatefulWidget {
+class CourierMap extends StatefulWidget {
   final String title;
 
-  const OpenStreetMapScreen({super.key, required this.title});
+  const CourierMap({super.key, required this.title});
 
   @override
   _OpenStreetMapScreenState createState() => _OpenStreetMapScreenState();
 }
 
-class _OpenStreetMapScreenState extends State<OpenStreetMapScreen>
+class _OpenStreetMapScreenState extends State<CourierMap>
     with SingleTickerProviderStateMixin {
   bool _showCardStack = false;
   List<CardModel> _filteredUsers = [];

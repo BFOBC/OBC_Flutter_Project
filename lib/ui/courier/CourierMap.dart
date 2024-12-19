@@ -1,117 +1,77 @@
-import 'dart:math';
-import 'package:broker_flutter_pp/ui/courier/emptyleg/CardStackWidget.dart';
-import 'package:broker_flutter_pp/ui/courier/emptyleg/EmptyLegMainScreen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../broker/SearchCourier.dart';
-
-
-class CourierMap extends StatefulWidget {
+class BrokerMap extends StatefulWidget {
   final String title;
 
-  const CourierMap({super.key, required this.title});
+  const BrokerMap({super.key, required this.title});
 
   @override
-  _OpenStreetMapScreenState createState() => _OpenStreetMapScreenState();
+  _BrokerMapState createState() => _BrokerMapState();
 }
 
-class _OpenStreetMapScreenState extends State<CourierMap> with SingleTickerProviderStateMixin {
-  final bool _isSearching = false; // Radar animation state
-  final bool _showMarkers = false; // Controls marker display after radar animation
-  final List<Marker> _markers = []; // List of markers
-bool isLoading = true;
+class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMixin {
+  bool _isSearching = false;
+  bool _showMarkers = false;
+  final List<Marker> _markers = [];
+  final TextEditingController _searchController = TextEditingController();
 
+// Fetch details of an airport by GPS code
+  Future<Map<String, dynamic>?> fetchAirportDetail(String code) async {
+    final dbHelper = DatabaseOperation();
+    try {
+      // Fetch the list of airports matching the GPS code
+      List<Map<String, dynamic>> results = await dbHelper.fetchAirportsByGpsCode(code);
 
-  late AnimationController _radarController;
-  late Animation<double> _radarAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _radarController = AnimationController(vsync: this, duration: const Duration(seconds: 2));
-    _radarAnimation = Tween<double>(begin: 0, end: 300).animate(_radarController)
-      ..addListener(() {
-        setState(() {});
-      });
+      // Return the first matching airport, or null if no match is found
+      if (results.isNotEmpty) {
+        return results.first;
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching airport details: $e');
+      return null;
+    }
   }
+  void _searchAirport(String code) async {
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid 3-letter airport code.')),
+      );
+      return;
+    }
 
-  @override
-  void dispose() {
-    _radarController.dispose();
-    super.dispose();
-  }
-
-  // Handle search input and trigger radar animation and markers
-  /*void _onSearch(String query) {
-    if (query.isNotEmpty) {
+    try {
       setState(() {
         _isSearching = true;
-        _showMarkers = false;
       });
 
-      // Trigger radar animation, then show markers
-      _radarController.forward().then((_) {
-        setState(() {
-          _isSearching = false;
-          _showMarkers = true;
-          _markers = _generateMockMarkers(); // Generate mock markers after search
-        });
-      });
-    } else {
+      final airportDetail = await fetchAirportDetail(code);
+      if (airportDetail != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Airport: ${airportDetail["name"]}, City: ${airportDetail["city"]}, Country: ${airportDetail["country"]}',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No airport found for code: $code')),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching airport details: $error')),
+      );
+    } finally {
       setState(() {
-        _showMarkers = false;
         _isSearching = false;
       });
     }
-  }*/
-
-  // Radar animation widget
-  Widget _buildRadarAnimation() {
-    return Center(
-      child: CustomPaint(
-        painter: RadarPainter(_radarAnimation.value),
-        child: const SizedBox(
-          width: 300,
-          height: 300,
-        ),
-      ),
-    );
   }
-
-  /*// Generate mock markers with random locations and data
-  List<Marker> _generateMockMarkers() {
-    List<Marker> mockMarkers = [];
-    for (int i = 0; i < 4; i++) {
-      final lat = 30.3753 + Random().nextDouble() * 2; // Random nearby locations
-      final lng = 69.3451 + Random().nextDouble() * 2;
-      final marker = Marker(
-        width: 80.0,
-        height: 80.0,
-        point: LatLng(lat, lng),
-        builder: (ctx) => GestureDetector(
-          onTap: () {
-            // Navigate to SearchCourier screen with mock data
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SearchCourier(
-                  userName: 'User ${i + 1}',
-                  rating: Random().nextDouble() * 5,
-                  userImage: 'https://via.placeholder.com/150', // Placeholder image
-                ),
-              ),
-            );
-          },
-          child: Image.asset('assets/map_icon.png'), // Custom marker icon from assets
-        ),
-      );
-      mockMarkers.add(marker);
-    }
-    return mockMarkers;
-  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -120,15 +80,15 @@ bool isLoading = true;
         // Map Widget
         FlutterMap(
           options: const MapOptions(
-            initialCenter: LatLng(30.3753, 69.3451), // Initial map center
-            initialZoom: 5.0, // Initial zoom level
+            initialCenter: LatLng(30.3753, 69.3451),
+            initialZoom: 5.0,
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
               subdomains: const ['a', 'b', 'c'],
             ),
-            if (_showMarkers) MarkerLayer(markers: _markers), // Show markers after search
+            if (_showMarkers) MarkerLayer(markers: _markers),
           ],
         ),
 
@@ -150,16 +110,18 @@ bool isLoading = true;
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.search, color: Colors.grey),
-                SizedBox(width: 10.0),
+                const Icon(Icons.search, color: Colors.grey),
+                const SizedBox(width: 10.0),
                 Expanded(
                   child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search Location',
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: '3 Letter Airport Code',
                       border: InputBorder.none,
                     ),
+                    onSubmitted: _searchAirport,
                   ),
                 ),
               ],
@@ -167,34 +129,13 @@ bool isLoading = true;
           ),
         ),
 
-        // Radar animation during search
         if (_isSearching)
           Positioned.fill(
-            child: _buildRadarAnimation(),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
           ),
-
-    ],
-  );
-}
-}
-// Custom painter to draw the radar effect
-class RadarPainter extends CustomPainter {
-  final double radius;
-
-  RadarPainter(this.radius);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-
-    // Draw the radar circle
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(RadarPainter oldDelegate) {
-    return oldDelegate.radius != radius;
+      ],
+    );
   }
 }

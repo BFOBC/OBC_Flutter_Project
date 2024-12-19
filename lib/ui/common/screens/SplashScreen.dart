@@ -1,12 +1,12 @@
 import 'dart:async';
+import 'package:broker_flutter_pp/data/AirportService.dart';
+import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../data/DatabaseHelper.dart';
 import '../AirportsScreen.dart';
-
-
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,64 +19,105 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Add a delay to simulate the splash screen duration
-    Timer(const Duration(seconds: 3), () {
-      checkLocationPermissions();
-    });
+    // Delay to simulate splash screen duration
+    Timer(const Duration(seconds: 3), checkDatabaseAndPermissions);
+  }
+
+  Future<void> checkDatabaseAndPermissions() async {
+    final DatabaseOperation dbHelper = DatabaseOperation();
+
+    // Show SnackBar for database check
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Checking local database...')),
+    );
+
+    // Check if data exists in the local database
+    bool isDataAvailable = await _isDataAvailable(dbHelper);
+
+    if (!isDataAvailable) {
+      // Show SnackBar for synchronization
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data not found. Starting synchronization...')),
+      );
+
+      // Data not available, start synchronization
+      bool isSynced = await _synchronizeData();
+
+      if (!isSynced) {
+        // If synchronization fails, show an error and exit
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to synchronize data.')),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data synchronized successfully.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data already available in the database.')),
+      );
+    }
+
+    // Check location permissions after data synchronization
+    await checkLocationPermissions();
+  }
+
+  Future<bool> _isDataAvailable(DatabaseOperation dbHelper) async {
+    try {
+      final data = await dbHelper.getAirports(); // Replace with your query
+      return data.isNotEmpty;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error checking database: $e')),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> _synchronizeData() async {
+    try {
+      final AirportService _service = AirportService();
+      await _service.loadAirports(); // Sync data
+      return true;
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error synchronizing data: $error')),
+      );
+      return false;
+    }
   }
 
   Future<void> checkLocationPermissions() async {
-    final dbHelper = DatabaseHelper();
-    await dbHelper.importAirportsInBackground(context, 'assets/airports.json');
-/*    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) =>  AirportsScreen(),
-        // builder: (context) =>  CircularChartScreen(),
-      ),
-    );*/
-    // Check if location permissions are already granted
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Checking location permissions...')),
+    );
+
     if (await Permission.location.isGranted) {
-      // Permissions are already granted, navigate to login screen
+      // Permissions granted, navigate to login screen
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permissions granted. Navigating to login...')),
+      );
       navigateToLoginScreen();
     } else {
-      // Permissions are not granted, navigate to permission screen
+      // Permissions not granted, navigate to permission screen
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permissions not granted. Navigating to permission screen...')),
+      );
       navigateToPermissionScreen();
     }
   }
 
   void navigateToLoginScreen() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const LoginCard(),
-       // builder: (context) =>  CircularChartScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginCard()),
     );
   }
 
   void navigateToPermissionScreen() {
-    final Map<String, double> chartData = {
-      "Red": 40,
-      "Green": 30,
-      "Blue": 30,
-    };
-
-    final List<Color> chartColors = [
-      Colors.black,
-      Colors.green,
-      Colors.blue,
-    ];
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-       // builder: (context) => const PermissionScreen(),
-        // Define the data and colors
-
-         //  builder: (context) =>                OpenStreetMapScreen(),
-          // builder: (context) =>                AddNewEmptyLegScreen(),
-           builder: (context) =>                const LoginCard(),
-
-      //  builder: (context) =>  CircularChartScreen(dataMap: chartData,
-        //  colorList: chartColors),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginCard()),
     );
   }
 
@@ -87,15 +128,13 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Your splash screen content, such as an app logo or name
             CircleAvatar(
               radius: 40,
-              backgroundImage: AssetImage('assets/broker.jpg'), // Replace with your image asset path
-            )  ,
+              backgroundImage: AssetImage('assets/broker.jpg'),
+            ),
             SizedBox(height: 16.0),
             Text(
-              ''
-                  'OBC',
+              'OBC',
               style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
           ],

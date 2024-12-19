@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -126,7 +127,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     );
   }
   Future<List<Map<String, dynamic>>> _fetchAirportsByGpsCode(String query) async {
-    final dbHelper = DatabaseHelper(); // Replace with your actual DB helper class
+    //final dbHelper = DatabaseHelper(); // Replace with your actual DB helper class
+    final dbHelper = DatabaseOperation();
     return await dbHelper.fetchAirportsByGpsCode(query);
   }
   @override

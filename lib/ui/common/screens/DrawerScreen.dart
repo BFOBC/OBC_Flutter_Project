@@ -71,16 +71,16 @@ class _DrawerScreenState extends State<DrawerScreen> {
   void _initializeSelectedWidget() {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
     _selectedWidget = roleProvider.role == UserRole.broker
-        ? const CourierMap(title: AppStrings.map)
-        : const OpenStreetMapScreen(title: AppStrings.map);
+        ? const BrokerMap(title: AppStrings.map)
+        : const CourierMap(title: AppStrings.map);
   }
 
   void _onItemSelected(String title) {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
     if (roleProvider.role == UserRole.broker) {
-      _selectedWidget = const CourierMap(title: AppStrings.map);
+      _selectedWidget = const BrokerMap(title: AppStrings.map);
     } else if (roleProvider.role == UserRole.courier) {
-      _selectedWidget = const OpenStreetMapScreen(title: AppStrings.map);
+      _selectedWidget = const CourierMap(title: AppStrings.map);
     }
     setState(() {
       switch (title) {
@@ -117,7 +117,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
         case AppStrings.settings:
           _selectedWidget = const SettingScreen();
         default:
-          _selectedWidget = const OpenStreetMapScreen(title: AppStrings.map);
+          _selectedWidget = const CourierMap(title: AppStrings.map);
           break;
       }
     });
