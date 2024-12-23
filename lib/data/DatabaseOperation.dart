@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../ui/common/models/AirportModel.dart';
+
 class DatabaseOperation{
   static final DatabaseOperation _instance = DatabaseOperation._internal();
   static Database? _database;
@@ -68,6 +70,23 @@ class DatabaseOperation{
       return [];
     }
   }
+  Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
+    try {
+      final db = await database;
+      final results = await db.query(
+        tableName,
+        where: 'iata_code LIKE ?',
+        whereArgs: ['$query%'],
+      );
+      print('Query: $query');
+      print('Results: $results');
+      return results.map((map) => AirportModel.fromMap(map)).toList();
+    } catch (e) {
+      print('Error fetching data: $e');
+      return [];
+    }
+  }
+
 
   Future<List<Map<String, dynamic>>> getAirports() async {
     final db = await database;

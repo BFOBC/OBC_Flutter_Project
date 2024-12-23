@@ -1,10 +1,10 @@
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
-import 'package:broker_flutter_pp/ui/common/screens/MapScreen.dart';
+import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
 import 'package:provider/provider.dart';
 import '../../../res/strings.dart';
-import '../../courier/CourierMap.dart';
+import '../../broker/BrokerMap.dart';
 import '../../broker/MyMissions.dart';
 import '../../broker/NotificationScreen.dart';
 import '../../broker/SettingScreen.dart';
