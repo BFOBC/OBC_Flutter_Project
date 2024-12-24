@@ -75,8 +75,8 @@ class DatabaseOperation{
       final db = await database;
       final results = await db.query(
         tableName,
-        where: 'iata_code LIKE ?',
-        whereArgs: ['$query%'],
+        where: 'LOWER(iata_code) = ?',
+        whereArgs: [query.toLowerCase()],
       );
       print('Query: $query');
       print('Results: $results');
@@ -86,8 +86,6 @@ class DatabaseOperation{
       return [];
     }
   }
-
-
   Future<List<Map<String, dynamic>>> getAirports() async {
     final db = await database;
     return db.query('airports');

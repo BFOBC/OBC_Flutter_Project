@@ -44,6 +44,7 @@ class _CourierMapState extends State<CourierMap>
 
 
   List<AirportModel> airportList = [];
+  List<Marker> _markers = [];
   // Define the markers list
  /* List<Marker> _markers = [
     Marker(
@@ -71,8 +72,8 @@ class _CourierMapState extends State<CourierMap>
             setState(() {});
           });
     _mapController = MapController();
-    _onSearch("abc");
-    fetchBrokerDetails();
+    //_onSearch("abc");
+   // fetchBrokerDetails();
   }
 
   Future<void> fetchBrokerDetails() async {
@@ -130,7 +131,7 @@ class _CourierMapState extends State<CourierMap>
 
     try {
       // Fetch airports based on query
-      List<AirportModel> airportList = await _fetchAirports(query);
+      airportList = await _fetchAirports(query);
       print("Fetched airports: $airportList");
 
       setState(() {
@@ -166,39 +167,64 @@ class _CourierMapState extends State<CourierMap>
     }
   }
 
-/*  void _onCountrySelected(String countryCode) {
+  void _onCountrySelected(AirportModel airportItem) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return ConfirmLocationChangeDialog(
           onConfirm: () {
-            setState(() {
-              _selectedLocation = airportLocations[countryCode]!;  // Update the location
-              _mapController.move(_selectedLocation, 5.0);  // Move the camera to the new location
+            try {
+              // Close the dialog
+              Navigator.of(context).pop();
 
-              // Add a new marker at the selected location
-              *//*_markers = [
-                Marker(
-                  width: 80.0,
-                  height: 80.0,
-                  point: _selectedLocation,
-                  builder: (ctx) => const Icon(
-                    Icons.location_on,
-                    color: Colors.blue,
-                    size: 40,
+              // Update the map and location
+              setState(() {
+                double lat = double.tryParse(airportItem.lat.toString()) ?? 0.0;
+                double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
+
+                if (lat == 0.0 && long == 0.0) {
+                  print("Invalid latitude or longitude: $e");
+                }
+
+                LatLng latLng = LatLng(lat, long);
+
+                if (_mapController == null) {
+                  print("Map controller is not initialized: $e");
+                }
+
+                _selectedLocation = latLng; // Update the selected location
+                _mapController.move(_selectedLocation, 5.0); // Animate to the new location
+
+                // Add a new marker at the selected location
+                _markers = [
+                  Marker(
+                    width: 80.0,
+                    height: 80.0,
+                    point: _selectedLocation,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.blue,
+                      size: 40,
+                    ),
                   ),
-                ),
-              ];*//*
-              // Reset the search text to clear the search bar
-              _searchText = "";
-              // Optionally, you can also reset the suggestions
-              _suggestedCountries = [];
-            });
+                ];
+
+                // Reset the search and suggestions
+                _searchText = "";
+                _suggestedCountries = [];
+                airportList = [];
+              });
+            } catch (e, stackTrace) {
+              print("Error in onConfirm: $e");
+              print(stackTrace);
+            }
           },
         );
       },
     );
-  }*/
+  }
+
+
 
   void _onSearch(String query) {
     if (query.isNotEmpty) {
@@ -563,7 +589,7 @@ Widget build(BuildContext context) {
                         return ListTile(
                           title: Text(_suggestedCountries[index]),
                           onTap: () {
-                            //_onCountrySelected(_suggestedCountries[index]);
+                            _onCountrySelected(airportList[index]);
                           },
                         );
                       },
