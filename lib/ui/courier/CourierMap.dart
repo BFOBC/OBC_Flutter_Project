@@ -33,31 +33,21 @@ class _CourierMapState extends State<CourierMap>
   String brokerContact = '';
   bool isLoading = true;
 
-
   // Add a MapController to control the map
   late MapController _mapController;
+  //Location location = Location(); // Create a Location instance
 
-  final LatLng _baseLocation = const LatLng(40.7128, -74.0060); // Example: New York City
-  final LatLng _currentLocation = const LatLng(34.0522, -118.2437); // Example: Los Angeles
+
+  LatLng _baseLocation =
+      const LatLng(40.7128, -74.0060); // Example: New York City
+  LatLng _currentLocation =
+      const LatLng(34.0522, -118.2437); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
   List<Map<String, dynamic>> brokerInfoList = [];
 
-
   List<AirportModel> airportList = [];
   List<Marker> _markers = [];
-  // Define the markers list
- /* List<Marker> _markers = [
-    Marker(
-      width: 80.0,
-      height: 80.0,
-      point: LatLng(30.3753, 69.3451),  // Default marker for Pakistan
-      builder: (ctx) => const Icon(
-        Icons.location_on,
-        color: Colors.red,
-        size: 40,
-      ),
-    ),
-  ];*/
+
 
   List<String> _suggestedCountries = [];
 
@@ -72,16 +62,58 @@ class _CourierMapState extends State<CourierMap>
             setState(() {});
           });
     _mapController = MapController();
+   // _getCurrentLocation();
     //_onSearch("abc");
-   // fetchBrokerDetails();
+    // fetchBrokerDetails();
   }
+/*  Future<void> _getCurrentLocation() async {
+    Location location = Location();
+    bool serviceEnabled;
+    PermissionStatus permissionGranted;
 
+    serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+      if (!serviceEnabled) {
+        return;
+      }
+    }
+
+    permissionGranted = await location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await location.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    // Get current location
+    LocationData _locationData = await location.getLocation();
+
+    setState(() {
+      _currentLocation = LatLng(_locationData.latitude!, _locationData.longitude!);
+
+      // Update the map and markers
+      _mapController.move(_currentLocation, 15.0);
+      _markers = [
+        Marker(
+          width: 80.0,
+          height: 80.0,
+          point: _baseLocation,
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.red,
+            size: 40,
+          ),
+        ),
+      ];
+    });
+  }*/
   Future<void> fetchBrokerDetails() async {
     try {
       // Fetch all broker documents from Firestore
-      QuerySnapshot brokerDocsSnapshot = await FirebaseFirestore.instance
-          .collection('broker')
-          .get();
+      QuerySnapshot brokerDocsSnapshot =
+          await FirebaseFirestore.instance.collection('broker').get();
 
       if (brokerDocsSnapshot.docs.isNotEmpty) {
         setState(() {
@@ -97,19 +129,32 @@ class _CourierMapState extends State<CourierMap>
       } else {
         setState(() {
           // If no brokers are found
-          brokerInfoList = [{'name': 'No Brokers Found', 'contact': '', 'image': '', 'rating': 0.0}];
+          brokerInfoList = [
+            {
+              'name': 'No Brokers Found',
+              'contact': '',
+              'image': '',
+              'rating': 0.0
+            }
+          ];
           isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        brokerInfoList = [{'name': 'Error fetching data', 'contact': '', 'image': '', 'rating': 0.0}];
+        brokerInfoList = [
+          {
+            'name': 'Error fetching data',
+            'contact': '',
+            'image': '',
+            'rating': 0.0
+          }
+        ];
         isLoading = false;
       });
       print('Error: $e');
     }
   }
-
 
   @override
   void dispose() {
@@ -138,12 +183,14 @@ class _CourierMapState extends State<CourierMap>
         _isSearching = false; // Hide loading state
         // Handle null values for iataCode
         _suggestedCountries = airportList
-            .map((airport) => airport.iataCode ?? 'Unknown') // Default value for null
-            .where((iataCode) => iataCode.isNotEmpty) // Filter out empty strings
+            .map((airport) =>
+                airport.iataCode ?? 'Unknown') // Default value for null
+            .where(
+                (iataCode) => iataCode.isNotEmpty) // Filter out empty strings
             .toList();
 
-        print("Mapped IATA codes: ${airportList.map((airport) => airport.iataCode).toList()}");
-
+        print(
+            "Mapped IATA codes: ${airportList.map((airport) => airport.iataCode).toList()}");
       });
     } catch (e) {
       setState(() {
@@ -153,13 +200,13 @@ class _CourierMapState extends State<CourierMap>
     }
   }
 
-
 // Function to fetch airports based on query
   Future<List<AirportModel>> _fetchAirports(String query) async {
     final dbHelper = DatabaseOperation();
     try {
       // Fetch the list of airports matching the GPS code
-      List<AirportModel> airports = await dbHelper.fetchAirportsFromDatabase(query);
+      List<AirportModel> airports =
+          await dbHelper.fetchAirportsFromDatabase(query);
       return airports; // Return the fetched airports
     } catch (e) {
       print('Error _fetchAirports $e');
@@ -174,33 +221,26 @@ class _CourierMapState extends State<CourierMap>
         return ConfirmLocationChangeDialog(
           onConfirm: () {
             try {
-              // Close the dialog
-              Navigator.of(context).pop();
+             // Close the dialog
+              //Navigator.of(context).pop();
 
               // Update the map and location
-              setState(() {
+             setState(() {
                 double lat = double.tryParse(airportItem.lat.toString()) ?? 0.0;
                 double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
 
-                if (lat == 0.0 && long == 0.0) {
-                  print("Invalid latitude or longitude: $e");
-                }
-
                 LatLng latLng = LatLng(lat, long);
-
-                if (_mapController == null) {
-                  print("Map controller is not initialized: $e");
-                }
-
-                _selectedLocation = latLng; // Update the selected location
-                _mapController.move(_selectedLocation, 5.0); // Animate to the new location
+                _baseLocation=latLng;
+                _baseLocation = latLng; // Update the selected location
+                _mapController.move(
+                    _baseLocation, 8.0); // Animate to the new location
 
                 // Add a new marker at the selected location
                 _markers = [
                   Marker(
                     width: 80.0,
                     height: 80.0,
-                    point: _selectedLocation,
+                    point: _baseLocation,
                     child: const Icon(
                       Icons.location_on,
                       color: Colors.blue,
@@ -224,8 +264,6 @@ class _CourierMapState extends State<CourierMap>
     );
   }
 
-
-
   void _onSearch(String query) {
     if (query.isNotEmpty) {
       setState(() {
@@ -246,6 +284,7 @@ class _CourierMapState extends State<CourierMap>
       });
     }
   }
+
   void _openBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -264,7 +303,8 @@ class _CourierMapState extends State<CourierMap>
                   const Center(
                     child: Text(
                       'Available at',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -295,9 +335,8 @@ class _CourierMapState extends State<CourierMap>
                                 bottomLeft: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color: _isBaseSelected
-                                    ? Colors.blue
-                                    : Colors.grey,
+                                color:
+                                    _isBaseSelected ? Colors.blue : Colors.grey,
                               ),
                             ),
                             child: Center(
@@ -362,10 +401,11 @@ class _CourierMapState extends State<CourierMap>
                   MaterialButton(
                     onPressed: () {
                       // Determine the selected location
-                      _selectedLocation = _isBaseSelected ? _baseLocation : _currentLocation;
+                      _selectedLocation =
+                          _isBaseSelected ? _baseLocation : _currentLocation;
 
                       // Move the map to the selected location
-                      _mapController.move(_selectedLocation, 10.0);
+                      _mapController.move(_selectedLocation, 8.0);
 
                       // Add a marker at the selected location
                       /*_markers = [
@@ -461,16 +501,14 @@ class _CourierMapState extends State<CourierMap>
           shadowColor: Colors.black.withOpacity(0.2),
           child: GestureDetector(
             onTap: () {
-
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => SelectBroker(
-                     brokerID: brokerID,
+                    brokerID: brokerID,
                   ),
                 ),
               );
-
             },
             child: SizedBox(
               height: 150,
@@ -525,104 +563,115 @@ class _CourierMapState extends State<CourierMap>
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Stack(
-      children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: const MapOptions(
-            initialCenter: LatLng(30.3753, 69.3451),
-            initialZoom: 5.0,
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              subdomains: const ['a', 'b', 'c'],
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: LatLng(30.3753, 69.3451),
+              initialZoom: 5.0,
             ),
-            /*MarkerLayer(
-              markers: _markers,
-            ),*/
-          ],
-        ),
-        if (_isSearchBarVisible) // Conditionally render the search bar
-          Positioned(
-            top: 40.0,
-            left: 20.0,
-            right: 20.0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                  ),
-                ],
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.search, color: Colors.grey),
-                      const SizedBox(width: 10.0),
-                      Expanded(
-                        child: TextField(
-                          onChanged: _onSearchAirport,
-                          decoration: const InputDecoration(
-                            hintText: 'Search Location',
-                            border: InputBorder.none,
+              MarkerLayer(
+              markers: _markers,
+            ),
+            ],
+          ),
+          if (_isSearchBarVisible) // Conditionally render the search bar
+            Positioned(
+              top: 40.0,
+              left: 20.0,
+              right: 20.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.search, color: Colors.grey),
+                        const SizedBox(width: 10.0),
+                        Expanded(
+                          child: TextField(
+                            onSubmitted: (value) {
+                              // Call your search method with the entered text
+                              _onSearchAirport(value);
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Search Location',
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  // Suggest country codes based on the search
-                  if (_suggestedCountries.isNotEmpty)
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _suggestedCountries.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(_suggestedCountries[index]),
-                          onTap: () {
-                            _onCountrySelected(airportList[index]);
-                          },
-                        );
-                      },
+                      ],
                     ),
-                ],
+                    // Suggest country codes based on the search
+                    if (airportList.isNotEmpty)
+                      SingleChildScrollView(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          // Avoid nested scrolling issues
+                          itemCount: airportList.length,
+                          itemBuilder: (context, index) {
+                            return ListTile(
+                              title: Text(airportList[index].name.toString()),
+                              onTap: () {
+                                print("Clicked on: ${airportList[index].name}");
+                                _onCountrySelected(airportList[index]);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          Positioned.fill(
+            child: _buildRadarAnimation(), // Radar animation always visible
+          ),
+          Positioned(
+            bottom: 20.0,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                height: 300,
+                child:
+                    _buildCardStackWidget(context), // Card stack always visible
               ),
             ),
           ),
-        Positioned.fill(
-          child: _buildRadarAnimation(), // Radar animation always visible
-        ),
-        Positioned(
-          bottom: 20.0,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: SizedBox(
-              height: 300,
-              child: _buildCardStackWidget(context), // Card stack always visible
-            ),
-          ),
-        ),
-      ],
-    ),
-    floatingActionButton: FloatingActionButton(
-      onPressed: _openBottomSheet,
-      backgroundColor: Colors.red,
-      child: const Icon(Icons.accessibility),
-    ),
-    floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-  );
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openBottomSheet,
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.accessibility),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
 }
-}
+
 class RadarPainter extends CustomPainter {
   final double radius;
 

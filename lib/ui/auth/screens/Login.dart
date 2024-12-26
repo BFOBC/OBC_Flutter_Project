@@ -16,6 +16,13 @@ class LoginCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green, Colors.blueAccent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -28,6 +35,7 @@ class LoginCard extends StatelessWidget {
     );
   }
 }
+
 
 class CardView extends StatefulWidget {
   const CardView({super.key});

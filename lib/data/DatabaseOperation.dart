@@ -78,8 +78,6 @@ class DatabaseOperation{
         where: 'LOWER(iata_code) = ?',
         whereArgs: [query.toLowerCase()],
       );
-      print('Query: $query');
-      print('Results: $results');
       return results.map((map) => AirportModel.fromMap(map)).toList();
     } catch (e) {
       print('Error fetching data: $e');
