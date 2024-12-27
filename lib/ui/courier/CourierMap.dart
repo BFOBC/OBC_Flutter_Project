@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -31,6 +32,8 @@ class _CourierMapState extends State<CourierMap>
   String _searchText = ""; // This holds the text in the search bar
   String brokerName = '';
   String brokerContact = '';
+  String country='';
+  String currentLocation='';
   bool isLoading = true;
 
   // Add a MapController to control the map
@@ -47,6 +50,7 @@ class _CourierMapState extends State<CourierMap>
 
   List<AirportModel> airportList = [];
   List<Marker> _markers = [];
+  late User _currentUser;
 
 
   List<String> _suggestedCountries = [];
@@ -62,6 +66,7 @@ class _CourierMapState extends State<CourierMap>
             setState(() {});
           });
     _mapController = MapController();
+    _currentUser = FirebaseAuth.instance.currentUser!;
    // _getCurrentLocation();
     //_onSearch("abc");
     // fetchBrokerDetails();
@@ -213,7 +218,6 @@ class _CourierMapState extends State<CourierMap>
       return []; // Return an empty list in case of error
     }
   }
-
   void _onCountrySelected(AirportModel airportItem) {
     showDialog(
       context: context,
@@ -221,21 +225,18 @@ class _CourierMapState extends State<CourierMap>
         return ConfirmLocationChangeDialog(
           onConfirm: () {
             try {
-             // Close the dialog
-              //Navigator.of(context).pop();
 
-              // Update the map and location
-             setState(() {
-                double lat = double.tryParse(airportItem.lat.toString()) ?? 0.0;
-                double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
+              // Extract lat and long
+              double lat = double.tryParse(airportItem.lat.toString()) ?? 0.0;
+              double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
+              LatLng latLng = LatLng(lat, long);
 
-                LatLng latLng = LatLng(lat, long);
-                _baseLocation=latLng;
+              // Update the map and markers (UI updates)
+              setState(() {
+                country=airportItem.countryCode.toString();
+                print("country $country");
                 _baseLocation = latLng; // Update the selected location
-                _mapController.move(
-                    _baseLocation, 8.0); // Animate to the new location
-
-                // Add a new marker at the selected location
+                _mapController.move(_baseLocation, 8.0); // Animate to the new location
                 _markers = [
                   Marker(
                     width: 80.0,
@@ -248,12 +249,12 @@ class _CourierMapState extends State<CourierMap>
                     ),
                   ),
                 ];
-
-                // Reset the search and suggestions
                 _searchText = "";
                 _suggestedCountries = [];
                 airportList = [];
               });
+              // Call Firebase to update the base location asynchronously
+              _updateBaseLocation(lat, long);
             } catch (e, stackTrace) {
               print("Error in onConfirm: $e");
               print(stackTrace);
@@ -263,6 +264,29 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
+
+  Future<void> _updateBaseLocation(double lat, double long) async {
+    try {
+      // Perform Firebase update asynchronously without blocking the UI
+      await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(_currentUser.uid)
+          .set({
+        'baseLocationLat': lat,
+        'baseLocationLong': long,
+        'country': country,
+        'base': _isBaseSelected,
+        'current': !_isBaseSelected,
+      }, SetOptions(merge: true));
+
+      // Firebase update completed
+      print("Base location updated successfully!");
+    } catch (e) {
+      // Handle Firebase errors
+      print("Error updating base location: $e");
+    }
+  }
+
 
   void _onSearch(String query) {
     if (query.isNotEmpty) {
@@ -303,8 +327,7 @@ class _CourierMapState extends State<CourierMap>
                   const Center(
                     child: Text(
                       'Available at',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -327,25 +350,20 @@ class _CourierMapState extends State<CourierMap>
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             decoration: BoxDecoration(
-                              color: _isBaseSelected
-                                  ? Colors.blue
-                                  : Colors.transparent,
+                              color: _isBaseSelected ? Colors.blue : Colors.transparent,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(10),
                                 bottomLeft: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color:
-                                    _isBaseSelected ? Colors.blue : Colors.grey,
+                                color: _isBaseSelected ? Colors.blue : Colors.grey,
                               ),
                             ),
                             child: Center(
                               child: Text(
                                 'Base',
                                 style: TextStyle(
-                                  color: _isBaseSelected
-                                      ? Colors.white
-                                      : Colors.black,
+                                  color: _isBaseSelected ? Colors.white : Colors.black,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -365,26 +383,20 @@ class _CourierMapState extends State<CourierMap>
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             decoration: BoxDecoration(
-                              color: !_isBaseSelected
-                                  ? Colors.blue
-                                  : Colors.transparent,
+                              color: !_isBaseSelected ? Colors.blue : Colors.transparent,
                               borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(10),
                                 bottomRight: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color: !_isBaseSelected
-                                    ? Colors.blue
-                                    : Colors.grey,
+                                color: !_isBaseSelected ? Colors.blue : Colors.grey,
                               ),
                             ),
                             child: Center(
                               child: Text(
                                 'Current',
                                 style: TextStyle(
-                                  color: !_isBaseSelected
-                                      ? Colors.white
-                                      : Colors.black,
+                                  color: !_isBaseSelected ? Colors.white : Colors.black,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -399,27 +411,27 @@ class _CourierMapState extends State<CourierMap>
 
                   // Confirm button
                   MaterialButton(
-                    onPressed: () {
+                    onPressed: () async {
                       // Determine the selected location
                       _selectedLocation =
-                          _isBaseSelected ? _baseLocation : _currentLocation;
+                      _isBaseSelected ? _baseLocation : _currentLocation;
 
                       // Move the map to the selected location
                       _mapController.move(_selectedLocation, 8.0);
 
-                      // Add a marker at the selected location
+                      // Add a marker at the selected location (optional)
                       /*_markers = [
-                        Marker(
-                          width: 80.0,
-                          height: 80.0,
-                          point: _selectedLocation,
-                          builder: (ctx) => const Icon(
-                            Icons.location_on,
-                            color: Colors.blue,
-                            size: 40,
-                          ),
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: _selectedLocation,
+                        builder: (ctx) => const Icon(
+                          Icons.location_on,
+                          color: Colors.blue,
+                          size: 40,
                         ),
-                      ];*/
+                      ),
+                    ];*/
 
                       // Show Snackbar
                       String message = _isBaseSelected
@@ -454,6 +466,7 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
+
 
   CardStackWidget _buildCardStackWidget(BuildContext context) {
     return CardStackWidget(
