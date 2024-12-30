@@ -47,8 +47,7 @@ class CustomDrawerHeader extends StatelessWidget {
                       // Navigate to CourierProfile when the avatar is tapped
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  CourierProfile(courierProfile: courierProfile, visas: [], passports: [],)),
-                      );
+                        MaterialPageRoute(builder: (context) =>  CourierProfile()));
                     }
 
                   },

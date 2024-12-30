@@ -1,25 +1,24 @@
 import 'dart:math';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../../res/custom_colors.dart';
+import '../courier/models/CourierProfileData.dart';
 import 'BasicInfo.dart';
 import 'ManageLegsAndMilestones.dart';
 import 'Passports.dart';  // Import the Passports widget
 import 'Visas.dart';      // Import the Visas widget
 
 class SearchCourier extends StatefulWidget {
-  final String userName;
-  final double rating;
-  final String userImage;
 
-  const SearchCourier({
+  String courierKey;
+
+   SearchCourier({
     super.key,
-    required this.userName,
-    required this.rating,
-    required this.userImage,
+    required this.courierKey,
   });
 
   @override
@@ -32,13 +31,20 @@ class _SearchCourierState extends State<SearchCourier> {
   bool _showPassports = false;
   bool _showVisas = false;
 
+  bool _isLoading = true;
+  late String userName = '';
+  late String email = '';
+  late String userImage = '';
+  late double rating = 5;
+  late List<Passport> passports;
+  late List<Visa> visas;
+  late CourierProfileData courierProfile;
   // Sample data for the pie chart
   final Map<String, double> dataMap = {
     "Negative": 40,
     "Positive": 30,
     "Neutral": 30,
   };
-  var rating = Random().nextDouble() * 5; // Random rating between 0 and 5
 
   final List<Color> colorList = [
     Colors.red,
@@ -68,12 +74,78 @@ class _SearchCourierState extends State<SearchCourier> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    fetchCourierData(); // Fetch data when the screen is initialized
+  }
+
+  // Fetch courier data from Firestore
+  Future<void> fetchCourierData() async {
+    try {
+      // Check if courierKey is valid (non-empty)
+      if (widget.courierKey.isEmpty) {
+        print("Courier key is empty!");
+        setState(() {
+          _isLoading = false;
+        });
+        return; // Early return if the courierKey is invalid (empty)
+      }
+      print("Courier");
+      String cleanCourierKey = widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
+      print('Cleaned Courier Key: $cleanCourierKey');
+
+      DocumentSnapshot courierDoc = await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(cleanCourierKey)
+          .get();
+
+      if (courierDoc.exists) {
+        var data = courierDoc.data() as Map<String, dynamic>;
+        // Create the CourierProfileData model from Firestore data
+        courierProfile = CourierProfileData.fromMap(data);
+        // Log the data received from Firestore
+        print("Courier Data fetched successfully: $data");
+
+        setState(() {
+          userName = data['name'] ?? 'Courier';
+          userImage = data['userImage'] ?? '';
+          rating = data['rating']?.toDouble() ?? 5.0;
+          passports = (data['passports'] as List?)
+              ?.map((passport) => Passport.fromMap(passport))
+              .toList() ??
+              [];
+          visas = (data['visas'] as List?)
+              ?.map((visa) => Visa.fromMap(visa))
+              .toList() ??
+              [];
+          _isLoading = false; // Set loading to false once data is fetched
+        });
+      } else {
+        // Handle no data case
+        setState(() {
+          _isLoading = false;
+        });
+        print("No courier found with this key.");
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("Error fetching courier data: $e");
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Courier Name'),
+        title:  Text('$userName'),
       ),
-      body: Stack(
+      body: _isLoading
+          ? Center(
+        child: CircularProgressIndicator(), // Show progress bar while loading
+      )
+          : Stack(
         children: [
           SingleChildScrollView(
             child: Column(
@@ -82,7 +154,7 @@ class _SearchCourierState extends State<SearchCourier> {
                 // Circular Image
                 CircleAvatar(
                   radius: 50,
-                  backgroundImage: NetworkImage(widget.userImage),
+                  backgroundImage: NetworkImage(userImage),
                 ),
                 const SizedBox(height: 10),
 
@@ -100,58 +172,39 @@ class _SearchCourierState extends State<SearchCourier> {
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Scrollable Toggle Buttons for navigation
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ToggleButtons(
-                    isSelected: _selectedToggle,
-                    onPressed: _onTogglePressed,
-                    borderRadius: BorderRadius.circular(10),
-                    selectedBorderColor: Colors.grey,
-                    selectedColor: Colors.white,
-                    fillColor: Palette.primaryColor, // Use your custom palette
-                    color: Colors.black,
-                    constraints: const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
-                    children: _toggleText.map((text) => Text(text)).toList(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0), // Left aur right margin dono sides par
+                  child: Align(
+                    alignment: Alignment.center, // Ensure content left-aligned rahe
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ToggleButtons(
+                        isSelected: _selectedToggle,
+                        onPressed: _onTogglePressed,
+                        borderRadius: BorderRadius.circular(10),
+                        selectedBorderColor: Colors.grey,
+                        selectedColor: Colors.white,
+                        fillColor: Palette.primaryColor, // Use your custom palette
+                        color: Colors.black,
+                        constraints: const BoxConstraints(minHeight: 40.0, minWidth: 100.0),
+                        children: _toggleText.map((text) => Text(text)).toList(),
+                      ),
+                    ),
                   ),
                 ),
+
+
                 const SizedBox(height: 10),
 
                 // Conditionally show Profile, Passports, Visas, or Pie Chart
-                if (_showProfile)
-                  BasicInfo(name: widget.userName),
+                if (_showProfile) BasicInfo(courierProfileData :courierProfile),
                 if (_showPassports)
                   Passports(
-                    passports: [
-                      Passport(
-                        countryName: '',
-                        passportNumber: 'A123456789',
-                        issueDate: '2020-01-01',
-                        expiryDate: '2030-01-01',
-                      ),
-                      Passport(
-                        countryName: 'Jane Doe',
-                        passportNumber: 'B987654321',
-                        issueDate: '2021-02-15',
-                        expiryDate: '2031-02-15',
-                      ),
-                    ],
+                    passports: passports,
                   ),
                 if (_showVisas)
                   Visas(
-                    visas: [
-/*                      Visa(
-                        country: 'Country A',
-                        countryFlagUrl: 'https://example.com/flagA.png',
-                        visaExpiryDate: '2025-12-31',
-                        visaIssueDate: '2023-01-01',
-                      ),*/
-                      Visa(
-                        countryName: 'Country B',
-                        expiryDate: '2026-06-30',
-                      ),
-                    ],
+                    visas: visas,
                   ),
                 if (_showPieChart)
                   CircularRating(
@@ -198,3 +251,4 @@ class _SearchCourierState extends State<SearchCourier> {
     );
   }
 }
+

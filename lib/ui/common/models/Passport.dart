@@ -1,8 +1,8 @@
 class Passport {
-  final String countryName;
-  final String passportNumber;
-  final String issueDate;
-  final String expiryDate;
+  String countryName;
+  String passportNumber;
+  String issueDate;
+  String expiryDate;
 
   Passport({
     required this.countryName,

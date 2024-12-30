@@ -4,16 +4,23 @@ import '../../common/models/Visa.dart';
 class CourierProfileData {
   String? id; // Nullable
   late final String? name; // Nullable
-  final String? website; // Nullable
-  final String? country; // Nullable
-  final List<String>? license; // Nullable
+  String? website; // Nullable
+  String? country; // Nullable
+  List<String>? license; // Nullable
   String? email; // Nullable
-  final String? paymentTerms; // Nullable
-  final List<Visa> visas;
-  final List<Passport> passports;
+  String? paymentTerms; // Nullable
+  List<Visa> visas; // List of Visa objects
+  List<Passport> passports; // List of Passport objects
+  String? phoneNumber;
+  String? address;
+  String? occupation;
+  bool? hasCar;
+  bool? hasDrivingLicence;
+  bool? willingToDoFirstLastMile;
 
-  var profilePictureUrl;
+  String? profilePictureUrl; // Define it as a nullable String for URL
 
+  // Empty constructor
   CourierProfileData({
     this.id,
     this.name,
@@ -22,9 +29,22 @@ class CourierProfileData {
     this.license,
     this.email,
     this.paymentTerms,
-    required this.visas,
-    required this.passports, required String courierID,
-  });
+    List<Visa>? visas,
+    List<Passport>? passports,
+    String? courierID,
+    this.phoneNumber,
+    this.address,
+    this.occupation,
+    this.hasCar,
+    this.hasDrivingLicence,
+    this.willingToDoFirstLastMile,
+    this.profilePictureUrl, // Added profilePictureUrl to the constructor
+  })  : visas = visas ?? [], // Default to an empty list if null
+        passports = passports ?? [], // Default to an empty list if null
+        _courierID = courierID ?? ''; // Default to an empty string if null
+
+  // Private variable for courierID to ensure it's not directly set
+  late String _courierID;
 
   // Method to convert to Map and ignore null values
   Map<String, dynamic> toMap() {
@@ -37,6 +57,7 @@ class CourierProfileData {
     if (license != null) data['license'] = license;
     if (email != null) data['email'] = email;
     if (paymentTerms != null) data['paymentTerms'] = paymentTerms;
+    if (profilePictureUrl != null) data['profilePictureUrl'] = profilePictureUrl; // Added field to Map
 
     return data;
   }
@@ -51,9 +72,23 @@ class CourierProfileData {
       license: (map['license'] as List<dynamic>?)?.map((e) => e as String).toList(),
       email: map['email'] as String?,
       paymentTerms: map['paymentTerms'] as String?,
-      visas: (map['visa'] as List<dynamic>?)!.map((e) => e as Visa).toList(),
-      passports: (map['passport'] as List<dynamic>?)!.map((e) => e as Passport).toList(), courierID: '');
+      visas: (map['visas'] as List<dynamic>?)
+          ?.map((e) => Visa.fromMap(e as Map<String, dynamic>))
+          .toList() ?? [],
+      passports: (map['passports'] as List<dynamic>?)
+          ?.map((e) => Passport.fromMap(e as Map<String, dynamic>))
+          .toList() ?? [],
+      courierID: map['courierID'] as String? ?? '', // Use the key if it exists
+      phoneNumber: map['phoneNumber'] as String?,
+      address: map['address'] as String?,
+      occupation: map['occupation'] as String?,
+      hasCar: map['car'] as bool?,
+      hasDrivingLicence: map['drivingLicence'] as bool?,
+      willingToDoFirstLastMile: map['firstLastMile'] as bool?,
+      profilePictureUrl: map['profilePictureUrl'] as String?, // Added field
+    );
   }
 
-  String? get courierID => id;
+  // Getter for courierID
+  String get courierID => _courierID;
 }

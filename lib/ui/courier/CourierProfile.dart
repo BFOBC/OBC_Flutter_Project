@@ -9,18 +9,17 @@ import 'package:image_picker/image_picker.dart';
 import 'models/CourierProfileData.dart';
 
 class CourierProfile extends StatefulWidget {
-  final CourierProfileData courierProfile;
+ // CourierProfileData courierProfile;
 
-  const CourierProfile({
+  CourierProfile({
     Key? key,
-    required this.courierProfile, required List visas, required List passports,
   }) : super(key: key);
 
   @override
   _CourierProfileState createState() => _CourierProfileState();
 }
+
 class _CourierProfileState extends State<CourierProfile> {
-  
   late User _currentUser;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -33,114 +32,116 @@ class _CourierProfileState extends State<CourierProfile> {
   List<Visa> visas = [];
   List<Passport> passports = [];
   String? _profilePictureUrl;
+  late String name = '';
   bool _hasCar = false; // State for the switch
   bool _willingToDoFirstLastMile = false; // State for the switch
   bool _hasDrivingLicence = false; // State for the switch
 
+  bool _isLoading = true; // Add this flag to track the loading state
   late CourierProfileData _editableProfile;
+
+  late CourierProfileData courierProfile = CourierProfileData();
 
   @override
   void initState() {
     super.initState();
-    _initializeProfile();
+    _getProfile();
   }
 
-  Future<void> _initializeProfile() async {
+  Future<void> _getProfile() async {
     _currentUser = FirebaseAuth.instance.currentUser!;
     final doc = await _firestore.collection('courier').doc(_currentUser.uid).get();
 
+    setState(() {
+      _isLoading = true; // Set loading state to true when data is being fetched
+    });
+
     if (doc.exists) {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      print("Courier");
+      print(data);
 
       setState(() {
-        visas = (doc['visas'] as List<dynamic>?)
-                ?.map((item) => Visa.fromMap(item))
-                .toList() ??
-            [];
-        passports = (doc['passports'] as List<dynamic>?)
-                ?.map((item) => Passport.fromMap(item))
-                .toList() ??
-            [];
-        _nameController.text = doc['name'] ?? 'N/A';
-        widget.courierProfile.email = _currentUser .email; // Assuming email is part of courierProfile
-        widget.courierProfile.id = _currentUser .uid;
+        courierProfile = CourierProfileData.fromMap(data);
+        // Now courierProfile is assigned safely
+        name=courierProfile.name.toString();
+        visas = courierProfile.visas ?? [];
+        passports = courierProfile.passports ?? [];
+        _nameController.text = courierProfile.name ?? '';
+        _hasCar = courierProfile.hasCar ?? false;
+        _hasDrivingLicence = courierProfile.hasDrivingLicence ?? false;
+        _willingToDoFirstLastMile = courierProfile.willingToDoFirstLastMile ?? false;
+        _isLoading = false; // Set loading state to false once data is fetched
       });
     }
   }
 
-  Future<void> _updateFireStore(String field, dynamic value) async {
+
+  Future<void> _updateFireStore() async {
     try {
-        await _firestore.collection('courier').doc(_currentUser.uid).set({
-    'name': _nameController.text.isEmpty ? 'N/A' : _nameController.text,
-    'email': _currentUser.email,
-    'profilePictureUrl': _profilePictureUrl,
-    'visas': List<Visa>,
-    'passports': List<Passport>,
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Profile saved successfully!')),
-  );
-} catch (e) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Error saving profile: $e')),
-  );
-}
-  }
-
-Future<void> _fetchProfileData() async {
-  try {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    final userUID = currentUser.uid;
-    final email = currentUser.email;
-
-    DocumentSnapshot doc = await FirebaseFirestore.instance
-        .collection('courier')
-        .doc(userUID)
-        .get();
-
-    if (doc.exists) {
       setState(() {
-        _editableProfile = CourierProfileData.fromMap(doc.data() as Map<String, dynamic>);
+        _isLoading=false;
       });
-    } else {
-      // Initialize default profile
-      setState(() {
-        _editableProfile = CourierProfileData(
-          courierID: userUID,
-          name: "",
-          email: currentUser.email ?? "N/A",
-          visas: [],
-          passports: [],
+      Map<String, dynamic> data = {}; // Dynamic map to add non-null values
+
+      data['id'] = _currentUser.uid;
+      data['car'] = _hasCar;
+      data['drivingLicence'] = _hasDrivingLicence;
+      data['firstLastMile'] = _willingToDoFirstLastMile;
+
+      // Check if name is not null or empty
+      if (_nameController.text.isNotEmpty) {
+        data['name'] = _nameController.text;
+      }
+
+      // Check if email is not null
+      if (_currentUser.email != null && _currentUser.email!.isNotEmpty) {
+        data['email'] = _currentUser.email;
+      }
+
+      // Check if profile picture URL is not null
+      if (_profilePictureUrl != null && _profilePictureUrl!.isNotEmpty) {
+        data['profilePictureUrl'] = _profilePictureUrl;
+      }
+
+      // Check if visas list is not null or empty
+      if (visas.isNotEmpty) {
+        data['visas'] = visas.map((visa) => visa.toMap()).toList();
+      }
+
+      // Check if passports list is not null or empty
+      if (passports.isNotEmpty) {
+        data['passports'] = passports.map((passport) => passport.toMap()).toList();
+      }
+
+      // Update Firestore only if there is valid data
+      if (data.isNotEmpty) {
+        // Using set with merge: true to replace or add data if it doesn't exist
+        await _firestore.collection('courier').doc(_currentUser.uid).set(data, SetOptions(merge: true));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile saved successfully!')),
         );
-      });
-    }
-  } catch (e) {
-    print("Error fetching profile: $e");
-  }
-}
-
-Future<void> _saveProfile() async {
-    try {
-
-      await _firestore.collection('courier').doc(_currentUser.uid).set({
-        'name': _nameController.text.isEmpty ? 'N/A' : _nameController.text,
-        'email': _currentUser.email,
-        'profilePictureUrl': _profilePictureUrl,
-        'visas': List<Visa>,
-        'passports': List<Passport>,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved successfully!')),
-      );
+        setState(() {
+          _isLoading=false;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No valid data to save!')),
+        );
+        setState(() {
+          _isLoading=false;
+        });
+      }
     } catch (e) {
+      print('Error saving profile');
+      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving profile: $e')),
       );
     }
   }
+
 
   Future<void> _uploadProfilePicture() async {
     final picker = ImagePicker();
@@ -150,8 +151,7 @@ Future<void> _saveProfile() async {
       File file = File(pickedFile.path);
       String fileName = 'profile_pictures/${_currentUser.uid}.jpg';
       try {
-        TaskSnapshot uploadTask =
-            await _storage.ref(fileName).putFile(file);
+        TaskSnapshot uploadTask = await _storage.ref(fileName).putFile(file);
         String downloadUrl = await uploadTask.ref.getDownloadURL();
 
         setState(() {
@@ -159,7 +159,8 @@ Future<void> _saveProfile() async {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture uploaded successfully!')),
+          const SnackBar(
+              content: Text('Profile picture uploaded successfully!')),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,8 +169,7 @@ Future<void> _saveProfile() async {
       }
     }
   }
-
- void _showEditDialog({
+  void _showEditDialog({
     required String type,
     Visa? visa,
     Passport? passport,
@@ -182,64 +182,86 @@ Future<void> _saveProfile() async {
       expiryController.text = visa?.expiryDate ?? passport?.expiryDate ?? '';
     }
 
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(visa != null || passport != null ? 'Edit $type' : 'Add $type'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: countryController,
-                decoration: InputDecoration(hintText: 'Country'),
-              ),
-              TextField(
-                controller: expiryController,
-                decoration: InputDecoration(hintText: 'Expiry Date'),
-              ),
-            ],
+          title: Text(
+              visa != null || passport != null ? 'Edit $type' : 'Add $type'),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: countryController,
+                  decoration: const InputDecoration(hintText: 'Country'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Country is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: expiryController,
+                  decoration: const InputDecoration(hintText: 'Expiry Date'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Expiry Date is required';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () async {
-                if (type == 'Visa') {
-                  Visa newVisa = Visa(
-                    countryName: countryController.text,
-                    expiryDate: expiryController.text,
-                  );
-                  if (visa != null) {
-                    visas.remove(visa);
+              onPressed: () {
+                if (_formKey.currentState?.validate() ?? false) {
+                  if (type == 'Visa') {
+                    Visa newVisa = Visa(
+                      countryName: countryController.text,
+                      expiryDate: expiryController.text,
+                    );
+                    if (visa != null) {
+                      visas.remove(visa);
+                    }
+                    setState(() {
+                      visas.add(newVisa);
+                    });
+                  } else if (type == 'Passport') {
+                    Passport newPassport = Passport(
+                      countryName: countryController.text,
+                      passportNumber: passport?.passportNumber ?? '',
+                      expiryDate: expiryController.text,
+                      issueDate: passport?.issueDate ?? '',
+                    );
+                    if (passport != null) {
+                      passports.remove(passport);
+                    }
+                    setState(() {
+                      passports.add(newPassport);
+                    });
                   }
-                  visas.add(newVisa);
-                  await _updateFireStore('visas', visas.map((v) => v.toMap()).toList());
-                } else if (type == 'Passport') {
-                  Passport newPassport = Passport(
-                    countryName: countryController.text,
-                    passportNumber: passport?.passportNumber ?? '',
-                    expiryDate: expiryController.text,
-                    issueDate: passport?.issueDate ?? '',
-                  );
-                  if (passport != null) {
-                    passports.remove(passport);
-                  }
-                  passports.add(newPassport);
-                  await _updateFireStore('passports', passports.map((p) => p.toMap()).toList());
+                  Navigator.of(context).pop();
                 }
-                Navigator.of(context).pop();
               },
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
           ],
         );
       },
     );
   }
-  
+
   void _showDeleteConfirmation({
     required String type,
     Visa? visa,
@@ -253,140 +275,29 @@ Future<void> _saveProfile() async {
           content: Text('Are you sure you want to delete this $type?'),
           actions: [
             TextButton(
-              onPressed: () async {
-                if (type == 'Visa' && visa != null) {
-                  visas.remove(visa);
-                  await _updateFireStore('visas', visas.map((v) => v.toMap()).toList());
-                } else if (type == 'Passport' && passport != null) {
-                  passports.remove(passport);
-                  await _updateFireStore(
-                      'passports', passports.map((p) => p.toMap()).toList());
-                }
+              onPressed: () {
+                // Cancel the action and close the dialog
                 Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  if (type == 'Visa' && visa != null) {
+                    visas.remove(visa);  // Remove the visa from the list
+                  } else if (type == 'Passport' && passport != null) {
+                    passports.remove(passport);  // Remove the passport from the list
+                  }
+                });
+                Navigator.of(context).pop();  // Close the dialog after deletion
               },
               child: Text('Delete'),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
           ],
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    
-    // Dispose of all controllers when the widget is disposed
-    for (var controller in _visaCountryControllers) {
-      controller.dispose();
-    }
-    for (var controller in _visaExpiryControllers) {
-      controller.dispose();
-    }
-    for (var controller in _passportCountryControllers) {
-      controller.dispose();
-    }
-    for (var controller in _passportExpiryControllers) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  // Function to show dialog for adding new Visa/Passport
-  _showAddDialog(String type) {
-    TextEditingController countryController = TextEditingController();
-    TextEditingController expiryController = TextEditingController();
-    TextEditingController passportNumberController = TextEditingController();
-    TextEditingController issueDateController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Add $type'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: countryController,
-                decoration: InputDecoration(hintText: 'Country'),
-              ),
-              TextField(
-                controller: expiryController,
-                decoration: InputDecoration(hintText: 'Expiry Date'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (type == 'Visa') {
-                  setState(() {
-                    // Add the new visa to the list
-                    widget.courierProfile.visas.add(Visa(
-                      countryName: countryController.text,
-                      expiryDate:  DateTime.parse(expiryController.text).toString(),
-                    ));
-                    // Also, add controllers for the new visa
-                    _visaCountryControllers.add(
-                        TextEditingController(text: countryController.text));
-                    _visaExpiryControllers.add(
-                        TextEditingController(text: expiryController.text));
-                  });
-                } else if (type == 'Passport') {
-                  setState(() {
-                    // Add the new passport to the list
-                    widget.courierProfile.passports.add(Passport(
-                      countryName: countryController.text,
-                      passportNumber: "test134",
-                      expiryDate:  DateTime.parse(expiryController.text).toString(),
-                      issueDate:  DateTime.parse(expiryController.text).toString(),
-                    ));
-                    // Also, add controllers for the new passport
-                    _passportCountryControllers.add(
-                        TextEditingController(text: countryController.text));
-                    _passportExpiryControllers.add(
-                        TextEditingController(text: expiryController.text));
-                  });
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Add'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _saveCourierProfile() async {
-  try {
-    _editableProfile.name = _nameController.text; // Sync name
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-
-    final data = widget.courierProfile.toMap();
-    await FirebaseFirestore.instance
-        .collection('courier')
-        .doc(currentUser.uid)
-        .set(data, SetOptions(merge: true));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile saved successfully')),
-    );
-  } catch (e) {
-    print("Error saving profile: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to save profile: $e')),
-    );
-  }
   }
 
 
@@ -395,50 +306,50 @@ Future<void> _saveProfile() async {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text('Courier Profile'),
+        title: Text('$name'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
+        child: _isLoading // Show ProgressIndicator while loading
+            ? Center(
+          child: CircularProgressIndicator(), // Circular progress bar
+        )
+            : SingleChildScrollView(
           child: Column(
             children: [
               // Avatar
               CircleAvatar(
                 radius: 50,
-                backgroundImage: widget.courierProfile.profilePictureUrl?.isNotEmpty == true
-                ? NetworkImage(widget.courierProfile.profilePictureUrl!)
-                : AssetImage('assets/avatar.png') as ImageProvider,
-
+                backgroundImage: courierProfile.profilePictureUrl?.isNotEmpty == true
+                    ? NetworkImage(courierProfile.profilePictureUrl!)
+                    : AssetImage('assets/avatar.png') as ImageProvider,
                 child: Align(
                   alignment: Alignment.bottomRight,
                   child: IconButton(
-                    icon: Icon(Icons.edit, color: Colors.white, size: 16,),
+                    icon: Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                     onPressed: _uploadProfilePicture,
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-              // Profile Information in rounded containers with white backgrounds
-              _buildProfileField('ID', widget.courierProfile.id.toString()),
+              _buildProfileField('ID', courierProfile.id.toString()),
               const SizedBox(height: 10),
-              _buildNonEditableField('Email', _currentUser .email ?? 'N/A'),
-               const SizedBox(height: 10),
+              _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
+              const SizedBox(height: 10),
               _buildEditableField('Name', _nameController),
-               const SizedBox(height: 10),
-
-              // Visa List
+              const SizedBox(height: 10),
               _buildVisaList(),
               const SizedBox(height: 20),
-
-              // Passport List
               _buildPassportList(),
               const SizedBox(height: 20),
-              // Card widget
               Card(
-                elevation: 4, // Adds shadow effect to the card
+                elevation: 4,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10), // Rounded corners
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
                   children: [
@@ -447,7 +358,7 @@ Future<void> _saveProfile() async {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Do you have a car?', style: TextStyle(fontSize: 16)),
+                          const Text('Own Car?', style: TextStyle(fontSize: 16)),
                           Switch(
                             value: _hasCar,
                             onChanged: (value) {
@@ -459,14 +370,14 @@ Future<void> _saveProfile() async {
                         ],
                       ),
                     ),
-                    Divider(), // Optional divider between switches
+                    Divider(),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Do you have a driving licence?', style: TextStyle(fontSize: 16)),
-                                                    Switch(
+                          const Text('Driving Licence?', style: TextStyle(fontSize: 16)),
+                          Switch(
                             value: _hasDrivingLicence,
                             onChanged: (value) {
                               setState(() {
@@ -483,7 +394,7 @@ Future<void> _saveProfile() async {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Willing to do first/last mile?', style: TextStyle(fontSize: 16)),
+                          const Text('Willing to do mile?', style: TextStyle(fontSize: 16)),
                           Switch(
                             value: _willingToDoFirstLastMile,
                             onChanged: (value) {
@@ -498,18 +409,36 @@ Future<void> _saveProfile() async {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              // Save Button
-              ElevatedButton(
-                      onPressed: _saveProfile,
-                      child: const Text('Save'),
+              const SizedBox(height: 30), // Add spacing before the button
+              // Save Button at the bottom
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  width: double.infinity,
+                  height: 50, // Height of the button
+                  decoration: BoxDecoration(
+                    color: Colors.blue, // Blue background
+                    borderRadius: BorderRadius.circular(8), // Rounded corners
+                  ),
+                  child: TextButton(
+                    onPressed: _updateFireStore, // Add your save profile method
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
                     ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
 
   // Build a field for displaying a profile entry (e.g., Name, ID, etc.)
   Widget _buildProfileField(String title, String value) {
@@ -522,14 +451,15 @@ Future<void> _saveProfile() async {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           Text(value, style: const TextStyle(fontSize: 16)),
         ],
       ),
     );
   }
-
-   Widget _buildEditableField(String label, TextEditingController controller) {
+  Widget _buildEditableField(String label, TextEditingController controller) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -557,12 +487,11 @@ Future<void> _saveProfile() async {
       ),
     );
   }
-
-
   Widget _buildVisaList() {
     return Column(
       children: [
-        const Text('Visas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('Visas',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ListView.builder(
           shrinkWrap: true,
           itemCount: visas.length,
@@ -575,11 +504,11 @@ Future<void> _saveProfile() async {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: Icon(Icons.edit),
+                    icon: const Icon(Icons.edit),
                     onPressed: () => _showEditDialog(type: 'Visa', visa: visa),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete),
+                    icon: const Icon(Icons.delete),
                     onPressed: () => _showDeleteConfirmation(type: 'Visa', visa: visa),
                   ),
                 ],
@@ -589,17 +518,34 @@ Future<void> _saveProfile() async {
         ),
         ElevatedButton.icon(
           onPressed: () => _showEditDialog(type: 'Visa'),
-          icon: Icon(Icons.add),
-          label: Text('Add Visa'),
+          icon: const Icon(
+            Icons.add,
+            color: Colors.white, // Set the icon color to white
+          ),
+          label: const Text(
+            'Add Visa',
+            style: TextStyle(color: Colors.white), // Set the text color to white
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue, // Set the background color to blue
+            minimumSize: const Size(150, 40), // Set fixed width and height
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10), // Set rounded corners with a radius
+            ),
+          ),
         ),
+
       ],
     );
   }
-
+// Builds the list of passports and displays the expiry date with a date picker
   Widget _buildPassportList() {
     return Column(
       children: [
-        const Text('Passports', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text(
+          'Passports',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         ListView.builder(
           shrinkWrap: true,
           itemCount: passports.length,
@@ -607,18 +553,31 @@ Future<void> _saveProfile() async {
             final passport = passports[index];
             return ListTile(
               title: Text(passport.countryName),
-              subtitle: Text('Expiry: ${passport.expiryDate}'),
+              subtitle: GestureDetector(
+                onTap: () async {
+                  // Open DatePicker when the expiry date is tapped
+                  DateTime? selectedDate = await _selectExpiryDate(
+                      context, passport.expiryDate);
+                  if (selectedDate != null) {
+                    setState(() {
+                      passport.expiryDate = selectedDate.toString().split(' ')[0]; // Update expiry date
+                    });
+                  }
+                },
+                child: Text('Expiry: ${passport.expiryDate}'),
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: Icon(Icons.edit),
-                    onPressed: () => _showEditDialog(type: 'Passport', passport: passport),
+                    onPressed: () => _showEditDialog(
+                        type: 'Passport', passport: passport),
                   ),
                   IconButton(
                     icon: Icon(Icons.delete),
-                    onPressed: () =>
-                        _showDeleteConfirmation(type: 'Passport', passport: passport),
+                    onPressed: () => _showDeleteConfirmation(
+                        type: 'Passport', passport: passport),
                   ),
                 ],
               ),
@@ -627,14 +586,48 @@ Future<void> _saveProfile() async {
         ),
         ElevatedButton.icon(
           onPressed: () => _showEditDialog(type: 'Passport'),
-          icon: Icon(Icons.add),
-          label: Text('Add Passport'),
+          icon: const Icon(
+            Icons.add,
+            color: Colors.white, // Set the icon color to white
+          ),
+          label: const Text(
+            'Add Passport',
+            style: TextStyle(color: Colors.white), // Set the text color to white
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue, // Set the background color to blue
+            minimumSize: const Size(60, 40), // Set fixed width and height
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10), // Set rounded corners with a radius
+            ),
+          ),
         ),
+
       ],
     );
   }
 
-Widget _buildNonEditableField(String label, String value) {
+// Function to show the date picker and disable previous dates
+  Future<DateTime?> _selectExpiryDate(BuildContext context, String currentExpiryDate) async {
+    DateTime initialDate = currentExpiryDate.isNotEmpty
+        ? DateTime.parse(currentExpiryDate)
+        : DateTime.now();  // Default to current date if no expiry date
+
+    DateTime firstDate = DateTime.now(); // Disable dates before today
+    DateTime lastDate = DateTime(2101);  // Allow dates up to the year 2101
+
+    // Show the date picker dialog
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+
+    return pickedDate;
+  }
+
+  Widget _buildNonEditableField(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
       decoration: BoxDecoration(

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/ui/broker/SearchCourier.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RadarAnimation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,8 +22,33 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
   bool _showMarkers = false;
   bool _isAnimatingRadar = false;
 
-  final List<Marker> _markers = [];
+  List<Marker> _markers = [];
+
   final TextEditingController _searchController = TextEditingController();
+  // Add a MapController to control the map
+  late MapController _mapController;
+  String courierKey="";
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();  // Initialize MapController
+  }
+  // Method to increase the zoom level
+  void _zoomIn() {
+    double currentZoom = _mapController.camera.zoom;
+    if (currentZoom < 18) {
+      _mapController.move(_mapController.camera.center, currentZoom + 1);
+    }
+  }
+
+  // Method to decrease the zoom level
+  void _zoomOut() {
+    double currentZoom = _mapController.camera.zoom;
+    if (currentZoom > 1) {
+      _mapController.move(_mapController.camera.center, currentZoom - 1);
+    }
+  }
 
   // Fetch details of an airport by GPS code
   Future<Map<String, dynamic>?> fetchAirportDetail(String code) async {
@@ -115,7 +141,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
   }
 
   Future<void> searchNearbyLocations(String searchCode) async {
-    if (searchCode == null || searchCode.isEmpty) {
+    if (searchCode.isEmpty) {
       return; // Don't proceed if the searchCode is null or empty
     }
 
@@ -126,10 +152,11 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     // Example: Get location based on the search code (ISB in your case)
     var searchedLocation = await _fetchAirports(searchCode);
 
-    if (searchedLocation == null || searchedLocation.isEmpty) {
+    if (searchedLocation.isEmpty) {
       setState(() {
         _isAnimatingRadar = false;  // Stop the radar if no location found
       });
+      _markers.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No location data found')),
       );
@@ -139,6 +166,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     // Ensure the lat and long values are parsed to double
     double searchedLat = double.tryParse(searchedLocation[0].lat.toString()) ?? 0.0;
     double searchedLong = double.tryParse(searchedLocation[0].long.toString()) ?? 0.0;
+    LatLng searchLocation=LatLng(searchedLat, searchedLong);
 
     // Firestore query to get documents where 'country' is 'Pakistan' and the location code matches the search query
     QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -152,6 +180,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     List<DocumentSnapshot> nearbyLocations = [];
 
     // Loop through each document and calculate the distance
+      _markers.clear();
     for (var doc in snapshot.docs) {
       print('Document ID: ${doc.id}');
       print('Document Data: ${doc.data()}'); // Print all fields in the document
@@ -165,11 +194,30 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
      // if (distance <= 1.0) { // If the distance is within 1 kilometer
         nearbyLocations.add(doc);
       //}
+      LatLng location=LatLng(docLat,docLong);
+      Key courierKey=Key(doc.id);
+      _markers = [
+        Marker(
+          key: courierKey,
+          width: 100.0,
+          height: 100.0,
+          point: location,
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.blue,
+            size: 80,
+          ),
+        ),
+      ];
     }
 
+   // _mapController.move(searchLocation, 8.0); // Animate to the new location
     // Stop the radar animation once the data is received
     setState(() {
       _isAnimatingRadar = false;
+      if(nearbyLocations.isNotEmpty) {
+        _showMarkers=true;
+      }
     });
 
     // Show a snackbar if no nearby locations are found
@@ -200,7 +248,32 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
               urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
               subdomains: const ['a', 'b', 'c'],
             ),
-            if (_showMarkers) MarkerLayer(markers: _markers),
+            if (_showMarkers)
+/*              MarkerLayer(
+                markers: _markers,
+              ),*/
+              MarkerLayer(
+                markers: _markers.map((markerData) {
+                  return Marker(
+                    point: markerData.point,
+                    width: 100.0,
+                    height: 100.0,
+                    // Marker child, here you can use any widget or icon as a marker
+                    child: GestureDetector(
+                      onTap: () {
+                        // Handle marker click here
+                        _onMarkerTapped(markerData.key.toString());
+                      },
+                      child: Image.asset(
+                        'assets/map_icon.png', // Path to custom marker icon
+                        width: 100.0,
+                        height: 100.0,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              )
+
           ],
         ),
 
@@ -256,4 +329,31 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
       ],
     );
   }
+  // Inside your map's marker click handler
+  void _onMarkerTapped(String courierKey) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchCourier(
+          courierKey: courierKey, // Pass the courierKey here
+        ),
+      ),
+    );
+  }
+
+}
+class MarkerData {
+  final LatLng point;
+  final String courierKey;
+  final String userName;
+  final String userImage;
+  final double rating;
+
+  MarkerData({
+    required this.point,
+    required this.courierKey,
+    required this.userName,
+    required this.userImage,
+    required this.rating,
+  });
 }

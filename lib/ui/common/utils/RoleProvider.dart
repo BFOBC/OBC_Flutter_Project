@@ -47,6 +47,9 @@ class RoleProvider with ChangeNotifier {
         expiryDate: DateTime.parse("2026-05-01").toString(),
       ),
     ], courierID: '',
+    phoneNumber: '',
+    address: '',
+    occupation: ''
   );
 
   // Role-related logic

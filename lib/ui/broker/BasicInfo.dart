@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-class BasicInfo extends StatelessWidget {
-  final String name;
+import '../courier/models/CourierProfileData.dart';
 
-  const BasicInfo({super.key, required this.name});
+class BasicInfo extends StatelessWidget {
+  final CourierProfileData courierProfileData;
+
+  const BasicInfo({super.key, required this.courierProfileData});
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +18,16 @@ class BasicInfo extends StatelessWidget {
             'Basic Information',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 20),
-          _buildInfoCard('Name', name),
-          const SizedBox(height: 10),
-          _buildInfoCard('Email', 'johndoe@example.com'),
-          const SizedBox(height: 10),
-          _buildInfoCard('Phone', '+1234567890'),
-          const SizedBox(height: 10),
-          _buildInfoCard('Address', '123 Main Street'),
-          const SizedBox(height: 10),
-          _buildInfoCard('Occupation', 'Software Engineer'),
+           SizedBox(height: 20),
+          _buildInfoCard('Name', courierProfileData.name.toString()),
+           SizedBox(height: 10),
+          _buildInfoCard('Email', courierProfileData.email.toString()),
+           SizedBox(height: 10),
+          _buildInfoCard('Phone', courierProfileData.phoneNumber.toString()),
+           SizedBox(height: 10),
+          _buildInfoCard('Address',courierProfileData.address.toString()),
+           SizedBox(height: 10),
+          _buildInfoCard('Occupation', courierProfileData.occupation.toString()),
         ],
       ),
     );
