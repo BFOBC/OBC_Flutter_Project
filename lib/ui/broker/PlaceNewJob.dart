@@ -1,9 +1,13 @@
+import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
-import 'data/Task.dart';
 
 class PlaceNewJob extends StatefulWidget {
   final Task? data; // The Task object received
-  const PlaceNewJob({super.key, this.data});
+  final Function(Task) onSave; // Callback function to pass saved data
+
+  const PlaceNewJob({super.key, this.data, required this.onSave});
 
   @override
   PlaceNewJobState createState() => PlaceNewJobState();
@@ -22,12 +26,12 @@ class PlaceNewJobState extends State<PlaceNewJob> {
     super.initState();
     // Populate fields if data is not null
     if (widget.data != null) {
-      _field1Controller.text = widget.data!.startDateTime; // Start Time And Date
-      _field2Controller.text = widget.data!.endDateTime;   // End Time And Date
-      _field3Controller.text = widget.data!.departureFrom; // Departure Location
-      _field4Controller.text = widget.data!.arriveAt;      // Arrival Location
-      _fieldBidController.text = widget.data!.bid;         // Bid
-      _field5Controller.text = widget.data!.flightNumber;   // Flight Number
+      _field1Controller.text = widget.data!.startDateTime!; // Start Time And Date
+      _field2Controller.text = widget.data!.endDateTime!;   // End Time And Date
+      _field3Controller.text = widget.data!.departureFrom!; // Departure Location
+      _field4Controller.text = widget.data!.arriveAt!;      // Arrival Location
+      _fieldBidController.text = widget.data!.bid!;         // Bid
+      _field5Controller.text = widget.data!.flightNumber!;   // Flight Number
     }
   }
 
@@ -64,13 +68,22 @@ class PlaceNewJobState extends State<PlaceNewJob> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
+            // Submission Details Text
+            const Text(
+              'Submission Details',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 5),
             TextField(
               controller: _field1Controller,
               decoration: const InputDecoration(
@@ -123,6 +136,45 @@ class PlaceNewJobState extends State<PlaceNewJob> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Center the Save Button and Style it
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (validate()) {
+                    // Create Task object to return the data
+                    Task newTask = Task(
+                      startDateTime: _field1Controller.text,
+                      endDateTime: _field2Controller.text,
+                      departureFrom: _field3Controller.text,
+                      arriveAt: _field4Controller.text,
+                      bid: _fieldBidController.text,
+                      flightNumber: _field5Controller.text,
+                    );
+                    widget.onSave(newTask); // Pass the data back to the parent
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('submission saved successfully!')),
+                    );
+                  } else {
+                    // Show validation errors
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please fill all fields correctly.')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Palette.primaryColor, // Green background
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15), // Rounded corners
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 5), // Larger button
+                ),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(color: Colors.white), // White text
+                ),
+              ),
+            ),
           ],
         ),
       ),

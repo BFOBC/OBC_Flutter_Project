@@ -299,8 +299,6 @@ class _CourierProfileState extends State<CourierProfile> {
       },
     );
   }
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

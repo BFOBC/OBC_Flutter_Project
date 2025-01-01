@@ -1,18 +1,19 @@
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/broker/viewmodels/TaskViewModel.dart';
-import 'data/Task.dart';
 import 'ManageLegsAndMilestones.dart';
 import 'CircularRating.dart'; // Assuming you have this class imported
 
-class MyMissions extends StatefulWidget {
-  const MyMissions({super.key});
+class Brokermissions extends StatefulWidget {
+  const Brokermissions({super.key});
 
   @override
   _MyMissionsState createState() => _MyMissionsState();
 }
 
-class _MyMissionsState extends State<MyMissions> {
+class _MyMissionsState extends State<Brokermissions> {
   int _selectedIndex = 0;
   final List<bool> _selectedToggle = [true, false, false];
   final List<String> _toggleText = ["In Progress", "Completed", "Todo"];
@@ -202,10 +203,11 @@ class _MyMissionsState extends State<MyMissions> {
   }
 
   void _navigateToLegsAndMilestones(Task task) {
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ManageLegsAndMilestones(data: task),
+        builder: (context) => ManageLegsAndMilestones(brokerKey:  AuthUtils.getCurrentUserId2().toString(),courierKey: "",data: task),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
+import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
@@ -76,6 +77,7 @@ class _SearchCourierState extends State<SearchCourier> {
   @override
   void initState() {
     super.initState();
+    widget.courierKey=widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
     fetchCourierData(); // Fetch data when the screen is initialized
   }
 
@@ -225,7 +227,7 @@ class _SearchCourierState extends State<SearchCourier> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ManageLegsAndMilestones(),
+                        builder: (context) =>  ManageLegsAndMilestones(brokerKey: AuthUtils.getCurrentUserId2().toString(),courierKey:widget.courierKey),
                       ),
                     );
                   },

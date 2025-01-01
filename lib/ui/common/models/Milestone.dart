@@ -1,21 +1,43 @@
 class Milestone {
-  final String jobID;
-  final String courierID;
-  final String milestoneID;
   final String title;
-  final String startDateTime;
-  final String endDateTime;
   final String description;
-  final String status; // completed - in progress - todo
+  final String startTimeAndDate;
+  final String endTimeAndDate;
+  final String courierID;
+  final String brokerID;
+  String? nodeID;
 
   Milestone({
-    required this.jobID,
-    required this.courierID,
-    required this.milestoneID,
     required this.title,
-    required this.startDateTime,
-    required this.endDateTime,
     required this.description,
-    required this.status,
+    required this.startTimeAndDate,
+    required this.endTimeAndDate,
+    required this.courierID,
+    required this.brokerID,
+    required this.nodeID,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'startTimeAndDate': startTimeAndDate,
+      'endTimeAndDate': endTimeAndDate,
+      'courierID': courierID,
+      'brokerID': brokerID,
+      'nodeID': nodeID,
+    };
+  }
+
+  static Milestone fromMap(Map<String, dynamic> map) {
+    return Milestone(
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      startTimeAndDate: map['startTimeAndDate'] ?? '',
+      endTimeAndDate: map['endTimeAndDate'] ?? '',
+      courierID: map['courierID'] ?? '',
+      brokerID: map['brokerID'] ?? '',
+      nodeID: map['nodeID'] ?? '',
+    );
+  }
 }

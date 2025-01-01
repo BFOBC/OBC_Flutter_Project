@@ -49,7 +49,6 @@ class RoleProvider with ChangeNotifier {
     ], courierID: '',
     phoneNumber: '',
     address: '',
-    occupation: ''
   );
 
   // Role-related logic

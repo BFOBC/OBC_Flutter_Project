@@ -1,7 +1,5 @@
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
-
-import '../broker/data/Task.dart';
-
 
 class ViewJob extends StatefulWidget {
   final Task? data; // The Task object received
@@ -24,12 +22,12 @@ class _ViewJobState extends State<ViewJob> {
     super.initState();
     // Populate fields if data is not null
     if (widget.data != null) {
-      _field1Controller.text = widget.data!.startDateTime; // Start Time And Date
-      _field2Controller.text = widget.data!.endDateTime;   // End Time And Date
-      _field3Controller.text = widget.data!.departureFrom; // Departure Location
-      _field4Controller.text = widget.data!.arriveAt;      // Arrival Location
-      _fieldBidController.text = widget.data!.bid;         // Bid
-      _field5Controller.text = widget.data!.flightNumber;   // Flight Number
+      _field1Controller.text = widget.data!.startDateTime!; // Start Time And Date
+      _field2Controller.text = widget.data!.endDateTime!;   // End Time And Date
+      _field3Controller.text = widget.data!.departureFrom!; // Departure Location
+      _field4Controller.text = widget.data!.arriveAt!;      // Arrival Location
+      _fieldBidController.text = widget.data!.bid!;         // Bid
+      _field5Controller.text = widget.data!.flightNumber!;   // Flight Number
     }
   }
 

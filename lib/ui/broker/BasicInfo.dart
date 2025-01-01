@@ -27,7 +27,6 @@ class BasicInfo extends StatelessWidget {
            SizedBox(height: 10),
           _buildInfoCard('Address',courierProfileData.address.toString()),
            SizedBox(height: 10),
-          _buildInfoCard('Occupation', courierProfileData.occupation.toString()),
         ],
       ),
     );

@@ -6,4 +6,8 @@ class AuthUtils {
     User? user = FirebaseAuth.instance.currentUser;
     return user?.uid;  // Return the user ID if logged in, otherwise null
   }
+  static String? getCurrentUserId2()  {
+    User? user = FirebaseAuth.instance.currentUser;
+    return user?.uid;  // Return the user ID if logged in, otherwise null
+  }
 }

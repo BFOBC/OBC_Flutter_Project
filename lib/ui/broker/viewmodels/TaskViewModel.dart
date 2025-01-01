@@ -1,6 +1,6 @@
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/foundation.dart';
 
-import '../data/Task.dart';
 
 class TaskViewModel extends ChangeNotifier {
   // List to store all tasks

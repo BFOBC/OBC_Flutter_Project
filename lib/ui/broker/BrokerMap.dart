@@ -331,11 +331,12 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
   }
   // Inside your map's marker click handler
   void _onMarkerTapped(String courierKey) {
+    String cleanCourierKey = courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SearchCourier(
-          courierKey: courierKey, // Pass the courierKey here
+          courierKey: cleanCourierKey, // Pass the courierKey here
         ),
       ),
     );

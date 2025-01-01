@@ -1,4 +1,4 @@
-import 'package:broker_flutter_pp/ui/broker/data/Task.dart';
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';

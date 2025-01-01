@@ -13,7 +13,6 @@ class CourierProfileData {
   List<Passport> passports; // List of Passport objects
   String? phoneNumber;
   String? address;
-  String? occupation;
   bool? hasCar;
   bool? hasDrivingLicence;
   bool? willingToDoFirstLastMile;
@@ -34,7 +33,6 @@ class CourierProfileData {
     String? courierID,
     this.phoneNumber,
     this.address,
-    this.occupation,
     this.hasCar,
     this.hasDrivingLicence,
     this.willingToDoFirstLastMile,
@@ -81,7 +79,6 @@ class CourierProfileData {
       courierID: map['courierID'] as String? ?? '', // Use the key if it exists
       phoneNumber: map['phoneNumber'] as String?,
       address: map['address'] as String?,
-      occupation: map['occupation'] as String?,
       hasCar: map['car'] as bool?,
       hasDrivingLicence: map['drivingLicence'] as bool?,
       willingToDoFirstLastMile: map['firstLastMile'] as bool?,
