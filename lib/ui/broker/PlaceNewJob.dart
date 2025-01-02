@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 class PlaceNewJob extends StatefulWidget {
   final Task? data; // The Task object received
-  final Function(Task) onSave; // Callback function to pass saved data
+  final Function(Task) onSave; // Callback function to pass saved model
 
   const PlaceNewJob({super.key, this.data, required this.onSave});
 
@@ -24,7 +24,7 @@ class PlaceNewJobState extends State<PlaceNewJob> {
   @override
   void initState() {
     super.initState();
-    // Populate fields if data is not null
+    // Populate fields if model is not null
     if (widget.data != null) {
       _field1Controller.text = widget.data!.startDateTime!; // Start Time And Date
       _field2Controller.text = widget.data!.endDateTime!;   // End Time And Date

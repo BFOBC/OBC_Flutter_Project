@@ -16,7 +16,7 @@ class AirportService {
           // Attempt to parse the response body as JSON
           final List<dynamic> data = json.decode(response.body);
 
-          // Map the parsed JSON data to a list of AirportModel instances
+          // Map the parsed JSON model to a list of AirportModel instances
           return data.map((json) => AirportModel.fromJson(json)).toList();
         } catch (jsonError) {
           // If JSON parsing fails, log the error
@@ -25,13 +25,13 @@ class AirportService {
         }
       } else {
         // Log the error if the response code is not 200
-        print('Failed to load data from GitHub with status code: ${response.statusCode}');
-        throw Exception('Failed to load data from GitHub');
+        print('Failed to load model from GitHub with status code: ${response.statusCode}');
+        throw Exception('Failed to load model from GitHub');
       }
     } catch (error) {
       // Catch any other errors like network issues, connection timeouts, etc.
-      print('Error while fetching data from GitHub: $error');
-      throw Exception('Failed to fetch data from GitHub');
+      print('Error while fetching model from GitHub: $error');
+      throw Exception('Failed to fetch model from GitHub');
     }
   }
 

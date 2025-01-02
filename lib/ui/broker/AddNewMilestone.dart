@@ -48,7 +48,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       if (widget.onMilestoneSaved != null) {
         widget.onMilestoneSaved!(milestone.nodeID!);
       }
-      // Save the milestone data with the updated nodeID
+      // Save the milestone model with the updated nodeID
       await docRef.set(milestone.toMap());
 
       // Show success message

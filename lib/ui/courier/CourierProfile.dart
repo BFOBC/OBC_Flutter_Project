@@ -53,7 +53,7 @@ class _CourierProfileState extends State<CourierProfile> {
     final doc = await _firestore.collection('courier').doc(_currentUser.uid).get();
 
     setState(() {
-      _isLoading = true; // Set loading state to true when data is being fetched
+      _isLoading = true; // Set loading state to true when model is being fetched
     });
 
     if (doc.exists) {
@@ -71,7 +71,7 @@ class _CourierProfileState extends State<CourierProfile> {
         _hasCar = courierProfile.hasCar ?? false;
         _hasDrivingLicence = courierProfile.hasDrivingLicence ?? false;
         _willingToDoFirstLastMile = courierProfile.willingToDoFirstLastMile ?? false;
-        _isLoading = false; // Set loading state to false once data is fetched
+        _isLoading = false; // Set loading state to false once model is fetched
       });
     }
   }
@@ -114,9 +114,9 @@ class _CourierProfileState extends State<CourierProfile> {
         data['passports'] = passports.map((passport) => passport.toMap()).toList();
       }
 
-      // Update Firestore only if there is valid data
+      // Update Firestore only if there is valid model
       if (data.isNotEmpty) {
-        // Using set with merge: true to replace or add data if it doesn't exist
+        // Using set with merge: true to replace or add model if it doesn't exist
         await _firestore.collection('courier').doc(_currentUser.uid).set(data, SetOptions(merge: true));
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +127,7 @@ class _CourierProfileState extends State<CourierProfile> {
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No valid data to save!')),
+          const SnackBar(content: Text('No valid model to save!')),
         );
         setState(() {
           _isLoading=false;

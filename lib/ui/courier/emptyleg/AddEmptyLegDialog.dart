@@ -103,7 +103,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
           // Show SnackBar if error occurs
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error fetching data: $e'),
+              content: Text('Error fetching model: $e'),
             ),
           );
           return [];

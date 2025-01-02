@@ -1,3 +1,4 @@
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import 'PlaceNewJob.dart'; // Import the Add New Empty Leg screen
 import 'AddNewMilestone.dart'; // Import the Add New Milestone screen
 
 class ManageLegsAndMilestones extends StatefulWidget {
-  final Task? data; // Replace YourDataType with the actual type of your data object
+  final Task? data; // Replace YourDataType with the actual type of your model object
   String courierKey;
   String brokerKey;
 

@@ -39,12 +39,20 @@ class BrokerProfileData {
     return BrokerProfileData(
       id: id,
       name: map['name'] ?? '',
+      // Default to empty string if null
       website: map['website'] ?? '',
+      // Default to empty string if null
       country: map['country'] ?? '',
+      // Default to empty string if null
       license: List<String>.from(map['license'] ?? []),
+      // Default to empty list if null
       email: map['email'] ?? '',
+      // Default to empty string if null
       paymentTerms: map['paymentTerms'] ?? '',
-      profilePictureUrl: map['profilePictureUrl'],
+      // Default to empty string if null
+      profilePictureUrl: map['profilePictureUrl'] != null
+          ? map['profilePictureUrl'] as String?
+          : null, // Safely handle null
     );
   }
 }
@@ -89,7 +97,7 @@ class BrokerProfileProvider with ChangeNotifier {
         _profile.paymentTerms = value as String;
         break;
       case 'profilePictureUrl':
-        _profile.profilePictureUrl = value as String?;
+        _profile.profilePictureUrl = value as String?; // Allow null values here
         break;
     }
     notifyListeners();

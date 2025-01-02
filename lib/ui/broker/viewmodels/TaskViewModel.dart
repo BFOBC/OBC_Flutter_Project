@@ -11,7 +11,7 @@ class TaskViewModel extends ChangeNotifier {
   // Method to add a task
   void addTask(Task task) {
     _tasks.add(task);
-    notifyListeners(); // Notifies the UI when data changes
+    notifyListeners(); // Notifies the UI when model changes
   }
 
   // Method to filter tasks based on status (In Progress, Completed, Todo)

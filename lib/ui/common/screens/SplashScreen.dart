@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
       const SnackBar(content: Text('Checking local database...')),
     );
 
-    // Check if data exists in the local database
+    // Check if model exists in the local database
     bool isDataAvailable = await _isDataAvailable(dbHelper);
 
     if (!isDataAvailable) {
@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!isSynced) {
         // If synchronization fails, show an error and exit
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to synchronize data.')),
+          const SnackBar(content: Text('Failed to synchronize model.')),
         );
         return;
       }
@@ -60,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     }
 
-    // Check location permissions after data synchronization
+    // Check location permissions after model synchronization
     await checkLocationPermissions();
   }
 
@@ -79,11 +79,11 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<bool> _synchronizeData() async {
     try {
       final AirportService _service = AirportService();
-      await _service.loadAirports(); // Sync data
+      await _service.loadAirports(); // Sync model
       return true;
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error synchronizing data: $error')),
+        SnackBar(content: Text('Error synchronizing model: $error')),
       );
       return false;
     }

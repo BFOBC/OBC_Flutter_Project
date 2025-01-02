@@ -158,7 +158,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
       });
       _markers.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No location data found')),
+        SnackBar(content: Text('No location model found')),
       );
       return;
     }
@@ -212,7 +212,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     }
 
    // _mapController.move(searchLocation, 8.0); // Animate to the new location
-    // Stop the radar animation once the data is received
+    // Stop the radar animation once the model is received
     setState(() {
       _isAnimatingRadar = false;
       if(nearbyLocations.isNotEmpty) {

@@ -61,7 +61,7 @@ class _SelectBrokerState extends State<SelectBroker> {
 
     if (brokerDocsSnapshot.docs.isNotEmpty) {
       setState(() {
-        // Create a list of broker data
+        // Create a list of broker model
         brokerInfoList = brokerDocsSnapshot.docs.map((doc) {
           return {
             'name': doc['name'] ?? 'N/A', // Handle null for name
@@ -85,7 +85,7 @@ class _SelectBrokerState extends State<SelectBroker> {
     }
   } catch (e) {
     setState(() {
-      brokerInfoList = [{'name': 'Error fetching data', 'contact': 'N/A', 'image': 'N/A', 'rating': 4.0}];
+      brokerInfoList = [{'name': 'Error fetching model', 'contact': 'N/A', 'image': 'N/A', 'rating': 4.0}];
       isLoading = false;
     });
     print('Error: $e');

@@ -58,7 +58,7 @@ class DatabaseHelper {
   Future<void> importAirportsInBackground(BuildContext context, String jsonFilePath) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Check if data is already imported
+    // Check if model is already imported
     bool isDataImported = prefs.getBool('isDataImported') ?? false;
     if (isDataImported) {
       print("Data already imported, skipping...");
@@ -80,7 +80,7 @@ class DatabaseHelper {
         SnackBar(content: Text("Data imported in the background!")),
       );
     } catch (e) {
-      print("Error importing data in background: $e");
+      print("Error importing model in background: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
@@ -119,7 +119,7 @@ class DatabaseHelper {
   Future<void> importAirports(BuildContext context, String jsonFilePath) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Check if data is already imported
+    // Check if model is already imported
     bool isDataImported = prefs.getBool('isDataImported') ?? false;
     if (isDataImported) {
       print("Data already imported, skipping...");
@@ -162,9 +162,9 @@ class DatabaseHelper {
         SnackBar(content: Text("Data imported successfully!")),
       );
     } catch (e) {
-      print("Error importing data: $e");
+      print("Error importing model: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error importing data: $e")),
+        SnackBar(content: Text("Error importing model: $e")),
       );
     }
   }

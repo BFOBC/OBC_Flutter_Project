@@ -1,5 +1,5 @@
 import 'package:broker_flutter_pp/res/custom_colors.dart';
-import 'package:broker_flutter_pp/ui/broker/data/BrokerProfileData.dart';
+import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart'; // Import the BrokerProfileScreen
@@ -181,7 +181,7 @@ class SwitchWithOnlineStatus extends StatefulWidget {
 class _SwitchWithOnlineStatusState extends State<SwitchWithOnlineStatus> {
   String table = "";
 
-  // Fetch user data from Firestore
+  // Fetch user model from Firestore
   Future<bool> _fetchUserStatus(BuildContext context) async {
     try {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
@@ -238,7 +238,7 @@ class _SwitchWithOnlineStatusState extends State<SwitchWithOnlineStatus> {
             ),
           );
         }
-        return Text('No data found');
+        return Text('No model found');
       },
     );
   }

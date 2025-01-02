@@ -40,7 +40,7 @@ class _SearchCourierState extends State<SearchCourier> {
   late List<Passport> passports;
   late List<Visa> visas;
   late CourierProfileData courierProfile;
-  // Sample data for the pie chart
+  // Sample model for the pie chart
   final Map<String, double> dataMap = {
     "Negative": 40,
     "Positive": 30,
@@ -78,10 +78,10 @@ class _SearchCourierState extends State<SearchCourier> {
   void initState() {
     super.initState();
     widget.courierKey=widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
-    fetchCourierData(); // Fetch data when the screen is initialized
+    fetchCourierData(); // Fetch model when the screen is initialized
   }
 
-  // Fetch courier data from Firestore
+  // Fetch courier model from Firestore
   Future<void> fetchCourierData() async {
     try {
       // Check if courierKey is valid (non-empty)
@@ -103,9 +103,9 @@ class _SearchCourierState extends State<SearchCourier> {
 
       if (courierDoc.exists) {
         var data = courierDoc.data() as Map<String, dynamic>;
-        // Create the CourierProfileData model from Firestore data
+        // Create the CourierProfileData model from Firestore model
         courierProfile = CourierProfileData.fromMap(data);
-        // Log the data received from Firestore
+        // Log the model received from Firestore
         print("Courier Data fetched successfully: $data");
 
         setState(() {
@@ -120,10 +120,10 @@ class _SearchCourierState extends State<SearchCourier> {
               ?.map((visa) => Visa.fromMap(visa))
               .toList() ??
               [];
-          _isLoading = false; // Set loading to false once data is fetched
+          _isLoading = false; // Set loading to false once model is fetched
         });
       } else {
-        // Handle no data case
+        // Handle no model case
         setState(() {
           _isLoading = false;
         });
@@ -133,7 +133,7 @@ class _SearchCourierState extends State<SearchCourier> {
       setState(() {
         _isLoading = false;
       });
-      print("Error fetching courier data: $e");
+      print("Error fetching courier model: $e");
     }
   }
 

@@ -5,7 +5,7 @@ import 'ViewJob.dart';
 import 'ViewMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {
-  final Task? data; // Replace YourDataType with the actual type of your data object
+  final Task? data; // Replace YourDataType with the actual type of your model object
   Milestone milestone = Milestone(
     title: 'Project Phase 1',
     description: 'Complete the first phase of the project.',

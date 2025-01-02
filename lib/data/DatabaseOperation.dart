@@ -80,7 +80,7 @@ class DatabaseOperation{
       );
       return results.map((map) => AirportModel.fromMap(map)).toList();
     } catch (e) {
-      print('Error fetching data: $e');
+      print('Error fetching model: $e');
       return [];
     }
   }

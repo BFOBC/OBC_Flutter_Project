@@ -1,4 +1,4 @@
-import 'package:broker_flutter_pp/ui/broker/data/BrokerProfileData.dart';
+import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/courier/models/CourierProfileData.dart';

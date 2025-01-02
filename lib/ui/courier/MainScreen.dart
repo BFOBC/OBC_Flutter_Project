@@ -24,7 +24,7 @@ class _MainScreenState extends State<MainScreen> {
   bool _showPieChart = true;
   bool _showProfile = false;
 
-  // Sample data for the pie chart
+  // Sample model for the pie chart
   final Map<String, double> dataMap = {
     "Red": 40,
     "Green": 30,

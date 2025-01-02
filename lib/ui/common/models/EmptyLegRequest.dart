@@ -56,10 +56,10 @@ class EmptyLegRequest {
     return EmptyLegRequest(
       brokerID: map['brokerID'] ?? '',
       courierID: map['courierID'] ?? '',
-      nodeID: map['nodeID'] ?? '',
+      nodeID: map['nodeID'], // Nullable, don't default to empty string
       requestDateTime: map['requestDateTime'] ?? '',
       status: map['status'] ?? false,
-      milestoneNodeID: map['milestoneNodeID'] ?? '',
+      milestoneNodeID: map['milestoneNodeID'],
       startTimeDate: map['startTimeDate'],
       endTimeDate: map['endTimeDate'],
       departureLocation: map['departureLocation'],
@@ -68,30 +68,7 @@ class EmptyLegRequest {
       courierCapacity: map['courierCapacity'],
     );
   }
+
 }
 
-class FirestoreService {
-  final BuildContext context;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  FirestoreService(this.context);
-
-  Future<void> saveEmptyLegRequest(EmptyLegRequest request) async {
-    try {
-      // Reference to the collection
-      CollectionReference requests = _firestore.collection('emptyLegRequests');
-
-      // Create a new document with an auto-generated ID
-      DocumentReference docRef = requests.doc();
-
-      // Update the nodeID dynamically
-      request.nodeID = docRef.id;
-
-      // Save the request with the updated nodeID
-      await docRef.set(request.toJson());
-      print('Request saved with nodeID: ${request.nodeID}');
-    } catch (e) {
-      print('Error saving request: $e');
-    }
-  }
-}

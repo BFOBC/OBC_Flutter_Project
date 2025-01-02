@@ -42,7 +42,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchFlights(); // Fetch data from Firestore when screen initializes
+    _fetchFlights(); // Fetch model from Firestore when screen initializes
   }
 
   void _fetchFlights() {

@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,8 +22,7 @@ class CourierMap extends StatefulWidget {
   _CourierMapState createState() => _CourierMapState();
 }
 
-class _CourierMapState extends State<CourierMap>
-    with SingleTickerProviderStateMixin {
+class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateMixin {
   bool _showCardStack = false;
   List<CardModel> _filteredUsers = [];
   bool _isSearching = false;
@@ -34,7 +35,7 @@ class _CourierMapState extends State<CourierMap>
   String brokerContact = '';
   String country='';
   String currentLocation='';
-  bool isLoading = true;
+  bool _isLoading = true;
 
   // Add a MapController to control the map
   late MapController _mapController;
@@ -52,6 +53,7 @@ class _CourierMapState extends State<CourierMap>
   List<Marker> _markers = [];
   late User _currentUser;
 
+  late Future<List<Map<String, dynamic>>> _brokerDataFuture;
 
   List<String> _suggestedCountries = [];
 
@@ -69,7 +71,12 @@ class _CourierMapState extends State<CourierMap>
     _currentUser = FirebaseAuth.instance.currentUser!;
    // _getCurrentLocation();
     //_onSearch("abc");
-    // fetchBrokerDetails();
+     //fetchEmptyLegRequests();
+   // FirestoreService firestoreService = FirestoreService(context);
+
+    //_brokerDataFuture = firestoreService.getEmptyLegRequestsWithBrokers();
+    fetchEmptyLegRequests();
+
   }
 /*  Future<void> _getCurrentLocation() async {
     Location location = Location();
@@ -114,52 +121,27 @@ class _CourierMapState extends State<CourierMap>
       ];
     });
   }*/
-  Future<void> fetchBrokerDetails() async {
-    try {
-      // Fetch all broker documents from Firestore
-      QuerySnapshot brokerDocsSnapshot =
-          await FirebaseFirestore.instance.collection('broker').get();
 
-      if (brokerDocsSnapshot.docs.isNotEmpty) {
-        setState(() {
-          // Create a list of broker data
-          brokerInfoList = brokerDocsSnapshot.docs.map((doc) {
-            return {
-              'name': doc['name'] ?? 'Unknown Broker',
-              'contact': doc['contact'] ?? 'No Contact Info',
-            };
-          }).toList();
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          // If no brokers are found
-          brokerInfoList = [
-            {
-              'name': 'No Brokers Found',
-              'contact': '',
-              'image': '',
-              'rating': 0.0
-            }
-          ];
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        brokerInfoList = [
-          {
-            'name': 'Error fetching data',
-            'contact': '',
-            'image': '',
-            'rating': 0.0
-          }
-        ];
-        isLoading = false;
-      });
-      print('Error: $e');
+  Future<void> fetchEmptyLegRequests() async {
+    setState(() {
+      _isLoading = true;  // Show progress bar
+    });
+
+    FirestoreService firestoreService = FirestoreService(context);
+    List<Map<String, dynamic>> requests = await firestoreService.getEmptyLegRequestsWithBrokers();
+
+    setState(() {
+      _isLoading = false;  // Hide progress bar after data is fetched
+    });
+
+    if (requests.isNotEmpty) {
+      _buildCardStacks(context, requests);
     }
+
+    print('requests data:');
+    print(requests.toString());
   }
+
 
   @override
   void dispose() {
@@ -289,7 +271,7 @@ class _CourierMapState extends State<CourierMap>
 
 
   void _onSearch(String query) {
-    if (query.isNotEmpty) {
+/*    if (query.isNotEmpty) {
       setState(() {
         _isSearching = true;
       });
@@ -306,7 +288,7 @@ class _CourierMapState extends State<CourierMap>
         _showCardStack = false;
         _isSearching = false;
       });
-    }
+    }*/
   }
 
   void _openBottomSheet() {
@@ -494,8 +476,87 @@ class _CourierMapState extends State<CourierMap>
       ),
     );
   }
+  List<CardModel> _buildCardStacks(BuildContext context, List<Map<String, dynamic>> brokerDataList) {
+    final double containerWidth = MediaQuery.of(context).size.width - 50;
 
-  List<CardModel> _buildMockList(BuildContext context, {int size = 0}) {
+    var list = <CardModel>[];
+
+    for (var brokerData in brokerDataList) {
+      // Extract actual broker data from the map
+      var brokerProfile = brokerData['broker'];  // This is the broker data you fetched from Firestore
+      String userName = brokerProfile['name'] ?? 'Unknown Broker';
+      String userImage = brokerProfile['profilePictureUrl'] ?? 'https://via.placeholder.com/150';  // Placeholder if no image
+      double rating = Random().nextDouble() * 5;  // You can replace this with actual rating if available
+      String brokerID = brokerProfile['id'];
+
+      list.add(
+        CardModel(
+          backgroundColor: Colors.white,
+          shadowColor: Colors.black.withOpacity(0.2),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SelectBroker(
+                    brokerID: brokerID,
+                  ),
+                ),
+              );
+            },
+            child: SizedBox(
+              height: 150,
+              width: containerWidth,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundImage: NetworkImage(userImage),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          RatingBarIndicator(
+                            rating: rating,
+                            itemBuilder: (context, index) => const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                            ),
+                            itemCount: 5,
+                            itemSize: 25.0,
+                            direction: Axis.horizontal,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return list;
+  }
+
+/*  List<CardModel> _buildMockList(BuildContext context, {int size = 0}) {
     final double containerWidth = MediaQuery.of(context).size.width - 50;
 
     var list = <CardModel>[];
@@ -573,13 +634,14 @@ class _CourierMapState extends State<CourierMap>
     }
 
     return list;
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // Your existing FlutterMap widget here
           FlutterMap(
             mapController: _mapController,
             options: const MapOptions(
@@ -588,16 +650,22 @@ class _CourierMapState extends State<CourierMap>
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c'],
               ),
               MarkerLayer(
-              markers: _markers,
-            ),
+                markers: _markers,
+              ),
             ],
           ),
-          if (_isSearchBarVisible) // Conditionally render the search bar
+
+          // Conditionally show the progress bar
+          if (_isLoading)
+            Center(
+              child: CircularProgressIndicator(),  // Progress indicator in the center
+            ),
+
+          if (_isSearchBarVisible)  // Conditionally render the search bar
             Positioned(
               top: 40.0,
               left: 20.0,
@@ -658,6 +726,7 @@ class _CourierMapState extends State<CourierMap>
                 ),
               ),
             ),
+
           Positioned.fill(
             child: _buildRadarAnimation(), // Radar animation always visible
           ),
@@ -668,8 +737,7 @@ class _CourierMapState extends State<CourierMap>
             child: Center(
               child: SizedBox(
                 height: 300,
-                child:
-                    _buildCardStackWidget(context), // Card stack always visible
+                child: _buildCardStackWidget(context), // Card stack always visible
               ),
             ),
           ),
@@ -683,6 +751,7 @@ class _CourierMapState extends State<CourierMap>
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
+
 }
 
 class RadarPainter extends CustomPainter {

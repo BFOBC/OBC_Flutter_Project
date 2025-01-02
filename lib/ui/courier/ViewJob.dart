@@ -20,7 +20,7 @@ class _ViewJobState extends State<ViewJob> {
   @override
   void initState() {
     super.initState();
-    // Populate fields if data is not null
+    // Populate fields if model is not null
     if (widget.data != null) {
       _field1Controller.text = widget.data!.startDateTime!; // Start Time And Date
       _field2Controller.text = widget.data!.endDateTime!;   // End Time And Date
