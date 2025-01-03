@@ -62,13 +62,14 @@ class FirestoreService {
           .get();
 
 
-      print('brokers querySnapshot is Data');
-      print(querySnapshot.docs.toString());
+      print('brokers querySnapshot Data');
+      print(querySnapshot.docs.length);
       // Convert the documents to a list of BrokerProfileData objects
       List<BrokerProfileData> brokersList = querySnapshot.docs
           .map((doc) => BrokerProfileData.fromMap(doc.id, doc.data() as Map<String, dynamic>))
           .toList();
-
+      print('brokersList Data');
+      print(brokersList.length);
       return brokersList;
     } catch (e) {
       print('Error fetching brokers: $e');
@@ -104,15 +105,18 @@ class FirestoreService {
 
         // Find the broker data for each request
         BrokerProfileData? brokerData = brokers.firstWhere(
-              (broker) => broker.id == request.brokerID,
+              (broker) => broker.brokerID == request.brokerID,
           orElse: () => BrokerProfileData(
-            id: 'Not found',
+            brokerID: 'Not found',
             name: 'Unknown',
-            website: '',
-            country: '',
+            contact: 'N/A',
+            rating: 0,
+            website: 'N/A',
+            company: 'N/A',
+            country:  'N/A',
             license: [],
-            email: '',
-            paymentTerms: '',
+            email:  'N/A',
+            paymentTerms:  'N/A',
             profilePictureUrl: null,
           ),
         );
@@ -127,6 +131,74 @@ class FirestoreService {
     } catch (e) {
       print('Error fetching empty leg requests with brokers: $e');
       return [];
+    }
+  }
+  Future<List<BrokerProfileData>> fetchBrokerProfile(String brokerID) async {
+    try {
+      print('Broker brokerID');
+      print(brokerID);
+      // Query Firestore for the specific broker using the brokerID
+      DocumentSnapshot brokerDoc = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(brokerID)
+          .get();
+
+      if (brokerDoc.exists) {
+        // Parse and return the data as a list of one BrokerProfileData instance
+        return [
+          BrokerProfileData.fromMap(
+            brokerID,
+            brokerDoc.data() as Map<String, dynamic>,
+          ),
+        ];
+      } else {
+        // Return an empty list if no data exists for the provided brokerID
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching broker details: $e');
+      // Return an empty list in case of an error
+      return [];
+    }
+  }
+  // Method to get emptyLegRequest data from Firestore based on nodeID
+  Future<EmptyLegRequest> getEmptyLegRequest(String nodeID) async {
+    try {
+      // Reference to the emptyLegRequests collection and specific document
+      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(nodeID);
+
+      // Fetch the document from Firestore
+      DocumentSnapshot snapshot = await docRef.get();
+
+      // Check if the document exists
+      if (snapshot.exists) {
+        // Convert the Firestore document data into an EmptyLegRequest object
+        var data = snapshot.data() as Map<String, dynamic>;
+        return EmptyLegRequest.fromMap(data);
+      } else {
+        print('No data found for nodeID: $nodeID');
+        throw Exception('No data found');
+      }
+    } catch (e) {
+      print('Error fetching emptyLegRequest: $e');
+      throw Exception('Error fetching emptyLegRequest');
+    }
+  }
+
+
+  // Method to update status in emptyLegRequests collection for a specific nodeID
+  Future<void> updateJobStatus(String nodeID, String status) async {
+    try {
+      // Reference to the emptyLegRequests collection and specific document
+      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(nodeID);
+      // Update the 'status' field
+      await docRef.update({
+        'status': status,  // Field name 'status' and its new value
+      });
+      print('Status updated successfully');
+    } catch (e) {
+      print('Error updating status: $e');
+      throw Exception('Error updating status: $e');  // Throwing an exception if error occurs
     }
   }
 }

@@ -8,7 +8,7 @@ class EmptyLegRequest {
   final String courierID;
   String? nodeID; // Make nodeID nullable
   final String requestDateTime;
-  final bool status;
+  final String? status;
   final String? milestoneNodeID;
   final String? startTimeDate;
   final String? endTimeDate;
@@ -21,7 +21,7 @@ class EmptyLegRequest {
   EmptyLegRequest({
     required this.brokerID,
     required this.courierID,
-    this.nodeID, // Updated to allow null initially
+    required this.nodeID, // Updated to allow null initially
     required this.requestDateTime,
     required this.status,
     required this.milestoneNodeID,
@@ -58,7 +58,7 @@ class EmptyLegRequest {
       courierID: map['courierID'] ?? '',
       nodeID: map['nodeID'], // Nullable, don't default to empty string
       requestDateTime: map['requestDateTime'] ?? '',
-      status: map['status'] ?? false,
+      status: map['status'] ?? 'status',
       milestoneNodeID: map['milestoneNodeID'],
       startTimeDate: map['startTimeDate'],
       endTimeDate: map['endTimeDate'],

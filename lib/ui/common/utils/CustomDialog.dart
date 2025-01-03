@@ -43,6 +43,59 @@ class CustomDialog {
       },
     );
   }
+  static Future<void> showCustomDialog3(
+      BuildContext context, String message, {required VoidCallback onOkPressed}) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.green,
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.check, color: Colors.white, size: 40),
+              ),
+              const SizedBox(height: 10),
+              Text(message),
+            ],
+          ),
+          actions: [
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                margin: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Close the dialog
+                    Future.delayed(const Duration(milliseconds: 100), onOkPressed);
+                    onOkPressed(); // Trigger navigation
+                  },
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
 // New method
   static Future<void> showCustomDialog2(BuildContext context, String message) {

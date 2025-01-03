@@ -4,7 +4,6 @@ class BrokerBasicInfo extends StatelessWidget {
   final String name;
   final String email;
   final String phone;
-  final String address;
   final String website;
   final String company;
 
@@ -13,7 +12,6 @@ class BrokerBasicInfo extends StatelessWidget {
     required this.name,
     required this.email,
     required this.phone,
-    required this.address,
     required this.website,
     required this.company,
   }) : super(key: key);
@@ -36,7 +34,6 @@ class BrokerBasicInfo extends StatelessWidget {
           const SizedBox(height: 10),
           _buildInfoCard('Phone', phone),
           const SizedBox(height: 10),
-          _buildInfoCard('Address', address),
           const SizedBox(height: 10),
           _buildInfoCard('Website', website),
         ],

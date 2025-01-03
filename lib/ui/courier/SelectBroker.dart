@@ -1,5 +1,7 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
+import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -9,8 +11,10 @@ import 'JobDetails.dart';
 
 class SelectBroker extends StatefulWidget {
   final String brokerID;
+  final String nodeID;
 
-  const SelectBroker({Key? key, required this.brokerID}) : super(key: key);
+  const SelectBroker({super.key, required this.brokerID, required this.nodeID});
+
 
   @override
   _SelectBrokerState createState() => _SelectBrokerState();
@@ -36,61 +40,36 @@ class _SelectBrokerState extends State<SelectBroker> {
     "Neutral": 30,
   };
 
-  final List<Color> colorList = [
-    Colors.red,
-    Colors.green,
-    Colors.blue,
-  ];
 
   final List<bool> _selectedToggle = [true, false];
   final List<String> _toggleText = ['Basic Info', 'Rating'];
-  List<Map<String, dynamic>> brokerInfoList = [];
+  List<BrokerProfileData> brokerInfoList = [];
 
   @override
   void initState() {
     super.initState();
-    fetchBrokerDetails();
+    _fetchBrokerDetails();
   }
 
-  Future<void> fetchBrokerDetails() async {
-  try {
-    // Fetch all broker documents from Firestore
-    QuerySnapshot brokerDocsSnapshot = await FirebaseFirestore.instance
-        .collection('broker')
-        .get();
+  void _fetchBrokerDetails() async {
+    try {
+      FirestoreService service = FirestoreService(context);
+      List<BrokerProfileData> brokers = await service.fetchBrokerProfile(widget.brokerID); // Assuming brokerIDs is defined
 
-    if (brokerDocsSnapshot.docs.isNotEmpty) {
+      print('Broker Profile');
+      print(brokers.length);
       setState(() {
-        // Create a list of broker model
-        brokerInfoList = brokerDocsSnapshot.docs.map((doc) {
-          return {
-            'name': doc['name'] ?? 'N/A', // Handle null for name
-            'contact': doc['contact'] ?? 'N/A', // Handle null for contact
-            'imageUrl': doc['imageUrl'] ?? 'N/A', // Handle null for image
-            'rating': 4.0, // Handle rating as double
-            'email': doc['email'] ?? 'N/A', // Handle null for email
-            'address': doc['address'] ?? 'N/A', // Handle null for address
-            'website': doc['website'] ?? 'N/A', // Handle null for website
-            'company': doc['company'] ?? 'N/A', // Handle null for website
-          };
-        }).toList();
+        brokerInfoList = brokers;
         isLoading = false;
       });
-    } else {
+    } catch (e) {
       setState(() {
-        // If no brokers are found
-        brokerInfoList = [{'name': 'N/A', 'contact': 'N/A', 'imageUrl': 'N/A', 'rating': 4.0}];
         isLoading = false;
       });
+      print('Error: $e');
     }
-  } catch (e) {
-    setState(() {
-      brokerInfoList = [{'name': 'Error fetching model', 'contact': 'N/A', 'image': 'N/A', 'rating': 4.0}];
-      isLoading = false;
-    });
-    print('Error: $e');
   }
-}
+
 
 
   void _onTogglePressed(int index) {
@@ -123,12 +102,12 @@ class _SelectBrokerState extends State<SelectBroker> {
                         children: [
                           CircleAvatar(
                             radius: 50,
-                            backgroundImage: brokerInfo['imageUrl'] != null &&
-                                    brokerInfo['imageUrl'] != 'N/A'
-                                ? NetworkImage(brokerInfo['imageUrl']!)
+                            backgroundImage: brokerInfo.profilePictureUrl != null &&
+                                brokerInfo.profilePictureUrl != 'N/A'
+                                ? NetworkImage( brokerInfo.profilePictureUrl!)
                                 : null, // Fallback for missing or null imageUrl
-                            child: brokerInfo['imageUrl'] == null ||
-                                    brokerInfo['imageUrl'] == 'N/A'
+                            child:  brokerInfo.profilePictureUrl == null ||
+                                brokerInfo.profilePictureUrl == 'N/A'
                                 ? Icon(Icons.person, size: 50) // Default icon
                                 : null,
                           ),
@@ -139,7 +118,7 @@ class _SelectBrokerState extends State<SelectBroker> {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  'Broker Name: ${brokerInfo['name'] ?? 'N/A'}',
+                                  '${brokerInfo.name ?? 'N/A'}',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -147,11 +126,11 @@ class _SelectBrokerState extends State<SelectBroker> {
                                   ),
                                 ),
                                 Text(
-                                  'Contact: ${brokerInfo['contact'] ?? 'N/A'}',
+                                  'Contact: ${brokerInfo.contact ?? 'N/A'}',
                                   style: TextStyle(fontSize: 16),
                                 ),
                                 RatingBarIndicator(
-                                  rating: brokerInfo['rating'] ?? 0.0,
+                                  rating: brokerInfo.rating?? 0,
                                   itemBuilder: (context, index) =>
                                       const Icon(Icons.star, color: Colors.amber),
                                   itemCount: 5,
@@ -188,12 +167,11 @@ class _SelectBrokerState extends State<SelectBroker> {
                           ),
                           if (_showProfile)
                             BrokerBasicInfo(
-                              name: brokerInfo['name'] ?? 'N/A',
-                              email: brokerInfo['email'] ?? 'N/A',
-                              phone: brokerInfo['contact'] ?? 'N/A',
-                              address: brokerInfo['address'] ?? 'N/A',
-                              website: brokerInfo['website'] ?? 'N/A',
-                              company: brokerInfo['company'] ?? 'N/A',
+                              name: brokerInfo.name,
+                              email: brokerInfo.email ?? 'N/A',
+                              phone: brokerInfo.contact ?? 'N/A',
+                              website: brokerInfo.website ?? 'N/A',
+                              company: brokerInfo.company ?? 'N/A',
                             ),
                         ],
                       ),
@@ -212,7 +190,7 @@ class _SelectBrokerState extends State<SelectBroker> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const JobDetails()),
+                              builder: (context) =>  JobDetails(nodeID: widget.nodeID,)),
                         );
                       },
                       style: ElevatedButton.styleFrom(

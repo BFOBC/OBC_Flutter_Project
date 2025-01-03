@@ -12,9 +12,12 @@ enum UserRole {
 class RoleProvider with ChangeNotifier {
   UserRole _role = UserRole.broker; // Default role can be set here
   BrokerProfileData _brokerProfileData = BrokerProfileData(
-    id: 'OBC001',
+    brokerID: 'OBC001',
     name: 'John Doe',
+    contact: 'XYZ',
+    rating: 0,
     website: 'www.johndoe.com',
+    company: 'OBC',
     country: 'USA',
     license: ['XYZ-1234', 'ABC-5678', 'DEF-9012'],
     email: "broker@gmail.com",

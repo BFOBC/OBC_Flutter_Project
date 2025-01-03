@@ -22,9 +22,11 @@ class CourierMap extends StatefulWidget {
   _CourierMapState createState() => _CourierMapState();
 }
 
-class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateMixin {
+class _CourierMapState extends State<CourierMap>
+    with SingleTickerProviderStateMixin {
   bool _showCardStack = false;
   List<CardModel> _filteredUsers = [];
+
   bool _isSearching = false;
   bool _isSearchBarVisible = true; // Visibility state for search bar
   late AnimationController _radarController;
@@ -33,14 +35,14 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
   String _searchText = ""; // This holds the text in the search bar
   String brokerName = '';
   String brokerContact = '';
-  String country='';
-  String currentLocation='';
+  String country = '';
+  String currentLocation = '';
   bool _isLoading = true;
 
   // Add a MapController to control the map
   late MapController _mapController;
-  //Location location = Location(); // Create a Location instance
 
+  //Location location = Location(); // Create a Location instance
 
   LatLng _baseLocation =
       const LatLng(40.7128, -74.0060); // Example: New York City
@@ -69,15 +71,15 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
           });
     _mapController = MapController();
     _currentUser = FirebaseAuth.instance.currentUser!;
-   // _getCurrentLocation();
+    // _getCurrentLocation();
     //_onSearch("abc");
-     //fetchEmptyLegRequests();
-   // FirestoreService firestoreService = FirestoreService(context);
+    //fetchEmptyLegRequests();
+    // FirestoreService firestoreService = FirestoreService(context);
 
     //_brokerDataFuture = firestoreService.getEmptyLegRequestsWithBrokers();
     fetchEmptyLegRequests();
-
   }
+
 /*  Future<void> _getCurrentLocation() async {
     Location location = Location();
     bool serviceEnabled;
@@ -124,24 +126,23 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
 
   Future<void> fetchEmptyLegRequests() async {
     setState(() {
-      _isLoading = true;  // Show progress bar
+      _isLoading = true; // Show progress bar
     });
 
     FirestoreService firestoreService = FirestoreService(context);
-    List<Map<String, dynamic>> requests = await firestoreService.getEmptyLegRequestsWithBrokers();
+    List<Map<String, dynamic>> requests =
+        await firestoreService.getEmptyLegRequestsWithBrokers();
 
     setState(() {
-      _isLoading = false;  // Hide progress bar after data is fetched
+      _isLoading = false; // Hide progress bar after data is fetched
     });
 
     if (requests.isNotEmpty) {
-      _buildCardStacks(context, requests);
+      print('requests Data');
+      print(requests);
+      _filteredUsers = _buildCardStacks(context, requests);
     }
-
-    print('requests data:');
-    print(requests.toString());
   }
-
 
   @override
   void dispose() {
@@ -200,6 +201,7 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
       return []; // Return an empty list in case of error
     }
   }
+
   void _onCountrySelected(AirportModel airportItem) {
     showDialog(
       context: context,
@@ -207,7 +209,6 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
         return ConfirmLocationChangeDialog(
           onConfirm: () {
             try {
-
               // Extract lat and long
               double lat = double.tryParse(airportItem.lat.toString()) ?? 0.0;
               double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
@@ -215,10 +216,11 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
 
               // Update the map and markers (UI updates)
               setState(() {
-                country=airportItem.countryCode.toString();
+                country = airportItem.countryCode.toString();
                 print("country $country");
                 _baseLocation = latLng; // Update the selected location
-                _mapController.move(_baseLocation, 8.0); // Animate to the new location
+                _mapController.move(
+                    _baseLocation, 8.0); // Animate to the new location
                 _markers = [
                   Marker(
                     width: 80.0,
@@ -269,7 +271,6 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
     }
   }
 
-
   void _onSearch(String query) {
 /*    if (query.isNotEmpty) {
       setState(() {
@@ -309,7 +310,8 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
                   const Center(
                     child: Text(
                       'Available at',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -332,20 +334,25 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             decoration: BoxDecoration(
-                              color: _isBaseSelected ? Colors.blue : Colors.transparent,
+                              color: _isBaseSelected
+                                  ? Colors.blue
+                                  : Colors.transparent,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(10),
                                 bottomLeft: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color: _isBaseSelected ? Colors.blue : Colors.grey,
+                                color:
+                                    _isBaseSelected ? Colors.blue : Colors.grey,
                               ),
                             ),
                             child: Center(
                               child: Text(
                                 'Base',
                                 style: TextStyle(
-                                  color: _isBaseSelected ? Colors.white : Colors.black,
+                                  color: _isBaseSelected
+                                      ? Colors.white
+                                      : Colors.black,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -365,20 +372,26 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             decoration: BoxDecoration(
-                              color: !_isBaseSelected ? Colors.blue : Colors.transparent,
+                              color: !_isBaseSelected
+                                  ? Colors.blue
+                                  : Colors.transparent,
                               borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(10),
                                 bottomRight: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color: !_isBaseSelected ? Colors.blue : Colors.grey,
+                                color: !_isBaseSelected
+                                    ? Colors.blue
+                                    : Colors.grey,
                               ),
                             ),
                             child: Center(
                               child: Text(
                                 'Current',
                                 style: TextStyle(
-                                  color: !_isBaseSelected ? Colors.white : Colors.black,
+                                  color: !_isBaseSelected
+                                      ? Colors.white
+                                      : Colors.black,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -396,7 +409,7 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
                     onPressed: () async {
                       // Determine the selected location
                       _selectedLocation =
-                      _isBaseSelected ? _baseLocation : _currentLocation;
+                          _isBaseSelected ? _baseLocation : _currentLocation;
 
                       // Move the map to the selected location
                       _mapController.move(_selectedLocation, 8.0);
@@ -449,7 +462,6 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
     );
   }
 
-
   CardStackWidget _buildCardStackWidget(BuildContext context) {
     return CardStackWidget(
       opacityChangeOnDrag: true,
@@ -476,18 +488,25 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
       ),
     );
   }
-  List<CardModel> _buildCardStacks(BuildContext context, List<Map<String, dynamic>> brokerDataList) {
+
+  List<CardModel> _buildCardStacks(
+      BuildContext context, List<Map<String, dynamic>> brokerDataList) {
     final double containerWidth = MediaQuery.of(context).size.width - 50;
 
     var list = <CardModel>[];
 
     for (var brokerData in brokerDataList) {
-      // Extract actual broker data from the map
-      var brokerProfile = brokerData['broker'];  // This is the broker data you fetched from Firestore
-      String userName = brokerProfile['name'] ?? 'Unknown Broker';
-      String userImage = brokerProfile['profilePictureUrl'] ?? 'https://via.placeholder.com/150';  // Placeholder if no image
-      double rating = Random().nextDouble() * 5;  // You can replace this with actual rating if available
-      String brokerID = brokerProfile['id'];
+      var brokerProfile = brokerData['broker'] ?? {};
+      String userName = brokerProfile['name']?.toString() ?? 'Unknown Broker';
+      String userImage = brokerProfile['profilePictureUrl']?.toString() ?? 'https://via.placeholder.com/150';
+      String id = brokerProfile['brokerID']?.toString() ?? 'dfdf ID';
+
+      // Access nodeID directly from brokerData
+      String nodeID = brokerData['nodeID']?.toString() ?? 'nodeID Not Found';
+
+      double rating = Random().nextDouble() * 5; // Placeholder rating
+      print('nodeID------------------------');
+      print(nodeID);
 
       list.add(
         CardModel(
@@ -495,11 +514,13 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
           shadowColor: Colors.black.withOpacity(0.2),
           child: GestureDetector(
             onTap: () {
+              // Ensure that the correct brokerID and nodeID are passed to the next screen
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => SelectBroker(
-                    brokerID: brokerID,
+                    brokerID: id,       // Passing the correct brokerID for the selected card
+                    nodeID: nodeID,     // Passing the correct nodeID for the selected card
                   ),
                 ),
               );
@@ -552,7 +573,6 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
         ),
       );
     }
-
     return list;
   }
 
@@ -650,7 +670,8 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate:
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c'],
               ),
               MarkerLayer(
@@ -662,10 +683,11 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
           // Conditionally show the progress bar
           if (_isLoading)
             Center(
-              child: CircularProgressIndicator(),  // Progress indicator in the center
+              child:
+                  CircularProgressIndicator(), // Progress indicator in the center
             ),
 
-          if (_isSearchBarVisible)  // Conditionally render the search bar
+          if (_isSearchBarVisible) // Conditionally render the search bar
             Positioned(
               top: 40.0,
               left: 20.0,
@@ -737,7 +759,8 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
             child: Center(
               child: SizedBox(
                 height: 300,
-                child: _buildCardStackWidget(context), // Card stack always visible
+                child:
+                    _buildCardStackWidget(context), // Card stack always visible
               ),
             ),
           ),
@@ -751,7 +774,6 @@ class _CourierMapState extends State<CourierMap> with SingleTickerProviderStateM
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
-
 }
 
 class RadarPainter extends CustomPainter {

@@ -193,7 +193,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       nodeID: null,
       // Will be updated when saving
       requestDateTime: DateTime.now().toIso8601String(),
-      status: false,
+      status: 'pending',
       milestoneNodeID: milestoneNodeID, // Use the valid milestoneNodeID,
       startTimeDate: savedTask!.startDateTime!,
       endTimeDate: savedTask!.endDateTime!,
