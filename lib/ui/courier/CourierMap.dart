@@ -502,10 +502,10 @@ class _CourierMapState extends State<CourierMap>
       String id = brokerProfile['brokerID']?.toString() ?? 'dfdf ID';
 
       // Access nodeID directly from brokerData
-      String nodeID = brokerData['nodeID']?.toString() ?? 'nodeID Not Found';
+      String nodeID = brokerData['emptyLegRequestID']?.toString() ?? 'nodeID Not Found';
 
       double rating = Random().nextDouble() * 5; // Placeholder rating
-      print('nodeID------------------------');
+      print('emptyLegRequestID------------------------');
       print(nodeID);
 
       list.add(
@@ -520,7 +520,7 @@ class _CourierMapState extends State<CourierMap>
                 MaterialPageRoute(
                   builder: (context) => SelectBroker(
                     brokerID: id,       // Passing the correct brokerID for the selected card
-                    nodeID: nodeID,     // Passing the correct nodeID for the selected card
+                    emptyLegRequestID: nodeID,     // Passing the correct nodeID for the selected card
                   ),
                 ),
               );

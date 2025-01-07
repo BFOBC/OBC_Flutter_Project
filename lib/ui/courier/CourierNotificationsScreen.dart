@@ -1,60 +1,33 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
-import 'package:broker_flutter_pp/res/strings.dart';
-import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+class CourierNotificationsscreen extends StatefulWidget {
+  const CourierNotificationsscreen({super.key});
 
   @override
-  _NotificationsScreenState createState() => _NotificationsScreenState();
+  _CourierNotificationsScreenState createState() => _CourierNotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _CourierNotificationsScreenState extends State<CourierNotificationsscreen> {
   List<Map<String, dynamic>> notifications = [];
-  String role = '';
-  bool isLoading = true;  // To track the loading state
+  String? _removedNotification;
+  int? _removedIndex;
 
   @override
   void initState() {
     super.initState();
-    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-    role = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
     fetchNotifications();
   }
 
   // Fetch notifications using FirestoreService
   Future<void> fetchNotifications() async {
-    setState(() {
-      isLoading = true;  // Show the progress bar while fetching data
-    });
-
     try {
-      // Get the current role from the RoleProvider
-      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      String role = roleProvider.role == UserRole.broker ? "Courier" : "Broker";
-
-      print('Selected Role is');
-      print(role);
-
-      // Fetch all notifications from Firestore
       List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications();
-
-      // Filter notifications based on the selected role
-      List<Map<String, dynamic>> filteredNotifications = fetchedNotifications.where((notification) {
-        return notification['sentBy'] == role;
-      }).toList();
-
       setState(() {
-        notifications = filteredNotifications;  // Update the state with the filtered notifications
-        isLoading = false;  // Hide the progress bar after fetching data
+        notifications = fetchedNotifications;
       });
     } catch (e) {
       print('Error fetching notifications: $e');
-      setState(() {
-        isLoading = false;  // Hide the progress bar if there's an error
-      });
     }
   }
 
@@ -79,7 +52,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 // Delete the notification from Firestore
                 await FirestoreService(context).deleteNotification(notificationID);
                 setState(() {
-                  notifications.removeAt(index);  // Remove the notification from the list after confirmation
+                  notifications.removeAt(index);  // Remove the notification from the list
                 });
                 Navigator.of(context).pop();  // Close the dialog
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -93,7 +66,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,18 +93,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: isLoading
-            ? Center(
-          child: CircularProgressIndicator(),  // Show progress bar while loading
-        )
-            : notifications.isEmpty
-            ? Center(
-          child: Text(
-            'No notifications available',  // Show this text if no notifications are found
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        )
-            : ListView.builder(
+        child: ListView.builder(
           itemCount: notifications.length,
           itemBuilder: (context, index) {
             final notification = notifications[index];
@@ -149,10 +110,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   color: Colors.white,
                 ),
               ),
-              confirmDismiss: (direction) async {
-                // Show the confirmation dialog instead of removing the item immediately
-                await showDeleteConfirmationDialog(notification['notificationID'], index);
-                return false; // Prevent the default swipe-to-dismiss behavior
+              onDismissed: (direction) {
+                // Show confirmation dialog when swiped
+                showDeleteConfirmationDialog(notification['notificationID'], index);
               },
               child: Card(
                 elevation: 4,

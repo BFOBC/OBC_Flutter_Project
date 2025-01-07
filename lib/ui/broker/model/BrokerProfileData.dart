@@ -49,22 +49,20 @@ class BrokerProfileData {
   // Create object from Firestore document snapshot
   factory BrokerProfileData.fromMap(String id, Map<String, dynamic> map) {
     return BrokerProfileData(
-      brokerID: map['brokerID'] ?? '',
-      name: map['name'] ?? 'N/A',
-      contact: map['contact'] ??  'N/A',
-      rating: _parseRating(map['rating']),
-      // Updated to handle type conversion
-      website: map['website'] ??  'N/A',
-      company: map['company'] ??  'N/A',
-      country: map['country'] ??  'N/A',
-      license: List<String>.from(map['license'] ?? []),
-      email: map['email'] ?? '',
-      paymentTerms: map['paymentTerms'] ?? '',
-      profilePictureUrl: map['profilePictureUrl'] != null
-          ? map['profilePictureUrl'] as String?
-          : null, // Safely handle null
+      brokerID: id, // Use document ID as brokerID if it's not a field
+      name: map['name'] ?? 'Unknown',
+      contact: map['contact'] ?? 'N/A',
+      rating: map['rating'] != null ? double.tryParse(map['rating'].toString()) ?? 0.0 : 0.0,
+      website: map['website'] ?? 'N/A',
+      company: map['company'] ?? 'N/A',
+      country: map['country'] ?? 'N/A',
+      license: map['license'] != null ? List<String>.from(map['license']) : [],
+      email: map['email'] ?? 'N/A',
+      paymentTerms: map['paymentTerms'] ?? 'N/A',
+      profilePictureUrl: map['profilePictureUrl'] as String?,
     );
   }
+
   // Helper method to safely parse the rating field
   static double _parseRating(dynamic rating) {
     if (rating is double) {

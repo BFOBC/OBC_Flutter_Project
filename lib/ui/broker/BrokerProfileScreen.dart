@@ -1,4 +1,5 @@
 
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -58,20 +59,17 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
   Future<void> _saveProfile() async {
     try {
-      final updatedLicenses = _licenseControllers.map((c) => c.text).toList();
+      FirestoreService firestoreService = FirestoreService(context);
 
-      await _firestore.collection('broker').doc(_currentUser.uid).set({
-        'name': _nameController.text.isEmpty ? 'N/A' : _nameController.text,
-        'website': _websiteController.text.isEmpty ? 'N/A' : _websiteController.text,
-        'country': _countryController.text.isEmpty ? 'N/A' : _countryController.text,
-        'paymentTerms': _paymentTermsController.text.isEmpty ? 'N/A' : _paymentTermsController.text,
-        'license': updatedLicenses,
-        'email': _currentUser.email,
-        'profilePictureUrl': _profilePictureUrl,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved successfully!')),
+      await firestoreService.saveBrokerProfile(
+        userId: _currentUser.uid,
+        email: _currentUser.email.toString(),
+        profilePictureUrl: _profilePictureUrl,
+        nameController: _nameController,
+        websiteController: _websiteController,
+        countryController: _countryController,
+        paymentTermsController: _paymentTermsController,
+        licenseControllers: _licenseControllers,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,7 +77,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       );
     }
   }
-
   Future<void> _uploadProfilePicture() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);

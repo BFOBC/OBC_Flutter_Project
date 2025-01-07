@@ -6,7 +6,7 @@ import 'package:path/path.dart';
 class EmptyLegRequest {
   final String brokerID;
   final String courierID;
-  String? nodeID; // Make nodeID nullable
+  String? emptyLegRequestID; // Make nodeID nullable
   final String requestDateTime;
   final String? status;
   final String? milestoneNodeID;
@@ -21,7 +21,7 @@ class EmptyLegRequest {
   EmptyLegRequest({
     required this.brokerID,
     required this.courierID,
-    required this.nodeID, // Updated to allow null initially
+    required this.emptyLegRequestID, // Updated to allow null initially
     required this.requestDateTime,
     required this.status,
     required this.milestoneNodeID,
@@ -38,7 +38,7 @@ class EmptyLegRequest {
     return {
       'brokerID': brokerID,
       'courierID': courierID,
-      'nodeID': nodeID ?? '', // Save as empty string if null
+      'emptyLegRequestID': emptyLegRequestID ?? '', // Save as empty string if null
       'requestDateTime': requestDateTime,
       'status': status,
       'milestoneNodeID': milestoneNodeID,
@@ -56,7 +56,7 @@ class EmptyLegRequest {
     return EmptyLegRequest(
       brokerID: map['brokerID'] ?? '',
       courierID: map['courierID'] ?? '',
-      nodeID: map['nodeID'], // Nullable, don't default to empty string
+      emptyLegRequestID: map['emptyLegRequestID'], // Nullable, don't default to empty string
       requestDateTime: map['requestDateTime'] ?? '',
       status: map['status'] ?? 'status',
       milestoneNodeID: map['milestoneNodeID'],

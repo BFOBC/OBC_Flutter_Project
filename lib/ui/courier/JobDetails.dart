@@ -2,14 +2,16 @@ import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/res/strings.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../common/utils/CustomDialog.dart';
 import 'Milestone.dart';
 
 class JobDetails extends StatefulWidget {
-  final String nodeID;
+  final String emptyLegRequestID;
+  final String brokerID;
 
-  const JobDetails({super.key, required this.nodeID});
+  const JobDetails({super.key, required this.emptyLegRequestID,required this.brokerID});
 
   @override
   _JobDetailsState createState() => _JobDetailsState();
@@ -23,7 +25,9 @@ class _JobDetailsState extends State<JobDetails> {
   void initState() {
     super.initState();
     // Fetch job details on initialization
-    jobDetails = FirestoreService(context).getEmptyLegRequest(widget.nodeID);
+    print('emptyLegRequestID----');
+    print(widget.emptyLegRequestID);
+    jobDetails = FirestoreService(context).getEmptyLegRequest(widget.emptyLegRequestID);
     jobDetails.whenComplete(() {
       setState(() {
         isLoading = false; // Stop loading when the data is fetched
@@ -83,7 +87,7 @@ class _JobDetailsState extends State<JobDetails> {
                         child: ElevatedButton(
                           onPressed: () {
                             _showRequestDialog(
-                                context, 'Do you want to accept Job?', widget.nodeID, true);
+                                context, 'Do you want to accept Job?', widget.emptyLegRequestID, true);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
@@ -100,7 +104,7 @@ class _JobDetailsState extends State<JobDetails> {
                         child: ElevatedButton(
                           onPressed: () {
                             _showRequestDialog(
-                                context, 'Do you want to decline Job?', widget.nodeID, false);
+                                context, 'Do you want to decline Job?', widget.emptyLegRequestID, false);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
@@ -205,13 +209,19 @@ class _JobDetailsState extends State<JobDetails> {
                   context,
                   acceptJob ? "Job Accepted successfully" : "Job Declined",
                   onOkPressed: () {
-                    Future.delayed(const Duration(milliseconds: 100), () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => CourierMap(title: AppStrings.map)),
-                            (Route<dynamic> route) => false, // Clear all previous routes
-                      );
-                    });
+                    FirestoreService firestoreService = FirestoreService(context);
+                    User _currentUser = FirebaseAuth.instance.currentUser!;
+                    String msg="Your Job accepted by  ${_currentUser.email}";
+
+                    firestoreService.createNotification(brokerID: widget.brokerID,courierID: _currentUser.uid.toString(),emptyLegRequestID: widget.emptyLegRequestID,sentBy: "Courier",message: msg);
+
+
+                    // Remove all screens and navigate to DrawerScreen
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/DrawerScreen',
+                          (route) => false, // This ensures that all previous routes are removed
+                    );
                   },
                 );
               },

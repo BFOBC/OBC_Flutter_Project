@@ -1,5 +1,8 @@
+import 'package:broker_flutter_pp/ui/broker/BrokerNotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
+import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
+import 'package:broker_flutter_pp/ui/courier/CourierNotificationsScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
 import 'package:provider/provider.dart';
@@ -90,7 +93,12 @@ class _DrawerScreenState extends State<DrawerScreen> {
               'Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');
           break;
         case AppStrings.notifications:
-          _selectedWidget = const NotificationScreen();
+          _selectedWidget = const NotificationsScreen();
+/*          if (roleProvider.role == UserRole.broker) {
+            _selectedWidget = BrokerNotificationsScreen();
+          } else if (roleProvider.role == UserRole.courier) {
+            _selectedWidget = const BrokerNotificationsScreen();
+          }*/
           break;
         case AppStrings.availabilityUpdates:
           if (roleProvider.role == UserRole.broker) {

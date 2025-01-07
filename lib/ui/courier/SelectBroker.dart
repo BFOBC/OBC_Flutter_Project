@@ -11,9 +11,9 @@ import 'JobDetails.dart';
 
 class SelectBroker extends StatefulWidget {
   final String brokerID;
-  final String nodeID;
+  final String emptyLegRequestID;
 
-  const SelectBroker({super.key, required this.brokerID, required this.nodeID});
+  const SelectBroker({super.key, required this.brokerID, required this.emptyLegRequestID});
 
 
   @override
@@ -190,7 +190,7 @@ class _SelectBrokerState extends State<SelectBroker> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>  JobDetails(nodeID: widget.nodeID,)),
+                              builder: (context) =>  JobDetails(emptyLegRequestID: widget.emptyLegRequestID,brokerID: widget.brokerID,)),
                         );
                       },
                       style: ElevatedButton.styleFrom(

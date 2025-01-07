@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import 'PlaceNewJob.dart'; // Import the Add New Empty Leg screen
@@ -187,10 +188,11 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
   Future<void> sendEmptyLegRequest(BuildContext context) async {
     FirestoreService firestoreService = FirestoreService(context);
     // Create a new EmptyLegRequest with nodeID initially null
+
     EmptyLegRequest newRequest = EmptyLegRequest(
       brokerID: widget.brokerKey,
       courierID: widget.courierKey,
-      nodeID: null,
+      emptyLegRequestID: null,
       // Will be updated when saving
       requestDateTime: DateTime.now().toIso8601String(),
       status: 'pending',
