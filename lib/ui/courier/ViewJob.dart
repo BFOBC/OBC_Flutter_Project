@@ -1,136 +1,93 @@
-import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 
 class ViewJob extends StatefulWidget {
-  final Task? data; // The Task object received
-  const ViewJob({super.key, this.data});
+  const ViewJob({Key? key}) : super(key: key);
 
   @override
   _ViewJobState createState() => _ViewJobState();
 }
 
 class _ViewJobState extends State<ViewJob> {
-  final TextEditingController _field1Controller = TextEditingController();
-  final TextEditingController _field2Controller = TextEditingController();
-  final TextEditingController _field3Controller = TextEditingController();
-  final TextEditingController _field4Controller = TextEditingController();
-  final TextEditingController _field5Controller = TextEditingController();
-  final TextEditingController _fieldBidController = TextEditingController();
+  final TextEditingController _startDateTimeController = TextEditingController();
+  final TextEditingController _endDateTimeController = TextEditingController();
+  final TextEditingController _departureController = TextEditingController();
+  final TextEditingController _arrivalController = TextEditingController();
+  final TextEditingController _bidController = TextEditingController();
+  final TextEditingController _flightNumberController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Populate fields if model is not null
-    if (widget.data != null) {
-      _field1Controller.text = widget.data!.startDateTime!; // Start Time And Date
-      _field2Controller.text = widget.data!.endDateTime!;   // End Time And Date
-      _field3Controller.text = widget.data!.departureFrom!; // Departure Location
-      _field4Controller.text = widget.data!.arriveAt!;      // Arrival Location
-      _fieldBidController.text = widget.data!.bid!;         // Bid
-      _field5Controller.text = widget.data!.flightNumber!;   // Flight Number
+    _fetchJobDetails();
+  }
+
+  Future<void> _fetchJobDetails() async {
+    final firestoreService = FirestoreService(context);
+
+    try {
+      final querySnapshot = await firestoreService.getJobsByCourierID();
+
+      if (querySnapshot.isNotEmpty) {
+        final EmptyLegRequest job = EmptyLegRequest.fromMap(querySnapshot.first.values as Map<String, dynamic>);
+        _populateFields(job);
+      }
+    } catch (error) {
+      debugPrint('Error fetching job details: $error');
     }
   }
 
-  bool validate() {
-    bool isValid = true;
-    String errorMessage = '';
-
-    if (_field1Controller.text.isEmpty) {
-      isValid = false;
-      errorMessage += 'Start Time And Date is required.\n';
-    }
-    if (_field2Controller.text.isEmpty) {
-      isValid = false;
-      errorMessage += 'End Time And Date is required.\n';
-    }
-    if (_field3Controller.text.isEmpty) {
-      isValid = false;
-      errorMessage += 'Departure Location is required.\n';
-    }
-    if (_field4Controller.text.isEmpty) {
-      isValid = false;
-      errorMessage += 'Arrival Location is required.\n';
-    }
-    if (_fieldBidController.text.isEmpty) {
-      isValid = false;
-      errorMessage += 'Bid is required.\n';
-    }
-    if (_field5Controller.text.isEmpty) {
-      isValid = false;
-      errorMessage += 'Flight Number is required.\n';
-    }
-    return isValid;
+  void _populateFields(EmptyLegRequest job) {
+    _startDateTimeController.text = job.startTimeDate ?? '';
+    _endDateTimeController.text = job.endTimeDate ?? '';
+    _departureController.text = job.departureLocation ?? '';
+    _arrivalController.text = job.arrivalLocation ?? '';
+    _bidController.text = job.bid ?? '';
+    //_flightNumberController.text = job.flightNumber ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('View Job')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            TextField(
-              controller: _field1Controller,
-              decoration: const InputDecoration(
-                labelText: 'Start Time And Date',
-                border: OutlineInputBorder(),
-              ),
-              onTap: () => _selectDateAndTime(_field1Controller),
-              readOnly: true,
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _field2Controller,
-              decoration: const InputDecoration(
-                labelText: 'End Time And Date',
-                border: OutlineInputBorder(),
-              ),
-              onTap: () => _selectDateAndTime(_field2Controller),
-              readOnly: true,
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _field3Controller,
-              decoration: const InputDecoration(
-                labelText: 'Departure Location',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _field4Controller,
-              decoration: const InputDecoration(
-                labelText: 'Arrival Location',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _fieldBidController,
-              decoration: const InputDecoration(
-                labelText: 'Bid',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _field5Controller,
-              decoration: const InputDecoration(
-                labelText: 'Courier Capacity',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTextField('Start Time And Date', _startDateTimeController, true),
+              _buildTextField('End Time And Date', _endDateTimeController, true),
+              _buildTextField('Departure Location', _departureController, false),
+              _buildTextField('Arrival Location', _arrivalController, false),
+              _buildTextField('Bid', _bidController, false),
+            //  _buildTextField('Flight Number', _flightNumberController, false),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildTextField(String label, TextEditingController controller, bool isReadOnly) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: controller,
+        readOnly: isReadOnly,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        onTap: isReadOnly ? () => _selectDateAndTime(controller) : null,
+      ),
+    );
+  }
+
   Future<void> _selectDateAndTime(TextEditingController controller) async {
-    DateTime? selectedDate = await showDatePicker(
+    final DateTime? selectedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
@@ -138,13 +95,13 @@ class _ViewJobState extends State<ViewJob> {
     );
 
     if (selectedDate != null) {
-      TimeOfDay? selectedTime = await showTimePicker(
+      final TimeOfDay? selectedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
 
       if (selectedTime != null) {
-        DateTime selectedDateTime = DateTime(
+        final DateTime selectedDateTime = DateTime(
           selectedDate.year,
           selectedDate.month,
           selectedDate.day,
@@ -152,9 +109,9 @@ class _ViewJobState extends State<ViewJob> {
           selectedTime.minute,
         );
 
-        String formattedDateTime = '${"${selectedDateTime.toLocal()}".split(' ')[0]} ${selectedDateTime.toLocal().toIso8601String().split('T')[1].split('.')[0]}';
-        controller.text = formattedDateTime;
+        controller.text = selectedDateTime.toLocal().toString();
       }
     }
   }
+
 }

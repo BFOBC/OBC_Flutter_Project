@@ -203,26 +203,13 @@ class _JobDetailsState extends State<JobDetails> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-                FirestoreService service = FirestoreService(context);
-                service.updateJobStatus(nodeID, acceptJob ? 'Accept' : 'Decline');
-                CustomDialog.showCustomDialog3(
+
+                handleJobAction(
                   context,
-                  acceptJob ? "Job Accepted successfully" : "Job Declined",
-                  onOkPressed: () {
-                    FirestoreService firestoreService = FirestoreService(context);
-                    User _currentUser = FirebaseAuth.instance.currentUser!;
-                    String msg="Your Job accepted by  ${_currentUser.email}";
-
-                    firestoreService.createNotification(brokerID: widget.brokerID,courierID: _currentUser.uid.toString(),emptyLegRequestID: widget.emptyLegRequestID,sentBy: "Courier",message: msg);
-
-
-                    // Remove all screens and navigate to DrawerScreen
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/DrawerScreen',
-                          (route) => false, // This ensures that all previous routes are removed
-                    );
-                  },
+                  nodeID,
+                  acceptJob,
+                  widget.brokerID,
+                  widget.emptyLegRequestID,
                 );
               },
               child: const Text('YES'),
@@ -232,4 +219,46 @@ class _JobDetailsState extends State<JobDetails> {
       },
     );
   }
+  void handleJobAction(BuildContext context, String nodeID, bool acceptJob, String brokerID, String emptyLegRequestID) {
+    // Close the dialog
+    Navigator.of(context).pop();
+
+    // Initialize the Firestore service
+    final FirestoreService service = FirestoreService(context);
+
+    // Update job status
+    final String jobStatus = acceptJob ? 'todo' : 'decline';
+    service.updateJobStatus(nodeID, jobStatus);
+
+    // Prepare notification message
+    final User currentUser = FirebaseAuth.instance.currentUser!;
+    final String email = currentUser.email ?? 'Unknown User';
+    final String message = acceptJob
+        ? "Your Job accepted by $email"
+        : "Your Job declined by $email";
+
+    // Show custom dialog
+    CustomDialog.showCustomDialog3(
+      context,
+      acceptJob ? "Job Accepted successfully" : "Job Declined",
+      onOkPressed: () {
+        // Create notification
+        service.createNotification(
+          brokerID: brokerID,
+          courierID: currentUser.uid,
+          emptyLegRequestID: emptyLegRequestID,
+          sentBy: "Courier",
+          message: message,
+        );
+
+        // Navigate to DrawerScreen
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/DrawerScreen',
+              (route) => false, // Clear the navigation stack
+        );
+      },
+    );
+  }
+
 }

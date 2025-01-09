@@ -26,10 +26,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> checkDatabaseAndPermissions() async {
     final DatabaseOperation dbHelper = DatabaseOperation();
 
-    // Show SnackBar for database check
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Checking local database...')),
-    );
 
     // Check if model exists in the local database
     bool isDataAvailable = await _isDataAvailable(dbHelper);
@@ -54,12 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Data synchronized successfully.')),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data already available in the database.')),
-      );
     }
-
     // Check location permissions after model synchronization
     await checkLocationPermissions();
   }
@@ -96,15 +87,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (await Permission.location.isGranted) {
       // Permissions granted, navigate to login screen
-      ScaffoldMessenger.of(context).showSnackBar(
+/*      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Permissions granted. Navigating to login...')),
-      );
+      );*/
       navigateToLoginScreen();
     } else {
       // Permissions not granted, navigate to permission screen
-      ScaffoldMessenger.of(context).showSnackBar(
+/*      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Permissions not granted. Navigating to permission screen...')),
-      );
+      );*/
       navigateToPermissionScreen();
     }
   }

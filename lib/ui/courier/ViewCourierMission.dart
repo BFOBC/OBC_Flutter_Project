@@ -6,13 +6,6 @@ import 'ViewMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {
   final Task? data; // Replace YourDataType with the actual type of your model object
-  Milestone milestone = Milestone(
-    title: 'Project Phase 1',
-    description: 'Complete the first phase of the project.',
-    startTimeAndDate: '2024-10-01 10:00 AM',
-    endTimeAndDate: '2024-10-05 05:00 PM',
-    status: 'In Progress',
-  );
   ViewCourierMission({super.key, this.data});
 
   @override
@@ -64,8 +57,8 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
               const SizedBox(height: 20),
               Expanded(
                 child: _selectedIndex == 0
-                    ? ViewJob(data: widget.data) // Pass Task data to PlaceNewJob
-                    : ViewMilestone(milestone: widget.milestone), // Pass Task data to AddNewMilestone
+                    ? ViewJob() // Pass Task data to PlaceNewJob
+                    : ViewJob(), // Pass Task data to AddNewMilestone
               ),
             ],
           ),

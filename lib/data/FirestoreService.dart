@@ -370,5 +370,62 @@ class FirestoreService {
       return 'Error Fetching Name';
     }
   }
+  Future<List<Map<String, dynamic>>> getJobsByCourierID() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('emptyLegRequests')
+          .where('courierID', isEqualTo: _currentUser.uid)
+          .get();
+
+      return querySnapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint("Error fetching jobs: $e");
+      return [];
+    }
+  }
+  Future<List<Map<String, dynamic>>> getJobsWithMilestones() async {
+    try {
+      // Fetch jobs by courier ID
+      final querySnapshot = await _firestore
+          .collection('emptyLegRequests')
+          .where('courierID', isEqualTo: _currentUser.uid)
+          .get();
+
+      final List<Map<String, dynamic>> jobsWithMilestones = [];
+
+      for (var jobDoc in querySnapshot.docs) {
+        final jobData = jobDoc.data();
+        final List<dynamic>? milestoneIds = jobData['milestoneIds'];
+
+        if (milestoneIds != null && milestoneIds.isNotEmpty) {
+          // Fetch milestone data for the job
+          final List<Map<String, dynamic>> milestones =
+          await getMilestonesByIds(List<String>.from(milestoneIds));
+
+          jobData['milestones'] = milestones; // Add milestones data to the job
+        }
+
+        jobsWithMilestones.add(jobData);
+      }
+
+      return jobsWithMilestones;
+    } catch (e) {
+      debugPrint("Error fetching jobs with milestones: $e");
+      return [];
+    }
+  }
+  Future<List<Map<String, dynamic>>> getMilestonesByIds(List<String> milestoneIds) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('milestones')
+          .where(FieldPath.documentId, whereIn: milestoneIds)
+          .get();
+
+      return querySnapshot.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint("Error fetching milestones: $e");
+      return [];
+    }
+  }
 
 }
