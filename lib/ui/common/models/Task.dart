@@ -3,11 +3,13 @@ class Task {
   String? flightNumber;
   String? departureFrom;
   String? arriveAt;
-  String? status; // Differentiates between In Progress, Completed, and Todo
-  double? rating; // Differentiates between In Progress, Completed, and Todo
-  String? startDateTime; // Differentiates between In Progress, Completed, and Todo
-  String? endDateTime; // Differentiates between In Progress, Completed, and Todo
-  String? bid; // Differentiates between In Progress, Completed, and Todo
+  String? status;
+  double? rating;
+  String? startDateTime;
+  String? endDateTime;
+  String? bid;
+  String? description;
+  String? title;
 
   Task({
     this.brokerId,
@@ -19,5 +21,7 @@ class Task {
     this.startDateTime,
     this.endDateTime,
     this.bid,
+    this.title,
+    this.description,
   });
 }

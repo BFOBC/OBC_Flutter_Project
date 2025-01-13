@@ -1,5 +1,7 @@
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
 
+/*
 class Milestone {
   String title;
   String description;
@@ -15,26 +17,27 @@ class Milestone {
     this.status = "In Progress", // Initial status
   });
 }
+*/
 
 class ViewMilestone extends StatefulWidget {
-  final Milestone milestone;
+  final Task task;
 
-  const ViewMilestone({Key? key, required this.milestone}) : super(key: key);
+  const ViewMilestone({Key? key, required this.task}) : super(key: key);
 
   @override
   _ViewMilestoneState createState() => _ViewMilestoneState();
 }
 
 class _ViewMilestoneState extends State<ViewMilestone> {
-  late Milestone _milestone;
+  late Task _task;
 
   @override
   void initState() {
     super.initState();
-    _milestone = widget.milestone;
+    _task = widget.task;
   }
 
-  void _showMilestoneDialog({required Milestone milestone}) {
+  void _showMilestoneDialog({required Task milestone}) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -62,9 +65,9 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                     const SizedBox(height: 10),
                     Text('Description: ${milestone.description}'),
                     const SizedBox(height: 10),
-                    Text('Start Time: ${milestone.startTimeAndDate}'),
+                    Text('Start Time: ${milestone.startDateTime}'),
                     const SizedBox(height: 10),
-                    Text('End Time: ${milestone.endTimeAndDate}'),
+                    Text('End Time: ${milestone.endDateTime}'),
                     const SizedBox(height: 20),
                     Center(
                       child: ElevatedButton(
@@ -73,7 +76,7 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                             : () {
                           setState(() {
                             // Mark the milestone as done
-                            _milestone.status = "Done";
+                            _task.status = "Done";
                           });
                           Navigator.of(context).pop();
                         },
@@ -131,7 +134,7 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: _milestone.status == "Done"
+                        color: _task.status == "Done"
                             ? Colors.green
                             : Colors.grey,
                         shape: BoxShape.circle,
@@ -153,26 +156,27 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _milestone.title,
+                        _task.title.toString(),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text('Description: ${_milestone.description}'),
+                      Text('Description: ${_task.description}'),
                       const SizedBox(height: 4),
-                      Text('Start: ${_milestone.startTimeAndDate}'),
-                      Text('End: ${_milestone.endTimeAndDate}'),
+                      Text('Start: ${_task.startDateTime}'),
                       const SizedBox(height: 4),
-                      Text('Status: ${_milestone.status}'), // Display status
+                      Text('End: ${_task.endDateTime}'),
+                      const SizedBox(height: 4),
+                      Text('Status: ${_task.status}'), // Display status
                     ],
                   ),
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton(
                   onPressed: () {
-                    _showMilestoneDialog(milestone: _milestone);
+                    _showMilestoneDialog(milestone: _task);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,

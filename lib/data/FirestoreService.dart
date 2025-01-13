@@ -385,46 +385,73 @@ class FirestoreService {
   }
   Future<List<Map<String, dynamic>>> getJobsWithMilestones() async {
     try {
-      // Fetch jobs by courier ID
+      debugPrint("Fetching jobs for courierID: ${_currentUser.uid}");
+
+      // Fetch all emptyLegRequests
       final querySnapshot = await _firestore
           .collection('emptyLegRequests')
           .where('courierID', isEqualTo: _currentUser.uid)
           .get();
 
+      debugPrint("Total jobs fetched: ${querySnapshot.docs.length}");
+
       final List<Map<String, dynamic>> jobsWithMilestones = [];
 
       for (var jobDoc in querySnapshot.docs) {
         final jobData = jobDoc.data();
-        final List<dynamic>? milestoneIds = jobData['milestoneIds'];
+        final String? milestoneNodeID = jobData['milestoneNodeID'];
 
-        if (milestoneIds != null && milestoneIds.isNotEmpty) {
-          // Fetch milestone data for the job
-          final List<Map<String, dynamic>> milestones =
-          await getMilestonesByIds(List<String>.from(milestoneIds));
+        debugPrint("Processing job with ID: ${jobDoc.id}");
 
-          jobData['milestones'] = milestones; // Add milestones data to the job
+        if (milestoneNodeID != null) {
+          debugPrint("Found milestoneNodeID: $milestoneNodeID");
+
+          // Fetch milestone details based on milestoneNodeID
+          final milestones = await getMilestoneByNodeID(milestoneNodeID);
+
+          if (milestones != null) {
+            debugPrint("Found milestones for NodeID $milestoneNodeID: $milestones");
+            // Add milestone data to the job
+            jobData['milestones'] = milestones;
+          } else {
+            debugPrint("No milestones found for NodeID $milestoneNodeID");
+            jobData['milestones'] = [];
+          }
+        } else {
+          debugPrint("No milestoneNodeID found for job: ${jobDoc.id}");
+          jobData['milestones'] = []; // Empty list for jobs with no milestoneNodeID
         }
 
         jobsWithMilestones.add(jobData);
       }
 
+      debugPrint("Combined Jobs with Milestones: $jobsWithMilestones");
       return jobsWithMilestones;
     } catch (e) {
       debugPrint("Error fetching jobs with milestones: $e");
       return [];
     }
   }
-  Future<List<Map<String, dynamic>>> getMilestonesByIds(List<String> milestoneIds) async {
+
+  Future<Map<String, dynamic>?> getMilestoneByNodeID(String milestoneNodeID) async {
     try {
+      debugPrint("Fetching milestone for Node ID: $milestoneNodeID");
+
       final querySnapshot = await _firestore
           .collection('milestones')
-          .where(FieldPath.documentId, whereIn: milestoneIds)
+          .doc(milestoneNodeID)
           .get();
 
-      return querySnapshot.docs.map((doc) => doc.data()).toList();
+      if (querySnapshot.exists) {
+        debugPrint("Milestone found for Node ID $milestoneNodeID: ${querySnapshot.data()}");
+        return querySnapshot.data();
+      } else {
+        debugPrint("No milestone found for Node ID: $milestoneNodeID");
+        return null;
+      }
     } catch (e) {
-      debugPrint("Error fetching milestones: $e");
-      return [];
+      debugPrint("Error fetching milestone for Node ID $milestoneNodeID: $e");
+      return null;
     }
   }
 

@@ -13,9 +13,25 @@ class TaskViewModel extends ChangeNotifier {
     _tasks.add(task);
     notifyListeners(); // Notifies the UI when model changes
   }
+  void clearTasks() {
+    _tasks.clear();
+    notifyListeners();  // Add this to notify UI after clearing the tasks
+  }
 
   // Method to filter tasks based on status (In Progress, Completed, Todo)
   List<Task> getTasksByStatus(String status) {
-    return _tasks.where((task) => task.status == status).toList();
+    // Normalize the status to ignore case and spaces
+    String normalizedStatus = status.replaceAll(' ', '').toLowerCase();
+
+    // Filter tasks based on the normalized status
+    final filteredTasks = _tasks.where((task) {
+      // Normalize each task's status similarly
+      String normalizedTaskStatus = task.status!.replaceAll(' ', '').toLowerCase();
+      return normalizedTaskStatus == normalizedStatus;
+    }).toList();
+
+    debugPrint("Filtered tasks for status '$status': ${filteredTasks.length}");
+    return filteredTasks;
   }
+
 }

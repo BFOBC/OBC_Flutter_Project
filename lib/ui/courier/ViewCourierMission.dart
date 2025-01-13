@@ -5,8 +5,8 @@ import 'ViewJob.dart';
 import 'ViewMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {
-  final Task? data; // Replace YourDataType with the actual type of your model object
-  ViewCourierMission({super.key, this.data});
+  final Task? task; // Replace YourDataType with the actual type of your model object
+  ViewCourierMission({super.key, this.task});
 
   @override
   _ViewCourierMissionState createState() => _ViewCourierMissionState();
@@ -57,8 +57,8 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
               const SizedBox(height: 20),
               Expanded(
                 child: _selectedIndex == 0
-                    ? ViewJob() // Pass Task data to PlaceNewJob
-                    : ViewJob(), // Pass Task data to AddNewMilestone
+                    ? ViewMilestone(task: widget.task!) // Pass Task data to PlaceNewJob
+                    : ViewMilestone(task: widget.task!), // Pass Task data to AddNewMilestone
               ),
             ],
           ),

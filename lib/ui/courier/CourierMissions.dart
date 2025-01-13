@@ -15,7 +15,7 @@ class CourierMissions extends StatefulWidget {
 
 class _CourierMissionsState extends State<CourierMissions> {
   int _selectedIndex = 0;
-  final List<bool> _selectedToggle = [true, false, false];
+  final List<bool> _selectedToggle = [true, false, false, false];
   final List<String> _toggleText = ["In Progress", "Todo", "Pending","Completed"];
   final List<Color> _colorList = [
     Colors.orange, // In Progress
@@ -33,29 +33,47 @@ class _CourierMissionsState extends State<CourierMissions> {
   Future<void> _loadTasks() async {
     final taskViewModel = Provider.of<TaskViewModel>(context, listen: false);
 
-    // Fetch jobs and milestones data from Firestore
-    final jobsWithMilestones = await _fetchJobsWithMilestones();
+    try {
+      // Fetch jobs and milestones data from Firestore
+      final jobsWithMilestones = await _fetchJobsWithMilestones();
+      debugPrint("Found Courier Mission $jobsWithMilestones");
 
-    // Populate TaskViewModel with the fetched data
-    for (var job in jobsWithMilestones) {
-      taskViewModel.addTask(Task(
-        brokerId: job['brokerId'] ?? 'N/A',
-        flightNumber: job['flightNumber'] ?? 'Unknown',
-        departureFrom: job['departureFrom'] ?? 'Unknown',
-        arriveAt: job['arriveAt'] ?? 'Unknown',
-        status: job['status'] ?? 'Unknown',
-        rating: job['rating'] ?? 0,
-        startDateTime: job['startDateTime'] ?? 'Unknown',
-        endDateTime: job['endDateTime'] ?? 'Unknown',
-        bid: job['bid'] ?? '0',
-      ));
+      // Clear existing tasks before populating new ones
+      taskViewModel.clearTasks();
+
+      // Populate TaskViewModel with the fetched data
+      for (var job in jobsWithMilestones) {
+        debugPrint("Job: $job");  // This will show the full job data.
+        taskViewModel.addTask(Task(
+          brokerId: job['brokerID'] ?? 'N/A',
+          flightNumber: job['flightNumber'] ?? 'Unknown',
+          departureFrom: job['departureLocation'] ?? 'Unknown',
+          arriveAt: job['arrivalLocation'] ?? 'Unknown',
+          status: job['status'] ?? 'Unknown',
+          rating: job['rating'] ?? 0,
+          startDateTime: job['startTimeAndDate'] ?? 'Unknown',
+          endDateTime: job['endTimeAndDate'] ?? 'Unknown',
+          bid: job['bid'] ?? 'N/A',
+          title: job['milestones']?['title'] ?? 'N/A',
+          description: job['milestones']?['description'] ?? 'N/A',
+        ));
+
+      }
+    } catch (e) {
+      debugPrint("Error in _loadTasks: $e");
+      // Show a snackbar or alert in case of errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to load tasks. Please try again.")),
+        );
+      }
     }
   }
 
   Future<List<Map<String, dynamic>>> _fetchJobsWithMilestones() async {
     try {
       final service = FirestoreService(context);
-      return await service.getJobsWithMilestones();
+      return await service.getJobsWithMilestones(); // Assumes this method fetches job data
     } catch (e) {
       debugPrint("Error in _fetchJobsWithMilestones: $e");
       return [];
@@ -114,10 +132,21 @@ class _CourierMissionsState extends State<CourierMissions> {
               ),
 
               const Divider(thickness: 1.0, color: Colors.grey),
-
               Consumer<TaskViewModel>(
                 builder: (context, taskViewModel, child) {
                   List<Task> tasks = taskViewModel.getTasksByStatus(_getStatusForIndex(_selectedIndex));
+
+                  debugPrint("Tasks after filtering: ${tasks.length}");
+
+                  // Check if there are no tasks for the selected status
+                  if (tasks.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No Data Available',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  }
 
                   return ListView.builder(
                     shrinkWrap: true,
@@ -125,6 +154,7 @@ class _CourierMissionsState extends State<CourierMissions> {
                     itemCount: tasks.length,
                     itemBuilder: (context, index) {
                       final task = tasks[index];
+                      debugPrint("Displaying task: ${task.brokerId}");
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                         child: Container(
@@ -150,6 +180,7 @@ class _CourierMissionsState extends State<CourierMissions> {
                               ElevatedButton(
                                 onPressed: () {
                                   _navigateToLegsAndMilestones(task);
+                                  debugPrint("Selected Task: Broker ID: ${task.title}, description: ${task.description}, startDateTime: ${task.startDateTime}");
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _colorList[_selectedIndex],
@@ -171,7 +202,8 @@ class _CourierMissionsState extends State<CourierMissions> {
                     },
                   );
                 },
-              ),
+              )
+              ,
             ],
           ),
         ),
@@ -196,7 +228,7 @@ class _CourierMissionsState extends State<CourierMissions> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ViewCourierMission(data: task),
+        builder: (context) => ViewCourierMission(task: task),
       ),
     );
   }
