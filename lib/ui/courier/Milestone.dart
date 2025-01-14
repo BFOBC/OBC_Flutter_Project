@@ -1,40 +1,10 @@
+import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import '../common/utils/DateTimePicker.dart';
 
-class Milestone {
-  final String title;
-  final String description;
-  final String startTimeAndDate;
-  final String endTimeAndDate;
-
-  Milestone({
-    required this.title,
-    required this.description,
-    required this.startTimeAndDate,
-    required this.endTimeAndDate,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'description': description,
-      'startTimeAndDate': startTimeAndDate,
-      'endTimeAndDate': endTimeAndDate,
-    };
-  }
-
-  static Milestone fromMap(Map<String, dynamic> map) {
-    return Milestone(
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      startTimeAndDate: map['startTimeAndDate'] ?? '',
-      endTimeAndDate: map['endTimeAndDate'] ?? '',
-    );
-  }
-}
 
 class AddNewMilestone extends StatefulWidget {
   final Task? data;

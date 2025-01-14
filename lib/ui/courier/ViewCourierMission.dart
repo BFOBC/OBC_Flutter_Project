@@ -1,4 +1,6 @@
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:broker_flutter_pp/ui/courier/TaskDetailScreen.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import 'ViewJob.dart';
@@ -6,7 +8,9 @@ import 'ViewMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {
   final Task? task; // Replace YourDataType with the actual type of your model object
-  ViewCourierMission({super.key, this.task});
+  final String selectedTab;
+
+  ViewCourierMission({Key? key, this.task, required this.selectedTab}) : super(key: key);
 
   @override
   _ViewCourierMissionState createState() => _ViewCourierMissionState();
@@ -24,6 +28,53 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
       _selectedToggle[1 - index] = false; // Toggle between the two options
     });
   }
+
+  // Function to show the dialog
+  void _showStartJobDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Do you want to start the job?'),
+          actions: [
+            // "Yes" Button
+            TextButton(
+              onPressed: () {
+                // Update the job status in Firestore
+                FirestoreService service = FirestoreService(context);
+                service.updateJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
+
+                // Show Snackbar with "Job started!" message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Job started!'),
+                  ),
+                );
+
+                // Handle the "Yes" action
+                debugPrint("Job started!");
+
+                // Navigate back to the previous screen
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop(); // Go back to the previous screen
+              },
+              child: const Text('Yes'),
+            ),
+            // "No" Button
+            TextButton(
+              onPressed: () {
+                // Handle the "No" action
+                debugPrint("Job not started.");
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('No'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,11 +108,29 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
               const SizedBox(height: 20),
               Expanded(
                 child: _selectedIndex == 0
-                    ? ViewMilestone(task: widget.task!) // Pass Task data to PlaceNewJob
-                    : ViewMilestone(task: widget.task!), // Pass Task data to AddNewMilestone
+                    ? TaskDetailScreen(task: widget.task!) // Pass Task data to PlaceNewJob
+                    : ViewMilestone(selectedTab: widget.selectedTab), // Pass Task data to AddNewMilestone
               ),
             ],
           ),
+          // Only show FloatingActionButton if selectedTab is "Todo" or "Pending"
+          if (widget.selectedTab == "Todo" || widget.selectedTab == "Pending")
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: FloatingActionButton(
+                onPressed: () {
+                  // Show the Start Job dialog when the button is clicked
+                  _showStartJobDialog();
+                },
+                backgroundColor: Palette.primaryColor,
+                child: const Icon(
+                  Icons.directions, // Replace with any icon of your choice
+                  color: Colors.white,
+                  size: 30.0,
+                ),
+              ),
+            ),
         ],
       ),
     );

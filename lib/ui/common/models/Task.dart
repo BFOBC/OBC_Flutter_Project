@@ -7,6 +7,10 @@ class Task {
   double? rating;
   String? startDateTime;
   String? endDateTime;
+  String? milestoneStartDateTime;
+  String? milestoneEndDateTime;
+  String? mileStoneStatus;
+  String? emptyLegRequestID;
   String? bid;
   String? description;
   String? title;
@@ -20,6 +24,10 @@ class Task {
     this.rating,
     this.startDateTime,
     this.endDateTime,
+    this.milestoneStartDateTime,
+    this.milestoneEndDateTime,
+    this.mileStoneStatus,
+    this.emptyLegRequestID,
     this.bid,
     this.title,
     this.description,

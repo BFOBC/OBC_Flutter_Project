@@ -1,43 +1,109 @@
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Required for using TaskViewModel
 
-/*
-class Milestone {
-  String title;
-  String description;
-  String startTimeAndDate;
-  String endTimeAndDate;
-  String status; // Changed back to string
 
-  Milestone({
-    required this.title,
-    required this.description,
-    required this.startTimeAndDate,
-    required this.endTimeAndDate,
-    this.status = "In Progress", // Initial status
-  });
-}
-*/
+class ViewMilestone extends StatelessWidget {
+  String selectedTab;
+  ViewMilestone({Key? key, required this.selectedTab}) : super(key: key);
 
-class ViewMilestone extends StatefulWidget {
-  final Task task;
-
-  const ViewMilestone({Key? key, required this.task}) : super(key: key);
 
   @override
-  _ViewMilestoneState createState() => _ViewMilestoneState();
-}
+  Widget build(BuildContext context) {
+    final taskViewModel = Provider.of<TaskViewModel>(context);
+    final tasks = taskViewModel.getTasksByStatus(selectedTab);
+    
+    
 
-class _ViewMilestoneState extends State<ViewMilestone> {
-  late Task _task;
-
-  @override
-  void initState() {
-    super.initState();
-    _task = widget.task;
+    return Scaffold(
+      body: tasks.isEmpty
+          ? const Center(
+        child: Text("No milestones available"),
+      )
+          : ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: tasks.length,
+        itemBuilder: (context, index) {
+          final task = tasks[index];
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Column(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: task.status == "Done"
+                              ? Colors.green
+                              : Colors.grey,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Container(
+                        width: 2,
+                        height: 60,
+                        decoration: const BoxDecoration(
+                          color: Colors.grey,
+                          shape: BoxShape.rectangle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.title.toString(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('Description: ${task.description}'),
+                        const SizedBox(height: 4),
+                        Text('Start: ${task.startDateTime}'),
+                        const SizedBox(height: 4),
+                        Text('End: ${task.endDateTime}'),
+                        const SizedBox(height: 4),
+                        Text('Status: ${task.status}'), // Display status
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      _showMilestoneDialog(context, task);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Text(
+                      'View',
+                      style: TextStyle(color: Colors.white), // Set text color to white
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
-  void _showMilestoneDialog({required Task milestone}) {
+  void _showMilestoneDialog(BuildContext context, Task milestone) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -68,16 +134,21 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                     Text('Start Time: ${milestone.startDateTime}'),
                     const SizedBox(height: 10),
                     Text('End Time: ${milestone.endDateTime}'),
+                    const SizedBox(height: 10),
+                    Text('Status: ${milestone.status}'),
                     const SizedBox(height: 20),
                     Center(
-                      child: ElevatedButton(
+                      child: selectedTab == "In Progress"
+                          ? ElevatedButton(
                         onPressed: milestone.status == "Done"
                             ? null
                             : () {
-                          setState(() {
-                            // Mark the milestone as done
-                            _task.status = "Done";
-                          });
+                          final FirestoreService service = FirestoreService(context);
+                          // Update job status
+                          service.updateJobStatus(milestone.emptyLegRequestID.toString(), "Completed");
+/*                          Provider.of<TaskViewModel>(context, listen: false)
+                              .addTask(milestone.copyWith(status: "Done")); // Mark as done*/
+                          Text('Status: Completed}');
                           Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
@@ -90,6 +161,21 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                           'Mark as Done',
                           style: TextStyle(color: Colors.white),
                         ),
+                      )
+                          : ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: const Text(
+                          'Close',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -99,18 +185,21 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                 right: 8,
                 top: 8,
                 child: Container(
+                  width: 30, // Reduced width
+                  height: 30, // Reduced height
                   decoration: const BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    padding: EdgeInsets.zero, // Remove default padding
+                    icon: const Icon(Icons.close, color: Colors.white, size: 16), // Reduced icon size
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
                   ),
                 ),
-              ),
+              )
             ],
           ),
         );
@@ -118,82 +207,4 @@ class _ViewMilestoneState extends State<ViewMilestone> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: _task.status == "Done"
-                            ? Colors.green
-                            : Colors.grey,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Container(
-                      width: 2,
-                      height: 60,
-                      decoration: const BoxDecoration(
-                        color: Colors.grey,
-                        shape: BoxShape.rectangle,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _task.title.toString(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Description: ${_task.description}'),
-                      const SizedBox(height: 4),
-                      Text('Start: ${_task.startDateTime}'),
-                      const SizedBox(height: 4),
-                      Text('End: ${_task.endDateTime}'),
-                      const SizedBox(height: 4),
-                      Text('Status: ${_task.status}'), // Display status
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    _showMilestoneDialog(milestone: _task);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text(
-                    'View',
-                    style: TextStyle(color: Colors.white), // Set text color to white
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

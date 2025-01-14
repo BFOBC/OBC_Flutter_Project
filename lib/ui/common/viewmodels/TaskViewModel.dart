@@ -1,3 +1,4 @@
+import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/foundation.dart';
 
@@ -5,12 +6,18 @@ import 'package:flutter/foundation.dart';
 class TaskViewModel extends ChangeNotifier {
   // List to store all tasks
   final List<Task> _tasks = [];
+  final List<Milestone> _milestoneList = [];
 
   List<Task> get tasks => _tasks;
+  List<Milestone> get milestoneList => _milestoneList;
 
   // Method to add a task
   void addTask(Task task) {
     _tasks.add(task);
+    notifyListeners(); // Notifies the UI when model changes
+  }
+  void addMilestone(Milestone milestone) {
+    _milestoneList.add(milestone);
     notifyListeners(); // Notifies the UI when model changes
   }
   void clearTasks() {

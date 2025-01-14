@@ -3,8 +3,8 @@ class Milestone {
   final String description;
   final String startTimeAndDate;
   final String endTimeAndDate;
-  final String courierID;
-  final String brokerID;
+  final String? courierID;
+  final String? brokerID;
   String? nodeID;
 
   Milestone({
@@ -12,9 +12,9 @@ class Milestone {
     required this.description,
     required this.startTimeAndDate,
     required this.endTimeAndDate,
-    required this.courierID,
-    required this.brokerID,
-    required this.nodeID,
+    this.courierID,
+    this.brokerID,
+    this.nodeID,
   });
 
   Map<String, dynamic> toMap() {

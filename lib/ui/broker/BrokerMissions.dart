@@ -2,7 +2,7 @@ import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:broker_flutter_pp/ui/broker/viewmodels/TaskViewModel.dart';
+import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'ManageLegsAndMilestones.dart';
 import 'CircularRating.dart'; // Assuming you have this class imported
 

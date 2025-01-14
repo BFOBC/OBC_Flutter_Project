@@ -90,10 +90,11 @@ class FirestoreService {
         print('Document data: ${doc.data()}'); // Debug: print document data
         return EmptyLegRequest.fromMap(doc.data() as Map<String, dynamic>);
       })
+          .where((request) => request.status?.toLowerCase() == 'pending') // Filter for status = 'pending' (case insensitive)
           .toList();
 
-      print('emptyLegRequests docs in querySnapshot: ${querySnapshot.docs.length}');
-      print('Requests List: $requestsList');
+      print('Filtered emptyLegRequests docs in querySnapshot: ${requestsList.length}');
+      print('Filtered Requests List: $requestsList');
 
       return requestsList;
     } catch (e) {
@@ -101,6 +102,7 @@ class FirestoreService {
       return [];
     }
   }
+
 
   // Method to fetch brokers by brokerIDs using the BrokerProfileData model
   Future<List<BrokerProfileData>> getBrokersByBrokerID(List<String> brokerIDs) async {
