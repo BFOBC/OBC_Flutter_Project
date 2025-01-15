@@ -120,16 +120,17 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
           ? Center(child: CircularProgressIndicator()) // Show loading indicator
           : SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
+              //pie chart
               CircularRating(dataMap: dataMap, colorList: _colorList),
               const SizedBox(height: 20),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
                   child: ToggleButtons(
                     isSelected: _selectedToggle,
                     onPressed: (int index) {
@@ -140,12 +141,15 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
                         }
                       });
                     },
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(5),
                     selectedBorderColor: Colors.grey,
                     selectedColor: Colors.white,
                     fillColor: _colorList[_selectedIndex],
                     color: Colors.black,
-                    constraints: const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
+                    constraints: const BoxConstraints(
+                      minHeight: 40.0,  // Equal height for the tabs
+                      minWidth: 80.0,   // Equal width for the tabs
+                    ),
                     children: _toggleText.map((text) => Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
                       child: Text(text),
@@ -204,7 +208,7 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12.0),
                                   ),
-                                  minimumSize: const Size(100, 40),
+                                  minimumSize: const Size(50, 20),
                                   padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                                 ),
                                 child: const Text(
@@ -223,7 +227,8 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
             ],
           ),
         ),
-      ),
+      )
+      ,
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/courier/TaskDetailScreen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import 'ViewJob.dart';
@@ -43,6 +44,15 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
                 // Update the job status in Firestore
                 FirestoreService service = FirestoreService(context);
                 service.updateJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
+                String taskID=widget.task!.emptyLegRequestID!;
+                final User currentUser = FirebaseAuth.instance.currentUser!;
+                String email=currentUser.email!;
+                service.createNotification(
+                  brokerID: widget.task!.brokerId!,
+                  courierID: currentUser.uid,
+                  emptyLegRequestID: widget.task!.emptyLegRequestID!,
+                  sentBy: "Courier",
+                  message: "Your  Job $taskID is started by $email");
 
                 // Show Snackbar with "Job started!" message
                 ScaffoldMessenger.of(context).showSnackBar(

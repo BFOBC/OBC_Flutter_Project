@@ -114,8 +114,8 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       final newMilestone = Milestone(
           title: _summaryController.text,
           description: _descriptionController.text,
-          startTimeAndDate: _startTimeAndDateController.text,
-          endTimeAndDate: _endTimeAndDateController.text,
+          milestoneStartDateTime: _startTimeAndDateController.text,
+          milestoneEndDateTime: _endTimeAndDateController.text,
           courierID: widget.courierKey,
           nodeID: null,
           brokerID: widget.brokerKey);

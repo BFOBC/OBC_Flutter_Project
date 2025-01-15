@@ -1,8 +1,8 @@
 class Milestone {
   final String title;
   final String description;
-  final String startTimeAndDate;
-  final String endTimeAndDate;
+  final String milestoneStartDateTime;
+  final String milestoneEndDateTime;
   final String? courierID;
   final String? brokerID;
   String? nodeID;
@@ -10,8 +10,8 @@ class Milestone {
   Milestone({
     required this.title,
     required this.description,
-    required this.startTimeAndDate,
-    required this.endTimeAndDate,
+    required this.milestoneStartDateTime,
+    required this.milestoneEndDateTime,
     this.courierID,
     this.brokerID,
     this.nodeID,
@@ -21,8 +21,8 @@ class Milestone {
     return {
       'title': title,
       'description': description,
-      'startTimeAndDate': startTimeAndDate,
-      'endTimeAndDate': endTimeAndDate,
+      'milestoneStartDateTime': milestoneStartDateTime,
+      'milestoneEndDateTime': milestoneEndDateTime,
       'courierID': courierID,
       'brokerID': brokerID,
       'nodeID': nodeID,
@@ -33,8 +33,8 @@ class Milestone {
     return Milestone(
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      startTimeAndDate: map['startTimeAndDate'] ?? '',
-      endTimeAndDate: map['endTimeAndDate'] ?? '',
+      milestoneStartDateTime: map['milestoneStartDateTime'] ?? '',
+      milestoneEndDateTime: map['endTimeAndDate'] ?? '',
       courierID: map['courierID'] ?? '',
       brokerID: map['brokerID'] ?? '',
       nodeID: map['nodeID'] ?? '',

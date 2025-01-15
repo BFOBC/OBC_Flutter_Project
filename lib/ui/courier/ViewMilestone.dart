@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Required for using TaskViewModel
 
@@ -148,6 +149,18 @@ class ViewMilestone extends StatelessWidget {
                           service.updateJobStatus(milestone.emptyLegRequestID.toString(), "Completed");
 /*                          Provider.of<TaskViewModel>(context, listen: false)
                               .addTask(milestone.copyWith(status: "Done")); // Mark as done*/
+
+                          String taskID=milestone.emptyLegRequestID!;
+                          final User currentUser = FirebaseAuth.instance.currentUser!;
+                          String email=currentUser.email!;
+                          service.createNotification(
+                            brokerID:milestone.brokerId!,
+                            courierID: currentUser.uid,
+                            emptyLegRequestID: taskID,
+                            sentBy: "Courier",
+                            message: "Your  Job $taskID is Completed by $email");
+
+
                           Text('Status: Completed}');
                           Navigator.of(context).pop();
                         },

@@ -168,10 +168,10 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     double searchedLong = double.tryParse(searchedLocation[0].long.toString()) ?? 0.0;
     LatLng searchLocation=LatLng(searchedLat, searchedLong);
 
-    // Firestore query to get documents where 'country' is 'Pakistan' and the location code matches the search query
     QuerySnapshot snapshot = await FirebaseFirestore.instance
         .collection('courier') // Your Firestore collection name
         .where('country', isEqualTo: searchedLocation[0].countryCode)  // Filter for country
+        .where('isOnline', isEqualTo: true)  // Add the filter for isOnline
         .get();
 
     print('Snapshot retrieved from Firestore:');

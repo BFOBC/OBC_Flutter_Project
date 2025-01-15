@@ -12,11 +12,11 @@ class CircularRating extends StatelessWidget {
     return PieChart(
       dataMap: dataMap,
       animationDuration: const Duration(milliseconds: 800),
-      chartRadius: MediaQuery.of(context).size.width / 5.5,
+      chartRadius: MediaQuery.of(context).size.width / 4.0, // Adjusted for a slightly smaller size
       colorList: colorList,
       initialAngleInDegree: 0,
       chartType: ChartType.ring,
-      ringStrokeWidth: 32,
+      ringStrokeWidth: 10, // Reduced thickness for a thinner chart
       centerText: "",
       legendOptions: const LegendOptions(
         showLegendsInRow: false,
@@ -28,11 +28,11 @@ class CircularRating extends StatelessWidget {
         ),
       ),
       chartValuesOptions: const ChartValuesOptions(
-        showChartValueBackground: true,
+        showChartValueBackground: false,
         showChartValues: true,
-        showChartValuesInPercentage: true,
+        showChartValuesInPercentage: false,
         showChartValuesOutside: false,
-        decimalPlaces: 1,
+        decimalPlaces: 0,
       ),
     );
   }
