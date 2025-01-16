@@ -10,7 +10,7 @@ class AddNewMilestone extends StatefulWidget {
 
   String courierKey;
   String brokerKey;
-  final Function(String milestoneNodeID)? onMilestoneSaved; // Callback function
+  final Function(List<String> milestoneNodeID)? onMilestoneSaved; // Callback function
 
   AddNewMilestone({
     super.key,
@@ -26,6 +26,7 @@ class AddNewMilestone extends StatefulWidget {
 
 class AddNewMilestoneScreenState extends State<AddNewMilestone> {
   late String mileStoneNodeID;
+  late List<String> listMilestoneNodeIDS = [];  // Initialize the list
   final TextEditingController _summaryController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _startTimeAndDateController =
@@ -42,11 +43,12 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       DocumentReference docRef = milestonesCollection.doc();
 
       // Update the nodeID in the milestone object
-      milestone.nodeID = docRef.id;
-      mileStoneNodeID= milestone.nodeID!;
+      milestone.milestoneNodeID = docRef.id;
+      mileStoneNodeID= milestone.milestoneNodeID!;
+      listMilestoneNodeIDS.add(mileStoneNodeID);
       // Invoke the callback
       if (widget.onMilestoneSaved != null) {
-        widget.onMilestoneSaved!(milestone.nodeID!);
+        widget.onMilestoneSaved!(listMilestoneNodeIDS);
       }
       // Save the milestone model with the updated nodeID
       await docRef.set(milestone.toMap());
@@ -117,7 +119,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
           milestoneStartDateTime: _startTimeAndDateController.text,
           milestoneEndDateTime: _endTimeAndDateController.text,
           courierID: widget.courierKey,
-          nodeID: null,
+          milestoneNodeID: null,
           brokerID: widget.brokerKey);
 
       _saveMilestone(newMilestone);

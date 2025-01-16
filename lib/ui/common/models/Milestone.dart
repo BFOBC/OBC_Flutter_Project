@@ -5,7 +5,7 @@ class Milestone {
   final String milestoneEndDateTime;
   final String? courierID;
   final String? brokerID;
-  String? nodeID;
+  String? milestoneNodeID;
 
   Milestone({
     required this.title,
@@ -14,7 +14,7 @@ class Milestone {
     required this.milestoneEndDateTime,
     this.courierID,
     this.brokerID,
-    this.nodeID,
+    this.milestoneNodeID,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,7 +25,7 @@ class Milestone {
       'milestoneEndDateTime': milestoneEndDateTime,
       'courierID': courierID,
       'brokerID': brokerID,
-      'nodeID': nodeID,
+      'milestoneNodeID': milestoneNodeID,
     };
   }
 
@@ -37,7 +37,7 @@ class Milestone {
       milestoneEndDateTime: map['endTimeAndDate'] ?? '',
       courierID: map['courierID'] ?? '',
       brokerID: map['brokerID'] ?? '',
-      nodeID: map['nodeID'] ?? '',
+      milestoneNodeID: map['milestoneNodeID'] ?? '',
     );
   }
 }

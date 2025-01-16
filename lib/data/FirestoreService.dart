@@ -401,27 +401,32 @@ class FirestoreService {
 
       for (var jobDoc in querySnapshot.docs) {
         final jobData = jobDoc.data();
-        final String? milestoneNodeID = jobData['milestoneNodeID'];
+        final List<dynamic>? milestoneNodeIDs = jobData['milestoneNodeIDs'];  // This is now a list of IDs
 
         debugPrint("Processing job with ID: ${jobDoc.id}");
 
-        if (milestoneNodeID != null) {
-          debugPrint("Found milestoneNodeID: $milestoneNodeID");
+        if (milestoneNodeIDs != null && milestoneNodeIDs.isNotEmpty) {
+          debugPrint("Found milestoneNodeIDs: $milestoneNodeIDs");
 
-          // Fetch milestone details based on milestoneNodeID
-          final milestones = await getMilestoneByNodeID(milestoneNodeID);
+          // Fetch milestones for each milestoneNodeID
+          final List<Map<String, dynamic>> allMilestones = [];
+          for (var milestoneNodeID in milestoneNodeIDs) {
+            final milestones = await getMilestoneByNodeID(milestoneNodeID);
 
-          if (milestones != null) {
-            debugPrint("Found milestones for NodeID $milestoneNodeID: $milestones");
-            // Add milestone data to the job
-            jobData['milestones'] = milestones;
-          } else {
-            debugPrint("No milestones found for NodeID $milestoneNodeID");
-            jobData['milestones'] = [];
+            if (milestones != null) {
+              debugPrint("Found milestones for NodeID $milestoneNodeID: $milestones");
+              allMilestones.add(milestones);
+            } else {
+              debugPrint("No milestones found for NodeID $milestoneNodeID");
+              allMilestones.add({});
+            }
           }
+
+          // Add all milestones data to the job
+          jobData['milestones'] = allMilestones;
         } else {
-          debugPrint("No milestoneNodeID found for job: ${jobDoc.id}");
-          jobData['milestones'] = []; // Empty list for jobs with no milestoneNodeID
+          debugPrint("No milestoneNodeIDs found for job: ${jobDoc.id}");
+          jobData['milestones'] = []; // Empty list for jobs with no milestoneNodeIDs
         }
 
         jobsWithMilestones.add(jobData);

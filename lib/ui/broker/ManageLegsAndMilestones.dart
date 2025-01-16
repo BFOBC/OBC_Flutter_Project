@@ -31,7 +31,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     false
   ]; // Default is Empty Leg selected
   final List<String> _toggleText = ["Milestone", "Submission"];
-   String milestoneNodeID='';
+  late List<String> milestoneNodeID= [];
   Task? savedTask; // To store the saved task
 
   bool isValid = false;
@@ -196,7 +196,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       // Will be updated when saving
       requestDateTime: DateTime.now().toIso8601String(),
       status: 'pending',
-      milestoneNodeID: milestoneNodeID, // Use the valid milestoneNodeID,
+      milestoneNodeIDs: milestoneNodeID, // Now using a list
       startTimeDate: savedTask!.startDateTime!,
       endTimeDate: savedTask!.endDateTime!,
       departureLocation: savedTask!.departureFrom!,

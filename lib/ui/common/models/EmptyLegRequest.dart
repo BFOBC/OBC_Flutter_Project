@@ -9,7 +9,7 @@ class EmptyLegRequest {
   String? emptyLegRequestID; // Make nodeID nullable
   final String requestDateTime;
   final String? status;
-  final String? milestoneNodeID;
+  final List<String?> milestoneNodeIDs; // Changed to List<String?>
   final String? startTimeDate;
   final String? endTimeDate;
   final String? departureLocation;
@@ -24,7 +24,7 @@ class EmptyLegRequest {
     required this.emptyLegRequestID, // Updated to allow null initially
     required this.requestDateTime,
     required this.status,
-    required this.milestoneNodeID,
+    required this.milestoneNodeIDs, // Changed to accept a list
     this.startTimeDate,
     this.endTimeDate,
     this.departureLocation,
@@ -41,7 +41,7 @@ class EmptyLegRequest {
       'emptyLegRequestID': emptyLegRequestID ?? '', // Save as empty string if null
       'requestDateTime': requestDateTime,
       'status': status,
-      'milestoneNodeID': milestoneNodeID,
+      'milestoneNodeIDs': milestoneNodeIDs, // Store list of milestoneNodeIDs
       'startTimeDate': startTimeDate,
       'endTimeDate': endTimeDate,
       'departureLocation': departureLocation,
@@ -59,7 +59,7 @@ class EmptyLegRequest {
       emptyLegRequestID: map['emptyLegRequestID'], // Nullable, don't default to empty string
       requestDateTime: map['requestDateTime'] ?? '',
       status: map['status'] ?? 'status',
-      milestoneNodeID: map['milestoneNodeID'],
+      milestoneNodeIDs: List<String?>.from(map['milestoneNodeIDs'] ?? []), // Convert to List<String?>
       startTimeDate: map['startTimeDate'],
       endTimeDate: map['endTimeDate'],
       departureLocation: map['departureLocation'],
@@ -68,7 +68,4 @@ class EmptyLegRequest {
       courierCapacity: map['courierCapacity'],
     );
   }
-
 }
-
-
