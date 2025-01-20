@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import 'ViewJob.dart';
-import 'ViewMilestone.dart';
+import 'CompleteMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {
   final Task? task; // Replace YourDataType with the actual type of your model object
@@ -119,7 +119,7 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
               Expanded(
                 child: _selectedIndex == 0
                     ? TaskDetailScreen(task: widget.task!) // Pass Task data to PlaceNewJob
-                    : ViewMilestone(selectedTab: widget.selectedTab), // Pass Task data to AddNewMilestone
+                    : CompleteMilestone(selectedTab: widget.selectedTab,task: widget.task!,), // Pass Task data to AddNewMilestone
               ),
             ],
           ),

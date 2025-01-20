@@ -45,6 +45,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       // Update the nodeID in the milestone object
       milestone.milestoneNodeID = docRef.id;
       mileStoneNodeID= milestone.milestoneNodeID!;
+      milestone.milestoneStatus= "pending";
       listMilestoneNodeIDS.add(mileStoneNodeID);
       // Invoke the callback
       if (widget.onMilestoneSaved != null) {

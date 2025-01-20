@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
@@ -64,21 +65,45 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
       for (var job in jobsWithMilestones) {
         debugPrint("Job: $job");
         taskViewModel.addTask(Task(
-          brokerId: job['brokerIDr'] ?? 'N/A',
+          brokerId: job['brokerID'] ?? 'N/A',
           flightNumber: job['flightNumber'] ?? 'Unknown',
           departureFrom: job['departureLocation'] ?? 'Unknown',
           arriveAt: job['arrivalLocation'] ?? 'Unknown',
           status: job['status'] ?? 'Unknown',
-          rating: job['rating'] ?? 0,
+          rating: job['rating'] != null ? double.tryParse(job['rating'].toString()) ?? 0.0 : 0.0,
           startDateTime: job['startTimeDate'] ?? 'Unknown',
           endDateTime: job['endTimeDate'] ?? 'Unknown',
           bid: job['bid'] ?? 'N/A',
-          title: job['milestones']?['title'] ?? 'N/A',
-          description: job['milestones']?['description'] ?? 'N/A',
-          mileStoneStatus: job['mileStoneStatus']?['description'] ?? 'N/A',
+          title: job['milestones'] != null && job['milestones'].isNotEmpty
+              ? job['milestones'][0]['title'] ?? 'N/A'
+              : 'N/A',
+          description: job['milestones'] != null && job['milestones'].isNotEmpty
+              ? job['milestones'][0]['description'] ?? 'N/A'
+              : 'N/A',
+          mileStoneStatus: job['milestones'] != null && job['milestones'].isNotEmpty
+              ? job['milestones'][0]['status'] ?? 'N/A'
+              : 'N/A',
           emptyLegRequestID: job['emptyLegRequestID'] ?? 'Unknown',
         ));
+        // Add milestones to milestone list
+        if (job['milestones'] != null && job['milestones'].isNotEmpty) {
+          for (var milestone in job['milestones']) {
+            taskViewModel.addMilestone(Milestone(
+              milestoneNodeID: milestone['milestoneNodeID'] ?? 'Unknown',
+              brokerID: milestone['brokerID'] ?? 'Unknown',
+              milestoneEndDateTime: milestone['milestoneEndDateTime'] ?? 'Unknown',
+              description: milestone['description'] ?? 'N/A',
+              courierID: milestone['courierID'] ?? 'Unknown',
+              title: milestone['title'] ?? 'N/A',
+              milestoneStartDateTime: milestone['milestoneStartDateTime'] ?? 'Unknown',
+              milestoneStatus: milestone['milestoneStatus'] ?? 'Unknown',
+              emptyLegRequestID: milestone['emptyLegRequestID'] ?? 'Unknown',
+            ));
+          }
+        }
       }
+      debugPrint("Total Milestones");
+      debugPrint(taskViewModel.milestoneList.length.toString());
     } catch (e) {
       debugPrint("Error in _loadTasks: $e");
       if (mounted) {

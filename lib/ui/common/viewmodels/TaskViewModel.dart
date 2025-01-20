@@ -21,6 +21,7 @@ class TaskViewModel extends ChangeNotifier {
     notifyListeners(); // Notifies the UI when model changes
   }
   void clearTasks() {
+    _milestoneList.clear();
     _tasks.clear();
     notifyListeners();  // Add this to notify UI after clearing the tasks
   }

@@ -6,28 +6,34 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Required for using TaskViewModel
 
 
-class ViewMilestone extends StatelessWidget {
-  String selectedTab;
-  ViewMilestone({Key? key, required this.selectedTab}) : super(key: key);
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
+import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Required for using TaskViewModel
 
+
+class CompleteMilestone extends StatelessWidget {
+  final String selectedTab;
+  final Task task; // Added task as a parameter
+  // Modified constructor to accept both selectedTab and task
+  CompleteMilestone({Key? key, required this.selectedTab, required this.task}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final taskViewModel = Provider.of<TaskViewModel>(context);
-    final tasks = taskViewModel.getTasksByStatus(selectedTab);
-    
-    
+    final milestones = taskViewModel.milestoneList;  // Use the milestone list from the view model
 
     return Scaffold(
-      body: tasks.isEmpty
+      body: milestones.isEmpty
           ? const Center(
         child: Text("No milestones available"),
       )
           : ListView.builder(
         padding: const EdgeInsets.all(16.0),
-        itemCount: tasks.length,
+        itemCount: milestones.length,
         itemBuilder: (context, index) {
-          final task = tasks[index];
+          final milestone = milestones[index];
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 8.0),
             child: Padding(
@@ -40,7 +46,7 @@ class ViewMilestone extends StatelessWidget {
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: task.status == "Done"
+                          color: milestone.milestoneStatus == "Done"
                               ? Colors.green
                               : Colors.grey,
                           shape: BoxShape.circle,
@@ -62,27 +68,27 @@ class ViewMilestone extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          task.title.toString(),
+                          milestone.title ?? 'No Title',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text('Description: ${task.description}'),
+                        Text('Description: ${milestone.description ?? 'N/A'}'),
                         const SizedBox(height: 4),
-                        Text('Start: ${task.startDateTime}'),
+                        Text('Start: ${milestone.milestoneStartDateTime ?? 'N/A'}'),
                         const SizedBox(height: 4),
-                        Text('End: ${task.endDateTime}'),
+                        Text('End: ${milestone.milestoneEndDateTime ?? 'N/A'}'),
                         const SizedBox(height: 4),
-                        Text('Status: ${task.status}'), // Display status
+                        Text('Status: ${milestone.milestoneStatus ?? 'N/A'}'), // Display status
                       ],
                     ),
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton(
                     onPressed: () {
-                      _showMilestoneDialog(context, task);
+                      _showMilestoneDialog(context, milestone);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
@@ -104,7 +110,7 @@ class ViewMilestone extends StatelessWidget {
     );
   }
 
-  void _showMilestoneDialog(BuildContext context, Task milestone) {
+  void _showMilestoneDialog(BuildContext context, Milestone milestone) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -132,36 +138,34 @@ class ViewMilestone extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text('Description: ${milestone.description}'),
                     const SizedBox(height: 10),
-                    Text('Start Time: ${milestone.startDateTime}'),
+                    Text('Start Time: ${milestone.milestoneStartDateTime}'),
                     const SizedBox(height: 10),
-                    Text('End Time: ${milestone.endDateTime}'),
+                    Text('End Time: ${milestone.milestoneEndDateTime}'),
                     const SizedBox(height: 10),
-                    Text('Status: ${milestone.status}'),
+                    Text('Status: ${milestone.milestoneStatus}'),
                     const SizedBox(height: 20),
                     Center(
                       child: selectedTab == "In Progress"
                           ? ElevatedButton(
-                        onPressed: milestone.status == "Done"
+                        onPressed: milestone.milestoneStatus == "Done"
                             ? null
                             : () {
                           final FirestoreService service = FirestoreService(context);
                           // Update job status
-                          service.updateJobStatus(milestone.emptyLegRequestID.toString(), "Completed");
-/*                          Provider.of<TaskViewModel>(context, listen: false)
-                              .addTask(milestone.copyWith(status: "Done")); // Mark as done*/
+                          service.updateMilestoneStatus(milestone.milestoneNodeID.toString(), "Completed");
 
-                          String taskID=milestone.emptyLegRequestID!;
+                          String milestoneID = milestone.milestoneNodeID.toString()!;
                           final User currentUser = FirebaseAuth.instance.currentUser!;
-                          String email=currentUser.email!;
+                          String email = currentUser.email!;
                           service.createNotification(
-                            brokerID:milestone.brokerId!,
+                            brokerID: milestone.brokerID!,
                             courierID: currentUser.uid,
-                            emptyLegRequestID: taskID,
+                            emptyLegRequestID: task.emptyLegRequestID.toString(),
                             sentBy: "Courier",
-                            message: "Your  Job $taskID is Completed by $email");
+                            message: milestone.milestoneNodeID.toString(),
+                            milestoneID: "Your Milestone $milestoneID is Completed by $email",
+                          );
 
-
-                          Text('Status: Completed}');
                           Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
@@ -198,15 +202,15 @@ class ViewMilestone extends StatelessWidget {
                 right: 8,
                 top: 8,
                 child: Container(
-                  width: 30, // Reduced width
-                  height: 30, // Reduced height
+                  width: 30,
+                  height: 30,
                   decoration: const BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    padding: EdgeInsets.zero, // Remove default padding
-                    icon: const Icon(Icons.close, color: Colors.white, size: 16), // Reduced icon size
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.close, color: Colors.white, size: 16),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
@@ -219,5 +223,4 @@ class ViewMilestone extends StatelessWidget {
       },
     );
   }
-
 }

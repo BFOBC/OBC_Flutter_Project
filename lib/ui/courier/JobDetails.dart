@@ -2,6 +2,7 @@ import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/res/strings.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
+import 'package:broker_flutter_pp/ui/courier/MilestonesScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../common/utils/CustomDialog.dart';
@@ -123,7 +124,7 @@ class _JobDetailsState extends State<JobDetails> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const AddNewMilestone(),
+                                builder: (context) => MilestonesScreen(emptyLegRequestID: widget.emptyLegRequestID) /*AddNewMilestone()*/,
                               ),
                             );
                           },

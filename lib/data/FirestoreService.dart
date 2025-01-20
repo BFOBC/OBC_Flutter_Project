@@ -1,5 +1,6 @@
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
+import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -58,8 +59,26 @@ class FirestoreService {
       );
     }
   }
+  Future<void> updateLegIDS(String emptyLegRequestID,List<String> milestoneNodeID) async {
+    try {
+      // Reference to the milestones collection
+      CollectionReference milestones = _firestore.collection('milestones');
 
-  Future<void> saveEmptyLegRequest(EmptyLegRequest request) async {
+      // Iterate over each milestoneNodeID in the list
+      for (String milestoneID in milestoneNodeID) {
+        // Update the emptyLegRequestID field in the milestone document
+        await milestones.doc(milestoneID).update({
+          'emptyLegRequestID': emptyLegRequestID,
+        });
+
+        print('Updated emptyLegRequestID in milestone: $milestoneID');
+      }
+    } catch (e) {
+      print('Error updating emptyLegRequestID: $e');
+    }
+  }
+
+  Future<void> saveEmptyLegRequest(EmptyLegRequest request,List<String> milestone) async {
     try {
       // Reference to the collection
       CollectionReference requests = _firestore.collection('emptyLegRequests');
@@ -74,11 +93,39 @@ class FirestoreService {
       createNotification(brokerID: request.brokerID, courierID: request.courierID, emptyLegRequestID: request.emptyLegRequestID.toString(),sentBy: "Broker", message: msg);
       // Save the request with the updated nodeID
       await docRef.set(request.toJson());
+      updateLegIDS(request.emptyLegRequestID.toString(),milestone);
       print('Request saved with nodeID: ${request.emptyLegRequestID}');
     } catch (e) {
       print('Error saving request: $e');
     }
   }
+  Future<List<Milestone>> getMilestonesByEmptyLegRequestID(String emptyLegRequestID) async {
+    try {
+      // Reference to the milestones collection
+      CollectionReference milestones = _firestore.collection('milestones');
+
+      // Query to filter the milestones based on the emptyLegRequestID
+      QuerySnapshot snapshot = await milestones
+          .where('emptyLegRequestID', isEqualTo: emptyLegRequestID)
+          .get();
+
+      // Map each document snapshot to a Milestone object
+      List<Milestone> milestoneList = snapshot.docs.map((doc) {
+        // Convert the document data into a map
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        // Convert the map into a Milestone object
+        return Milestone.fromMap(data);
+      }).toList();
+
+      print('Successfully fetched ${milestoneList.length} milestones with emptyLegRequestID: $emptyLegRequestID');
+      return milestoneList;
+    } catch (e) {
+      print('Error fetching milestones: $e');
+      return [];
+    }
+  }
+
   // Method to fetch data from the emptyLegRequests collection
   Future<List<EmptyLegRequest>> getEmptyLegRequests() async {
     try {
@@ -266,12 +313,27 @@ class FirestoreService {
       throw Exception('Error updating status: $e');  // Throwing an exception if error occurs
     }
   }
+  Future<void> updateMilestoneStatus(String nodeID, String status) async {
+    try {
+      // Reference to the emptyLegRequests collection and specific document
+      DocumentReference docRef = _firestore.collection('milestones').doc(nodeID);
+      // Update the 'status' field
+      await docRef.update({
+        'milestoneStatus': status,  // Field name 'status' and its new value
+      });
+      print('Status updated successfully');
+    } catch (e) {
+      print('Error updating status: $e');
+      throw Exception('Error updating status: $e');  // Throwing an exception if error occurs
+    }
+  }
   Future<void> createNotification({
-    required String brokerID,
-    required String courierID,
-    required String emptyLegRequestID,
-    required String sentBy,
-    required String message,
+    String brokerID = '',          // Default value is an empty string
+    String courierID = '',         // Default value is an empty string
+    String emptyLegRequestID = '', // Default value is an empty string
+    String sentBy = '',            // Default value is an empty string
+    String milestoneID = '',       // Default value is an empty string
+    String message = '',    // Default value is an empty string
   }) async {
     try {
       // Reference to the notification collection
@@ -283,11 +345,12 @@ class FirestoreService {
       // Prepare the data to be saved
       Map<String, dynamic> notificationData = {
         'notificationID': nodeID,
-        'emptyLegRequestID': emptyLegRequestID,
-        'brokerID': brokerID,
-        'courierID': courierID,
-        'sentBy': sentBy,
-        'message': message,
+        'emptyLegRequestID': emptyLegRequestID.isNotEmpty ? emptyLegRequestID : 'N/A', // Default to 'N/A' if empty
+        'brokerID': brokerID.isNotEmpty ? brokerID : 'N/A',                               // Default to 'N/A' if empty
+        'courierID': courierID.isNotEmpty ? courierID : 'N/A',                             // Default to 'N/A' if empty
+        'sentBy': sentBy.isNotEmpty ? sentBy : 'Unknown',                                  // Default to 'Unknown' if empty
+        'message': message.isNotEmpty ? message : 'No message',                  // Default to 'No message provided' if empty
+        'milestoneID': milestoneID.isNotEmpty ? milestoneID : 'N/A',                      // Default to 'N/A' if empty
         'currentDateTime': DateTime.now().toUtc().toIso8601String(), // UTC format
       };
 

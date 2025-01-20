@@ -71,6 +71,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     }
     sendEmptyLegRequest(context);
   }
+
   void _navigateToDrawerPage() {
     Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).pushNamed('/DrawerScreen');
@@ -206,7 +207,8 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     );
 
     // Save the request to Firestore
-    await firestoreService.saveEmptyLegRequest(newRequest);
+    await firestoreService.saveEmptyLegRequest(newRequest,milestoneNodeID);
+
 
     showDialog(
       context: context,
