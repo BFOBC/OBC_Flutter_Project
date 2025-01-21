@@ -1,8 +1,10 @@
+import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerNotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierNotificationsScreen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +12,7 @@ import '../../../res/strings.dart';
 import '../../broker/BrokerMap.dart';
 import '../../broker/BrokerMissions.dart';
 import '../../broker/NotificationScreen.dart';
-import '../../broker/SettingScreen.dart';
+import 'SettingScreen.dart';
 import '../../broker/emptyleg/SearchEmptyLeg.dart';
 import '../../courier/CourierMissions.dart';
 import '../../courier/emptyleg/EmptyLegMainScreen.dart';
@@ -59,10 +61,14 @@ class _DrawerScreenState extends State<DrawerScreen> {
       'title': AppStrings.faq,
       'icon': Icons.help,
     },
+    AppStrings.logout: {
+      'title': AppStrings.logout,
+      'icon': Icons.logout,
+    },
     AppStrings.settings: {
       'title': AppStrings.settings,
       'icon': Icons.settings,
-    },
+    }
   };
 
   @override
@@ -89,8 +95,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
       switch (title) {
         case AppStrings.map:
           _initializeSelectedWidget();
-          _showSnackBar(
-              'Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');
+/*          _showSnackBar(
+              'Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');*/
           break;
         case AppStrings.notifications:
           _selectedWidget = const NotificationsScreen();
@@ -102,19 +108,21 @@ class _DrawerScreenState extends State<DrawerScreen> {
           break;
         case AppStrings.availabilityUpdates:
           if (roleProvider.role == UserRole.broker) {
-            _showSnackBar("I am Broker");
+            // _showSnackBar("I am Broker");
             _selectedWidget = SearchEmptyLegScreen();
           } else if (roleProvider.role == UserRole.courier) {
-            _showSnackBar("I am Courier");
+            // _showSnackBar("I am Courier");
             _selectedWidget = const EmptyLegMainScreen();
           }
           break;
         case AppStrings.chat:
-          _selectedWidget = ChatListScreen();
+          User? user = FirebaseAuth.instance.currentUser; // Get current user
+
+          _selectedWidget = ChatListScreen(userId: user!.uid.toString());
           break;
         case AppStrings.myMissions:
           if (roleProvider.role == UserRole.broker) {
-            _selectedWidget =  Brokermissions();
+            _selectedWidget = Brokermissions();
           } else if (roleProvider.role == UserRole.courier) {
             _selectedWidget = const CourierMissions();
           }
@@ -122,6 +130,12 @@ class _DrawerScreenState extends State<DrawerScreen> {
         case AppStrings.history:
         case AppStrings.inviteFriends:
         case AppStrings.faq:
+        case AppStrings.logout:{
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _logout(context);
+            });
+            break;
+          }
         case AppStrings.settings:
           _selectedWidget = const SettingScreen();
         default:
@@ -189,28 +203,59 @@ class _DrawerScreenState extends State<DrawerScreen> {
 
   Future<bool> _showExitDialog(BuildContext context) async {
     return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("Exit"),
+              content: const Text("Are you sure you want to exit the app?"),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false); // Don't exit
+                  },
+                  child: const Text("No"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true); // Exit
+                  },
+                  child: const Text("Yes"),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false; // Default to not exiting if dialog is dismissed
+  }
+
+  // Logout method to show confirmation dialog
+  void _logout(BuildContext context) {
+    showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Exit"),
-          content: const Text("Are you sure you want to exit the app?"),
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to log out?'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(false); // Don't exit
+                Navigator.of(context).pop(); // Close the dialog
               },
-              child: const Text("No"),
+              child: const Text('No'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(true); // Exit
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginCard()),
+                  (Route<dynamic> route) => false,
+                );
               },
-              child: const Text("Yes"),
+              child: const Text('Yes'),
             ),
           ],
         );
       },
-    ) ?? false; // Default to not exiting if dialog is dismissed
+    );
   }
 }
 

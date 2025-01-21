@@ -157,15 +157,18 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                             Navigator.of(context).pop(); // Close the dialog
                           },
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(4), // Reduced padding to make the button smaller
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors
-                                  .blue, // Blue circle background color
+                              color: Colors.blue, // Blue circle background color
                             ),
                             child: const Icon(
-                                Icons.close, color: Colors.white), // Close icon
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20, // Smaller icon size
+                            ),
                           ),
+
                         ),
                       ],
                     ),

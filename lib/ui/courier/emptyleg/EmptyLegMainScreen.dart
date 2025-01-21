@@ -13,20 +13,6 @@ class EmptyLegMainScreen extends StatefulWidget {
 }
 
 class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
-  // List of original flight details (existing flights)
-  List<FlightDetails> flightDetailsList = [
-    FlightDetails(
-      fromLocation: 'City A',
-      toLocation: 'City B',
-      fromDateTime: '10/10/2024 10:00 AM',
-      toDateTime: '10/10/2024 ',
-      flightNumber: 'F123',
-      capacity: '100kg',
-      userName: 'John Doe',
-      rating: 4,
-    ),
-  ];
-
   // List of user-entered flight details
   List<FlightDetails> userEnteredFlightDetailsList = [];
 
@@ -64,8 +50,8 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
               child: BarChartWidget(), // Custom widget
             ),
             const SizedBox(height: 16),
-            if (flightDetailsList.isNotEmpty)
-              CardStackWidget(flightDetailsList: flightDetailsList, emptyLegRequestIds: [],), // Custom widget
+            //if (flightDetailsList.isNotEmpty)
+              CardStackWidget(), // Custom widget
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {

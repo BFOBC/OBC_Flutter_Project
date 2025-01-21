@@ -147,7 +147,7 @@ class CompleteMilestone extends StatelessWidget {
                     Center(
                       child: selectedTab == "In Progress"
                           ? ElevatedButton(
-                        onPressed: milestone.milestoneStatus == "Done"
+                        onPressed: milestone.milestoneStatus == "Completed"
                             ? null
                             : () {
                           final FirestoreService service = FirestoreService(context);

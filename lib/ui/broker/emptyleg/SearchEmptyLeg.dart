@@ -179,7 +179,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       Navigator.pop(context); // Close the dialog
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  ChatDetailScreen(chatId:courierID))); // Navigate to chat screen
+                        MaterialPageRoute(builder: (context) =>  ChatDetailScreen(userID:courierID))); // Navigate to chat screen
                     },
                     backgroundColor: Colors.blue,
                     child: const Icon(Icons.chat),

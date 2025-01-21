@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
@@ -136,12 +137,11 @@ class _SearchCourierState extends State<SearchCourier> {
       print("Error fetching courier model: $e");
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:  Text('$userName'),
+        title: Text('$userName'),
       ),
       body: _isLoading
           ? Center(
@@ -175,9 +175,9 @@ class _SearchCourierState extends State<SearchCourier> {
                 ),
                 const SizedBox(height: 10),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0), // Left aur right margin dono sides par
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Align(
-                    alignment: Alignment.center, // Ensure content left-aligned rahe
+                    alignment: Alignment.center,
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: ToggleButtons(
@@ -186,20 +186,21 @@ class _SearchCourierState extends State<SearchCourier> {
                         borderRadius: BorderRadius.circular(10),
                         selectedBorderColor: Colors.grey,
                         selectedColor: Colors.white,
-                        fillColor: Palette.primaryColor, // Use your custom palette
+                        fillColor: Palette.primaryColor,
                         color: Colors.black,
-                        constraints: const BoxConstraints(minHeight: 40.0, minWidth: 100.0),
-                        children: _toggleText.map((text) => Text(text)).toList(),
+                        constraints: const BoxConstraints(
+                            minHeight: 40.0, minWidth: 100.0),
+                        children:
+                        _toggleText.map((text) => Text(text)).toList(),
                       ),
                     ),
                   ),
                 ),
-
-
                 const SizedBox(height: 10),
 
                 // Conditionally show Profile, Passports, Visas, or Pie Chart
-                if (_showProfile) BasicInfo(courierProfileData :courierProfile),
+                if (_showProfile)
+                  BasicInfo(courierProfileData: courierProfile),
                 if (_showPassports)
                   Passports(
                     passports: passports,
@@ -221,26 +222,27 @@ class _SearchCourierState extends State<SearchCourier> {
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: SizedBox(
-                width: 200, // Set a fixed width for the button
+                width: 200,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>  ManageLegsAndMilestones(brokerKey: AuthUtils.getCurrentUserId2().toString(),courierKey:widget.courierKey),
+                        builder: (context) => ManageLegsAndMilestones(
+                            brokerKey:
+                            AuthUtils.getCurrentUserId2().toString(),
+                            courierKey: widget.courierKey),
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Palette.secondaryColor,
-                    // Set the button color to green
                     foregroundColor: Colors.white,
-                    // Set the text color to white
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0), // Rounded corners
+                      borderRadius: BorderRadius.circular(16.0),
                     ),
                   ),
                   child: const Text('Place the Job'),
@@ -248,9 +250,28 @@ class _SearchCourierState extends State<SearchCourier> {
               ),
             ),
           ),
+          // Floating Action Button Positioned Above
+          Positioned(
+            bottom: 70, // Position it above the "Place the Job" button
+            right: 20, // Adjust to align with the screen edge
+            child: FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ChatDetailScreen(userID: widget.courierKey),
+                  ),
+                );
+              },
+              backgroundColor: Colors.blue,
+              child: Icon(Icons.chat, color: Colors.white),
+            ),
+          ),
         ],
       ),
     );
   }
+
 }
 
