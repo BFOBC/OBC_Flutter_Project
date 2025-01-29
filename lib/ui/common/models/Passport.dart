@@ -24,10 +24,10 @@ class Passport {
   // Create Passport object from Firestore Map
   factory Passport.fromMap(Map<String, dynamic> map) {
     return Passport(
-      countryName: map['countryName'],
-      passportNumber: map['passportNumber'],
-      issueDate: map['issueDate'],
-      expiryDate: map['expiryDate'],
+      countryName: map['countryName'] ?? 'N/A',  // Use 'N/A' if null
+      passportNumber: map['passportNumber'] ?? 'N/A',  // Use 'N/A' if null
+      issueDate: map['issueDate'] ?? 'N/A',   // Use 'N/A' if null
+      expiryDate: map['expiryDate'] ?? 'N/A', // Use 'N/A' if null
     );
   }
 }

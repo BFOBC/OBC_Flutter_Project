@@ -18,7 +18,7 @@ class SearchCourier extends StatefulWidget {
 
   String courierKey;
 
-   SearchCourier({
+  SearchCourier({
     super.key,
     required this.courierKey,
   });
@@ -34,13 +34,14 @@ class _SearchCourierState extends State<SearchCourier> {
   bool _showVisas = false;
 
   bool _isLoading = true;
-  late String userName = '';
-  late String email = '';
-  late String userImage = '';
-  late double rating = 5;
-  late List<Passport> passports;
-  late List<Visa> visas;
-  late CourierProfileData courierProfile;
+  String userName = '';
+  String email = '';
+  String userImage = '';
+  double rating = 5;
+  List<Passport> passports = [];
+  List<Visa> visas = [];
+  CourierProfileData? courierProfile; // Nullable field, initialized to null
+
   // Sample model for the pie chart
   final Map<String, double> dataMap = {
     "Negative": 40,
@@ -78,7 +79,7 @@ class _SearchCourierState extends State<SearchCourier> {
   @override
   void initState() {
     super.initState();
-    widget.courierKey=widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
+    widget.courierKey = widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
     fetchCourierData(); // Fetch model when the screen is initialized
   }
 
@@ -91,9 +92,9 @@ class _SearchCourierState extends State<SearchCourier> {
         setState(() {
           _isLoading = false;
         });
-        return; // Early return if the courierKey is invalid (empty)
+        return;
       }
-      print("Courier");
+
       String cleanCourierKey = widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
       print('Cleaned Courier Key: $cleanCourierKey');
 
@@ -104,27 +105,18 @@ class _SearchCourierState extends State<SearchCourier> {
 
       if (courierDoc.exists) {
         var data = courierDoc.data() as Map<String, dynamic>;
-        // Create the CourierProfileData model from Firestore model
-        courierProfile = CourierProfileData.fromMap(data);
-        // Log the model received from Firestore
-        print("Courier Data fetched successfully: $data");
 
         setState(() {
-          userName = data['name'] ?? 'Courier';
-          userImage = data['userImage'] ?? '';
-          rating = data['rating']?.toDouble() ?? 5.0;
-          passports = (data['passports'] as List?)
-              ?.map((passport) => Passport.fromMap(passport))
-              .toList() ??
-              [];
-          visas = (data['visas'] as List?)
-              ?.map((visa) => Visa.fromMap(visa))
-              .toList() ??
-              [];
-          _isLoading = false; // Set loading to false once model is fetched
+          // Handle possible null values by setting default values (e.g., 'N/A' or an empty string)
+          courierProfile = CourierProfileData.fromMap(data);
+          userName = data['name'] ?? 'Courier';  // Use 'Courier' if 'name' is null
+          userImage = data['userImage'] ?? 'N/A';  // Use 'N/A' if 'userImage' is null
+          rating = data['rating']?.toDouble() ?? 5.0;  // Default rating to 5 if null
+          passports = (data['passports'] as List?)?.map((passport) => Passport.fromMap(passport)).toList() ?? [];
+          visas = (data['visas'] as List?)?.map((visa) => Visa.fromMap(visa)).toList() ?? [];
+          _isLoading = false;
         });
       } else {
-        // Handle no model case
         setState(() {
           _isLoading = false;
         });
@@ -137,11 +129,12 @@ class _SearchCourierState extends State<SearchCourier> {
       print("Error fetching courier model: $e");
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$userName'),
+        title: Text(userName),
       ),
       body: _isLoading
           ? Center(
@@ -153,17 +146,14 @@ class _SearchCourierState extends State<SearchCourier> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Circular Image
                 CircleAvatar(
                   radius: 50,
                   backgroundImage: NetworkImage(userImage),
                 ),
                 const SizedBox(height: 10),
-
-                // Centered Text for Name and Rating Stars
                 Center(
                   child: RatingBarIndicator(
-                    rating: rating, // User's rating
+                    rating: rating,
                     itemBuilder: (context, index) => const Icon(
                       Icons.star,
                       color: Colors.amber,
@@ -188,10 +178,8 @@ class _SearchCourierState extends State<SearchCourier> {
                         selectedColor: Colors.white,
                         fillColor: Palette.primaryColor,
                         color: Colors.black,
-                        constraints: const BoxConstraints(
-                            minHeight: 40.0, minWidth: 100.0),
-                        children:
-                        _toggleText.map((text) => Text(text)).toList(),
+                        constraints: const BoxConstraints(minHeight: 40.0, minWidth: 100.0),
+                        children: _toggleText.map((text) => Text(text)).toList(),
                       ),
                     ),
                   ),
@@ -199,16 +187,12 @@ class _SearchCourierState extends State<SearchCourier> {
                 const SizedBox(height: 10),
 
                 // Conditionally show Profile, Passports, Visas, or Pie Chart
-                if (_showProfile)
-                  BasicInfo(courierProfileData: courierProfile),
+                if (_showProfile && courierProfile != null)
+                  BasicInfo(courierProfileData: courierProfile!),
                 if (_showPassports)
-                  Passports(
-                    passports: passports,
-                  ),
+                  Passports(passports: passports),
                 if (_showVisas)
-                  Visas(
-                    visas: visas,
-                  ),
+                  Visas(visas: visas),
                 if (_showPieChart)
                   CircularRating(
                     dataMap: dataMap,
@@ -272,6 +256,4 @@ class _SearchCourierState extends State<SearchCourier> {
       ),
     );
   }
-
 }
-

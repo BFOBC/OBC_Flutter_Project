@@ -524,5 +524,24 @@ class FirestoreService {
       return null;
     }
   }
+  Future<List<Milestone>> getMilestonesByEmptyLegCourierID(String emptyLegCourierID) async {
+    try {
+      // Query the milestones collection for documents where emptyLegRequestID matches the provided value
+      final querySnapshot = await _firestore
+          .collection('milestones')
+          .where('emptyLegRequestID', isEqualTo: emptyLegCourierID)
+          .get();
+
+      // Convert the querySnapshot to a list of Milestone objects
+      final milestones = querySnapshot.docs.map((doc) {
+        return Milestone.fromMap(doc.data());
+      }).toList();
+
+      return milestones;
+    } catch (e) {
+      print('Error getting milestones: $e');
+      return [];
+    }
+  }
 
 }

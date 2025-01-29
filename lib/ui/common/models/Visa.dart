@@ -18,8 +18,8 @@ class Visa {
   // Optional: Factory method to create a Visa object from a Map
   factory Visa.fromMap(Map<String, dynamic> map) {
     return Visa(
-      countryName: map['countryName'],
-      expiryDate: map['expiryDate'],
+      countryName: map['countryName'] ?? 'N/A',  // Use 'N/A' if null
+      expiryDate: map['expiryDate'] ?? 'N/A',    // Use 'N/A' if null
     );
   }
 }
