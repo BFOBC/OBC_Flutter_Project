@@ -219,11 +219,11 @@ class FlightDetails {
     return FlightDetails(
       userName: map['userName'] ?? 'Unknown',
       rating: (map['rating'] ?? 0).toDouble(),
-      fromLocation: map['fromLocation'] ?? '',
-      toLocation: map['toLocation'] ?? '',
-      fromDateTime: map['fromDateTime'] ?? '',
-      toDateTime: map['toDateTime'] ?? '',
-      flightNumber: map['flightNumber'] ?? '',
+      fromLocation: map['fromLocation'] ?? 'N/A',
+      toLocation: map['toLocation'] ?? 'N/A',
+      fromDateTime: map['fromDateTime'] ?? 'N/A',
+      toDateTime: map['toDateTime'] ?? 'N/A',
+      flightNumber: map['flightNumber'] ?? 'N/A',
       capacity: map['capacity'] ?? 0,
     );
   }

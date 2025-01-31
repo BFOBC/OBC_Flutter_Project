@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/courier/Milestone.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class MilestonesScreen extends StatefulWidget {
@@ -14,14 +15,6 @@ class MilestonesScreen extends StatefulWidget {
 }
 
 class _MilestonesScreenState extends State<MilestonesScreen> {
-  late Future<List<Milestone>> milestones;
-
-  // Fetch the filtered milestones based on the emptyLegRequestID
-  @override
-  void initState() {
-    super.initState();
-    milestones = getMilestones(widget.emptyLegRequestID);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +22,8 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
       appBar: AppBar(
         title: Text('Milestones'),
       ),
-      body: FutureBuilder<List<Milestone>>(
-        future: milestones,
+      body: StreamBuilder<List<Milestone>>(
+        stream: getMilestonesByEmptyLegRequestID(widget.emptyLegRequestID),  // Using stream instead of future
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -140,22 +133,28 @@ class _MilestonesScreenState extends State<MilestonesScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
           // Navigate to the next screen when the FAB is pressed
-          Navigator.push(
+          await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddNewMilestone()), // Replace 'NewScreen' with your target screen
+            MaterialPageRoute(builder: (context) => AddNewMilestone(emptyLegRequestID: widget.emptyLegRequestID)),
           );
-        },
-        child: Icon(Icons.add), // Plus sign icon
-        backgroundColor: Colors.blue, // FAB background color
+          // Refresh milestones after returning from the AddNewMilestone screen
+          setState(() {});
+        }, // Plus sign icon
+        backgroundColor: Colors.blue,
+        child: Icon(Icons.add,color: Colors.white,), // FAB background color
+
       ),
     );
   }
 
-  Future<List<Milestone>> getMilestones(String emptyLegRequestID) {
-    FirestoreService service = FirestoreService(context);
-    return service.getMilestonesByEmptyLegRequestID(emptyLegRequestID);
+  Stream<List<Milestone>> getMilestonesByEmptyLegRequestID(String emptyLegRequestID) {
+    return FirebaseFirestore.instance
+        .collection('milestones')
+        .where('emptyLegRequestID', isEqualTo: emptyLegRequestID)
+        .snapshots()  // Using snapshots for real-time data
+        .map((snapshot) => snapshot.docs.map((doc) => Milestone.fromMap(doc.data())).toList());
   }
 
 }

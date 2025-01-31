@@ -2,6 +2,7 @@ import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../res/custom_colors.dart';
 import '../common/utils/DateTimePicker.dart';
 
@@ -154,6 +155,9 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
                 labelText: 'Title',
                 border: OutlineInputBorder(),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
+              ],
             ),
             const SizedBox(height: 16),
             TextField(

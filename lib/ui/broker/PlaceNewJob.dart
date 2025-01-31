@@ -2,6 +2,7 @@ import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class PlaceNewJob extends StatefulWidget {
   final Task? data; // The Task object received
@@ -110,6 +111,9 @@ class PlaceNewJobState extends State<PlaceNewJob> {
                 labelText: 'Departure Location',
                 border: OutlineInputBorder(),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
+              ],
             ),
             const SizedBox(height: 10),
             TextField(
@@ -118,6 +122,9 @@ class PlaceNewJobState extends State<PlaceNewJob> {
                 labelText: 'Arrival Location',
                 border: OutlineInputBorder(),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
+              ],
             ),
             const SizedBox(height: 10),
             TextField(
@@ -126,6 +133,9 @@ class PlaceNewJobState extends State<PlaceNewJob> {
                 labelText: 'Bid',
                 border: OutlineInputBorder(),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')), // Example: Allow letters
+              ],
             ),
             const SizedBox(height: 10),
             TextField(
@@ -134,6 +144,9 @@ class PlaceNewJobState extends State<PlaceNewJob> {
                 labelText: 'Courier Capacity',
                 border: OutlineInputBorder(),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')), // Example: Allow letters
+              ],
             ),
             const SizedBox(height: 20),
 

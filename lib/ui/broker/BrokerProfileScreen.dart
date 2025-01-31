@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
@@ -156,7 +157,7 @@ void _addLicenseField() {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildProfileField('Broker ID', "123"),
+                    _buildProfileField('Broker ID',_currentUser.uid),
                     const SizedBox(height: 10),
                     _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
                     const SizedBox(height: 10),
@@ -342,6 +343,9 @@ void _addLicenseField() {
                         border: InputBorder.none,
                         hintStyle: TextStyle(color: Colors.black45),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
+                      ],
                     ),
                   ),
                   IconButton(

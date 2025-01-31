@@ -1,15 +1,19 @@
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../res/custom_colors.dart';
 import '../common/utils/DateTimePicker.dart';
 
 
 class AddNewMilestone extends StatefulWidget {
   final Task? data;
+  final String emptyLegRequestID;
 
-  const AddNewMilestone({super.key, this.data});
+
+   AddNewMilestone({required this.emptyLegRequestID, this.data});
 
   @override
   AddNewMilestoneScreenState createState() => AddNewMilestoneScreenState();
@@ -22,16 +26,25 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       TextEditingController();
   final TextEditingController _endTimeAndDateController = TextEditingController();
 
+
   final CollectionReference milestonesCollection =
       FirebaseFirestore.instance.collection('milestones');
 
   Future<void> _saveMilestoneToFirestore(Milestone milestone) async {
     try {
-      await milestonesCollection.add(milestone.toMap());
+      // Step 1: Add the milestone to Firestore and get the document reference
+      DocumentReference docRef = await milestonesCollection.add(milestone.toMap());
+
+      // Step 2: Update the milestoneNodeID in the object
+      milestone.milestoneNodeID = docRef.id;
+
+      // Step 3: Update Firestore with the correct milestoneNodeID
+      await docRef.update({'milestoneNodeID': docRef.id});
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Milestone saved successfully!')),
       );
-      _clearFormFields();
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving milestone: $e')),
@@ -75,15 +88,29 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
   }
 
   void _submitForm() {
+    late User currentUser = FirebaseAuth.instance.currentUser!;
+
     if (validateInputs()) {
       final newMilestone = Milestone(
         title: _summaryController.text,
         description: _descriptionController.text,
         milestoneStartDateTime: _startTimeAndDateController.text,
         milestoneEndDateTime: _endTimeAndDateController.text,
+        emptyLegRequestID: widget.emptyLegRequestID.toString(),
+        brokerID: widget.data?.brokerId.toString(),
+        courierID: currentUser.uid.toString(),
+        milestoneStatus: "pending"
       );
 
-      _saveMilestoneToFirestore(newMilestone);
+      _saveMilestoneToFirestore(newMilestone).then((_) {
+        // Navigate back to the previous screen after saving
+        Navigator.pop(context);
+      }).catchError((error) {
+        // Handle any errors that occur during saving
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save milestone: $error')),
+        );
+      });
     }
   }
 
@@ -109,6 +136,9 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
                 labelText: 'Title',
                 border: OutlineInputBorder(),
               ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
+              ],
             ),
             const SizedBox(height: 16),
             TextField(
