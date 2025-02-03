@@ -24,7 +24,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _getChatId();
   }
 
-  // Function to get chatId based on userIDs
+
+// Function to get chatId based on userIDs
   Future<void> _getChatId() async {
     String currentUserID = FirebaseAuth.instance.currentUser?.uid ?? '';
     String otherUserID = widget.userID;
@@ -145,7 +146,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           },
         ),
       ),
-      body: Column(
+      body: chatId.isEmpty // Add check to show loading state until chatId is available
+          ? const Center(child: CircularProgressIndicator()) // Show a loading spinner
+          : Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -212,6 +215,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 }
+
+
+
+
 
 class ChatBubble extends StatelessWidget {
   final bool isSender;

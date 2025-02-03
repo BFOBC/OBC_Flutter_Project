@@ -122,7 +122,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
           break;
         case AppStrings.myMissions:
           if (roleProvider.role == UserRole.broker) {
-            _selectedWidget = Brokermissions();
+            _selectedWidget = CourierMissions();
           } else if (roleProvider.role == UserRole.courier) {
             _selectedWidget = const CourierMissions();
           }

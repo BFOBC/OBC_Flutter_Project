@@ -3,26 +3,29 @@ import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
+import '../../data/FirestoreService.dart';
+import '../common/models/Milestone.dart';
 import 'ManageLegsAndMilestones.dart';
 import 'CircularRating.dart'; // Assuming you have this class imported
 
-class Brokermissions extends StatefulWidget {
-  const Brokermissions({super.key});
+class BrokerMissions extends StatefulWidget {
+  const BrokerMissions({super.key});
 
   @override
-  _MyMissionsState createState() => _MyMissionsState();
+  _BrokerMissionsState createState() => _BrokerMissionsState();
 }
 
-class _MyMissionsState extends State<Brokermissions> {
+class _BrokerMissionsState extends State<BrokerMissions> {
   int _selectedIndex = 0;
-  final List<bool> _selectedToggle = [true, false, false];
-  final List<String> _toggleText = ["In Progress", "Completed", "Todo"];
-
+  final List<bool> _selectedToggle = [true, false, false, false];
+  final List<String> _toggleText = ["In Progress", "Completed", "Todo","Completed"];
+  bool isLoading = true; // Track loading state
   // Define the color list to match chart segments, tabs, and vertical bars
   final List<Color> _colorList = [
-    Colors.orange,   // In Progress
+    Colors.orange, // In Progress
+    Colors.red,    // Todo
+    Colors.lightGreen,    // Pending
     Colors.green,  // Completed
-    Colors.red,   // Todo
   ];
 
   @override
@@ -31,8 +34,8 @@ class _MyMissionsState extends State<Brokermissions> {
     _loadTasks();
   }
 
-  void _loadTasks() {
-    final taskViewModel = Provider.of<TaskViewModel>(context, listen: false);
+  Future<void> _loadTasks() async {
+/*    final taskViewModel = Provider.of<TaskViewModel>(context, listen: false);
 
     taskViewModel.addTask(Task(
       brokerId: '1',
@@ -66,15 +69,99 @@ class _MyMissionsState extends State<Brokermissions> {
       startDateTime: "21-9-2024",
       endDateTime: "30-9-2024",
       bid: "3000",
-    ));
+    ));*/
+
+    final taskViewModel = Provider.of<TaskViewModel>(context, listen: false);
+
+    try {
+      // Set loading to true while fetching data
+      setState(() {
+        isLoading = true;
+      });
+
+      // Fetch jobs and milestones data from Firestore
+      final jobsWithMilestones = await _fetchJobsWithMilestones();
+      debugPrint("Found Courier Mission $jobsWithMilestones");
+
+      // Clear existing tasks before populating new ones
+      taskViewModel.clearTasks();
+
+      // Populate TaskViewModel with the fetched data
+      for (var job in jobsWithMilestones) {
+        debugPrint("Job: $job");
+        taskViewModel.addTask(Task(
+          brokerId: job['brokerID'] ?? 'N/A',
+          flightNumber: job['flightNumber'] ?? 'Unknown',
+          departureFrom: job['departureLocation'] ?? 'Unknown',
+          arriveAt: job['arrivalLocation'] ?? 'Unknown',
+          status: job['status'] ?? 'Unknown',
+          rating: job['rating'] != null ? double.tryParse(job['rating'].toString()) ?? 0.0 : 0.0,
+          startDateTime: job['startTimeDate'] ?? 'Unknown',
+          endDateTime: job['endTimeDate'] ?? 'Unknown',
+          bid: job['bid'] ?? 'N/A',
+          title: job['milestones'] != null && job['milestones'].isNotEmpty
+              ? job['milestones'][0]['title'] ?? 'N/A'
+              : 'N/A',
+          description: job['milestones'] != null && job['milestones'].isNotEmpty
+              ? job['milestones'][0]['description'] ?? 'N/A'
+              : 'N/A',
+          mileStoneStatus: job['milestones'] != null && job['milestones'].isNotEmpty
+              ? job['milestones'][0]['status'] ?? 'N/A'
+              : 'N/A',
+          emptyLegRequestID: job['emptyLegRequestID'] ?? 'Unknown',
+        ));
+        // Add milestones to milestone list
+        if (job['milestones'] != null && job['milestones'].isNotEmpty) {
+          for (var milestone in job['milestones']) {
+            taskViewModel.addMilestone(Milestone(
+              milestoneNodeID: milestone['milestoneNodeID'] ?? 'Unknown',
+              brokerID: milestone['brokerID'] ?? 'Unknown',
+              milestoneEndDateTime: milestone['milestoneEndDateTime'] ?? 'Unknown',
+              description: milestone['description'] ?? 'N/A',
+              courierID: milestone['courierID'] ?? 'Unknown',
+              title: milestone['title'] ?? 'N/A',
+              milestoneStartDateTime: milestone['milestoneStartDateTime'] ?? 'Unknown',
+              milestoneStatus: milestone['milestoneStatus'] ?? 'Unknown',
+              emptyLegRequestID: milestone['emptyLegRequestID'] ?? 'Unknown',
+            ));
+          }
+        }
+      }
+      debugPrint("Total Milestones");
+      debugPrint(taskViewModel.milestoneList.length.toString());
+    } catch (e) {
+      debugPrint("Error in _loadTasks: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to load tasks. Please try again.")),
+        );
+      }
+    } finally {
+      // Set loading to false when data has been fetched
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
+  Future<List<Map<String, dynamic>>> _fetchJobsWithMilestones() async {
+    try {
+      final service = FirestoreService(context);
+      return await service.getJobsWithMilestones();
+    } catch (e) {
+      debugPrint("Error in _fetchJobsWithMilestones: $e");
+      return [];
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final dataMap = <String, double>{
       "In Progress": 40,
-      "Completed": 30,
       "Todo": 30,
+      "Pending": 30,
+      "Completed": 30,
     };
 
     return Scaffold(
@@ -196,9 +283,11 @@ class _MyMissionsState extends State<Brokermissions> {
       case 0:
         return 'In Progress';
       case 1:
-        return 'Completed';
-      default:
         return 'Todo';
+      case 2:
+        return 'Pending';
+      default:
+        return 'Completed';
     }
   }
 

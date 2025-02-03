@@ -32,10 +32,10 @@ class SearchEmptyLegScreen extends StatefulWidget {
 }
 
 class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
-  String courierID="";
+  String courierID = "";
   final TextEditingController _searchController1 = TextEditingController();
   final TextEditingController _searchController2 = TextEditingController();
-  
+
   List<FlightData> flights = [];
   List<FlightData> filteredFlights = [];
 
@@ -46,55 +46,65 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
   }
 
   void _fetchFlights() {
-  try {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      print('User is not authenticated');
-      return;
-    }
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('User is not authenticated');
+        return;
+      }
 
-    FirebaseFirestore.instance.collection('emptyLegs').snapshots().listen((snapshot) {
-      final List<FlightData> flightList = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+      FirebaseFirestore.instance.collection('emptyLegs').snapshots().listen((snapshot) {
+        final List<FlightData> flightList = snapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
 
-         courierID = data['courierID'] is String
-            ? (data['courierID'] as String)
-            : data['courierID'].toString();
+          courierID = data['courierID'] is String
+              ? (data['courierID'] as String)
+              : data['courierID'].toString();
 
-        // Safely parse fromDateTime and toDateTime
-        final fromDateTime = data['fromDateTime'] is Timestamp
-            ? (data['fromDateTime'] as Timestamp).toDate()
-            : DateTime.parse(data['fromDateTime']);
+          final fromDateTime = data['fromDateTime'] is Timestamp
+              ? (data['fromDateTime'] as Timestamp).toDate()
+              : DateTime.parse(data['fromDateTime']);
 
-        final toDateTime = data['toDateTime'] is Timestamp
-            ? (data['toDateTime'] as Timestamp).toDate()
-            : DateTime.parse(data['toDateTime']);
+          final toDateTime = data['toDateTime'] is Timestamp
+              ? (data['toDateTime'] as Timestamp).toDate()
+              : DateTime.parse(data['toDateTime']);
 
-        // Safely parse capacity (handle both int and String)
-        final capacity = data['capacity'] is int
-            ? data['capacity']
-            : int.tryParse(data['capacity']) ?? 0; // Default to 0 if parsing fails
+          final capacity = data['capacity'] is int
+              ? data['capacity']
+              : int.tryParse(data['capacity']) ?? 0;
 
-        return FlightData(
-          fromDateTime: fromDateTime,
-          toDateTime: toDateTime,
-          fromLocation: data['fromLocation'],
-          toLocation: data['toLocation'],
-          flightNumber: data['flightNumber'],
-          capacity: capacity,
-        );
-      }).toList();
+          return FlightData(
+            fromDateTime: fromDateTime,
+            toDateTime: toDateTime,
+            fromLocation: data['fromLocation'],
+            toLocation: data['toLocation'],
+            flightNumber: data['flightNumber'],
+            capacity: capacity,
+          );
+        }).toList();
 
-      setState(() {
-        flights = flightList;
-        filteredFlights = flightList;
+        setState(() {
+          flights = flightList;
+          filteredFlights = flightList; // Initially, show all flights
+        });
       });
-    });
-  } catch (e) {
-    print("Error fetching flights: $e");
+    } catch (e) {
+      print("Error fetching flights: $e");
+    }
   }
-}
 
+  void _filterFlights() {
+    final departureQuery = _searchController1.text.toLowerCase();
+    final arrivalQuery = _searchController2.text.toLowerCase();
+
+    setState(() {
+      filteredFlights = flights.where((flight) {
+        final matchesDeparture = flight.fromLocation.toLowerCase().contains(departureQuery);
+        final matchesArrival = flight.toLocation.toLowerCase().contains(arrivalQuery);
+        return matchesDeparture && matchesArrival;
+      }).toList();
+    });
+  }
 
   double _calculateProgress(DateTime start, DateTime end) {
     final DateTime now = DateTime.now().toUtc();
@@ -116,20 +126,37 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
             bool isBooked = false;
 
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20), // Rounded corners
+              ),
               titlePadding: EdgeInsets.zero,
+              contentPadding: const EdgeInsets.all(20), // Padding for content
               title: Stack(
                 children: [
                   const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('Flight Details'),
+                    padding: EdgeInsets.all(25.0),
+                    child: Text(
+                      'Empty Leg Details',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
                   ),
                   Positioned(
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        Navigator.pop(context); // Close dialog
-                      },
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -138,17 +165,28 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Flight Number: ${flight.flightNumber}'),
+                  Text('Flight Number:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
+                  Text('${flight.flightNumber}', style: TextStyle(fontSize: 16)), // Regular value
                   const SizedBox(height: 8),
-                  Text('Start Time: ${DateFormat('yyyy-MM-dd HH:mm').format(flight.fromDateTime.toLocal())}'),
+
+                  Text('Start Time:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
+                  Text('${DateFormat('yyyy-MM-dd HH:mm').format(flight.fromDateTime.toLocal())}', style: TextStyle(fontSize: 16)), // Regular value
                   const SizedBox(height: 8),
-                  Text('End Time: ${DateFormat('yyyy-MM-dd HH:mm').format(flight.toDateTime.toLocal())}'),
+
+                  Text('End Time:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
+                  Text('${DateFormat('yyyy-MM-dd HH:mm').format(flight.toDateTime.toLocal())}', style: TextStyle(fontSize: 16)), // Regular value
                   const SizedBox(height: 8),
-                  Text('Departure: ${flight.fromLocation}'),
+
+                  Text('Departure:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
+                  Text('${flight.fromLocation}', style: TextStyle(fontSize: 16)), // Regular value
                   const SizedBox(height: 8),
-                  Text('Arrival: ${flight.toLocation}'),
+
+                  Text('Arrival:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
+                  Text('${flight.toLocation}', style: TextStyle(fontSize: 16)), // Regular value
                   const SizedBox(height: 8),
-                  Text('Capacity: ${flight.capacity}'),
+
+                  Text('Capacity:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
+                  Text('${flight.capacity}', style: TextStyle(fontSize: 16)), // Regular value
                   const SizedBox(height: 20),
                   Center(
                     child: isBooked
@@ -164,14 +202,22 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                           isBooked = true;
                         });
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      child: const Text('Book'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green, // Green background
+                        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: const Text(
+                        'Book',
+                        style: TextStyle(fontSize: 14,color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
               ),
               actions: [
-                // Chat button at the bottom-right of the dialog
                 Align(
                   alignment: Alignment.bottomRight,
                   child: FloatingActionButton(
@@ -179,10 +225,16 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       Navigator.pop(context); // Close the dialog
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  ChatDetailScreen(userID:courierID))); // Navigate to chat screen
+                        MaterialPageRoute(builder: (context) => ChatDetailScreen(userID: courierID)),
+                      ); // Navigate to chat screen
                     },
                     backgroundColor: Colors.blue,
-                    child: const Icon(Icons.chat),
+                    mini: true, // Makes it smaller
+                    child: CircleAvatar(
+                      radius: 15, // Adjust size for a better fit
+                      backgroundColor: Colors.white, // Optional: Adds a contrast border
+                      child: Icon(Icons.chat, size: 20, color: Colors.blue),
+                    ),
                   ),
                 ),
               ],
@@ -193,8 +245,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,12 +253,31 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Departure Search Bar
-           /* Container(
+            // Arrival Search Bar
+            Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(25.0),
-                border: Border.all(color: Colors.green, width: 2),
+                border: Border.all(color: Colors.green, width: 1),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: TextField(
+                controller: _searchController2,
+                decoration: const InputDecoration(
+                  hintText: 'Arrival',
+                  border: InputBorder.none,
+                  icon: Icon(Icons.search, color: Colors.grey),
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+
+            // Departure Search Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25.0),
+                border: Border.all(color: Colors.green, width: 1),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
@@ -220,105 +289,109 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Arrival Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25.0),
-                border: Border.all(color: Colors.green, width: 2),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: TextField(
-                controller: _searchController2,
-                decoration: const InputDecoration(
-                  hintText: 'Arrival',
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.grey),
+            const SizedBox(height: 15),
+            // Search Button
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end, // بٹن دائیں طرف رکھنے کے لیے
+              children: [
+                SizedBox(
+                  width: 120,
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: _filterFlights,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'Search',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
                 ),
-              ),
-            ),*/
-            const SizedBox(height: 40),
+                const SizedBox(height: 10), // بٹنوں کے درمیان فاصلہ
+                SizedBox(
+                  width: 120, // برابر width
+                  height: 40, // برابر height
+                  child: ElevatedButton(
+                    onPressed: _resetFlights,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'All',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+
+            const SizedBox(height: 10),
 
             // Filtered Items List
+            // Filtered Items List
             Expanded(
-              child: ListView.builder(
+              child: filteredFlights.isEmpty
+                  ? Center(
+                child: Text(
+                  'No Data Found',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+              )
+                  : ListView.builder(
                 itemCount: filteredFlights.length,
                 itemBuilder: (context, index) {
                   final flight = filteredFlights[index];
                   double progress = _calculateProgress(flight.fromDateTime, flight.toDateTime);
 
                   return GestureDetector(
-                    onTap: () => _showFlightDialog(context,flight), // Show dialog on item click
+                    onTap: () => _showFlightDialog(context, flight),
                     child: Card(
                       color: Colors.white,
                       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                      child: Container(
+                      child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: Column(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 80,
-                                  color: Colors.blue,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.start,
-                                        children: [
-                                          const Text('Start Time:', style: TextStyle(fontSize: 16)),
-                                          const SizedBox(width: 8),
-                                          Text(DateFormat('yyyy-MM-dd HH:mm').format(flight.fromDateTime.toLocal()), style: const TextStyle(fontSize: 16)),
-                                        ],
-                                      ),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.start,
-                                        children: [
-                                          const Text('End Time:', style: TextStyle(fontSize: 16)),
-                                          const SizedBox(width: 8),
-                                          Text(DateFormat('yyyy-MM-dd HH:mm').format(flight.toDateTime.toLocal()), style: const TextStyle(fontSize: 16)),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          const Text('Departure:', style: TextStyle(fontSize: 16)),
-                                          const SizedBox(width: 8),
-                                          Text(flight.fromLocation, style: const TextStyle(fontSize: 16)),
-                                        ],
-                                      ),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          const Text('Arrival:', style: TextStyle(fontSize: 16)),
-                                          const SizedBox(width: 8),
-                                          Text(flight.toLocation, style: const TextStyle(fontSize: 16)),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            // Blue Vertical Line on Left
+                            Container(
+                              width: 8,
+                              height: 120,
+                              color: Colors.blue,
                             ),
-                            const SizedBox(height: 8), // Space between content and progress bar
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.grey[300],
-                              color: Colors.blueAccent,
+                            const SizedBox(width: 12),
+
+                            // Flight Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Arrival:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  Text(flight.toLocation, style: const TextStyle(fontSize: 16)),
+
+                                  const SizedBox(height: 8),
+
+                                  Text('Departure:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  Text(flight.fromLocation, style: const TextStyle(fontSize: 16)),
+
+                                  const SizedBox(height: 8),
+
+                                  // Progress Bar
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey[300],
+                                    color: Colors.blueAccent,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -328,10 +401,20 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                 },
               ),
             ),
+
           ],
         ),
       ),
     );
+  }
+
+// Function to Reset Flights List
+  void _resetFlights() {
+    setState(() {
+      _searchController1.clear();
+      _searchController2.clear();
+      filteredFlights = List.from(flights); // Reset the list to original flights
+    });
   }
 
   @override
@@ -344,7 +427,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     // Replace this with your actual logic to retrieve the user ID
     return FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
   }
-
   Future<void> _sendBookRequest() async {
     try {
       String brokerID = getCurrentUserId();
@@ -352,9 +434,9 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       String nodeID = FirebaseFirestore.instance.collection('emptyLegRequests').doc().id;
 
       await FirebaseFirestore.instance.collection('emptyLegRequests').doc(nodeID).set({
-        'nodeID': nodeID, // Add nodeID explicitly
+        'emptyLegRequestID': nodeID, // Add nodeID explicitly
         'brokerID': brokerID,
-        'status': false,
+        'status': "pending",
         'requestDateTime': DateTime.now().toIso8601String(),
         'courierID': courierID,
       });
@@ -364,5 +446,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }
   }
-
 }
+
+

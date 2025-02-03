@@ -3,6 +3,9 @@ import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import '../common/utils/RoleProvider.dart';
 
 class CompleteMilestone extends StatefulWidget {
   final String selectedTab;
@@ -134,6 +137,8 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
   }
 
   void _showMilestoneDialog(BuildContext context, Milestone milestone) {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -168,7 +173,9 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                     Text('Status: ${milestone.milestoneStatus}'),
                     const SizedBox(height: 20),
                     Center(
-                      child: widget.selectedTab == "In Progress"
+                      child: widget.selectedTab == "In Progress" &&
+                          FirebaseAuth.instance.currentUser != null &&
+                          roleProvider.role == UserRole.courier // Only show "Mark as Done" for couriers
                           ? ElevatedButton(
                         onPressed: milestone.milestoneStatus == "Completed"
                             ? null
@@ -202,25 +209,32 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                           style: TextStyle(color: Colors.white),
                         ),
                       )
-                          : ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                          : Container(), // Hide the "Mark as Done" button for non-couriers
+                    ),
+                    // Center the "Close" button if user is not broker
+                    if (roleProvider.role != UserRole.broker)
+                      Align(
+                        alignment: Alignment.center, // Center the button
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            'Close',
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
-                        child: const Text(
-                          'Close',
-                          style: TextStyle(color: Colors.white),
-                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
+              // Always visible close icon
               Positioned(
                 right: 8,
                 top: 8,
@@ -239,7 +253,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                     },
                   ),
                 ),
-              )
+              ),
             ],
           ),
         );

@@ -9,6 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:provider/provider.dart';
 
+import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart'; // Import your ChatDetailScreen
+import 'package:provider/provider.dart';
+
 class ChatListScreen extends StatelessWidget {
   final String userId; // Current user's ID
 
@@ -41,12 +48,11 @@ class ChatListScreen extends StatelessWidget {
     return {'uid': 'Unknown', 'name': 'Unknown User'};
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:Text(
+        title: Text(
           'Chats',
           style: TextStyle(color: Colors.white),
         ),
@@ -127,12 +133,15 @@ class ChatListScreen extends StatelessWidget {
                         subtitle: Text(lastMessage),
                         trailing: Text('${date.hour}:${date.minute}'),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatDetailScreen(userID: otherUserUid),
-                            ),
-                          );
+                          // Only navigate if valid user data is available
+                          if (otherUserUid != 'Unknown') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatDetailScreen(userID: otherUserUid),
+                              ),
+                            );
+                          }
                         },
                       ),
                       Padding(
@@ -145,10 +154,10 @@ class ChatListScreen extends StatelessWidget {
               );
             },
           );
-
         },
       ),
     );
   }
 }
+
 

@@ -1,9 +1,11 @@
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class FirestoreService {
   final BuildContext context;
@@ -450,12 +452,25 @@ class FirestoreService {
   }
   Future<List<Map<String, dynamic>>> getJobsWithMilestones() async {
     try {
-      debugPrint("Fetching jobs for courierID: ${_currentUser.uid}");
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
-      // Fetch all emptyLegRequests
+      String filterField;
+      String filterValue = _currentUser.uid;
+
+      if (roleProvider.role == UserRole.courier) {
+        filterField = 'courierID';
+      } else if (roleProvider.role == UserRole.broker) {
+        filterField = 'brokerID';
+      } else {
+        debugPrint("Unknown role, returning empty list.");
+        return [];
+      }
+
+      debugPrint("Fetching jobs for $filterField: $filterValue");
+
       final querySnapshot = await _firestore
           .collection('emptyLegRequests')
-          .where('courierID', isEqualTo: _currentUser.uid)
+          .where(filterField, isEqualTo: filterValue)
           .get();
 
       debugPrint("Total jobs fetched: ${querySnapshot.docs.length}");
@@ -464,14 +479,13 @@ class FirestoreService {
 
       for (var jobDoc in querySnapshot.docs) {
         final jobData = jobDoc.data();
-        final List<dynamic>? milestoneNodeIDs = jobData['milestoneNodeIDs'];  // This is now a list of IDs
+        final List<dynamic>? milestoneNodeIDs = jobData['milestoneNodeIDs'];
 
         debugPrint("Processing job with ID: ${jobDoc.id}");
 
         if (milestoneNodeIDs != null && milestoneNodeIDs.isNotEmpty) {
           debugPrint("Found milestoneNodeIDs: $milestoneNodeIDs");
 
-          // Fetch milestones for each milestoneNodeID
           final List<Map<String, dynamic>> allMilestones = [];
           for (var milestoneNodeID in milestoneNodeIDs) {
             final milestones = await getMilestoneByNodeID(milestoneNodeID);
@@ -485,11 +499,10 @@ class FirestoreService {
             }
           }
 
-          // Add all milestones data to the job
           jobData['milestones'] = allMilestones;
         } else {
           debugPrint("No milestoneNodeIDs found for job: ${jobDoc.id}");
-          jobData['milestones'] = []; // Empty list for jobs with no milestoneNodeIDs
+          jobData['milestones'] = [];
         }
 
         jobsWithMilestones.add(jobData);
@@ -502,6 +515,7 @@ class FirestoreService {
       return [];
     }
   }
+
 
   Future<Map<String, dynamic>?> getMilestoneByNodeID(String milestoneNodeID) async {
     try {

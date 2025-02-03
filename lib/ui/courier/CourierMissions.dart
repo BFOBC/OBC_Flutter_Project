@@ -218,11 +218,35 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Broker ID: ${task.brokerId}'),
-                                    Text('Departure: ${task.departureFrom}'),
-                                    Text('Arrive: ${task.arriveAt}'),
+                                    Text.rich(
+                                      TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: 'Departure: ',
+                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                          TextSpan(
+                                            text: '${task.departureFrom}', // Value remains normal
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text.rich(
+                                      TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: 'Arrival: ',
+                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                          TextSpan(
+                                            text: '${task.arriveAt}', // Value remains normal
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
+
                               ),
                               ElevatedButton(
                                 onPressed: () {
@@ -231,16 +255,17 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _colorList[_selectedIndex],
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0),
+                                    borderRadius: BorderRadius.circular(15.0),
                                   ),
-                                  minimumSize: const Size(50, 20),
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                                  minimumSize: const Size(40, 15),
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 20.0),
                                 ),
                                 child: const Text(
-                                  'View Details',
-                                  style: TextStyle(color: Colors.white),
+                                  'View',
+                                  style: TextStyle(color: Colors.white, fontSize: 12),
                                 ),
                               ),
+
                             ],
                           ),
                         ),

@@ -1,8 +1,10 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/courier/TaskDetailScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../res/custom_colors.dart';
 import 'ViewJob.dart';
 import 'CompleteMilestone.dart';
@@ -84,9 +86,11 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final bool isCourier = roleProvider.role == UserRole.courier;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('View Job'),
@@ -119,12 +123,14 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
               Expanded(
                 child: _selectedIndex == 0
                     ? TaskDetailScreen(task: widget.task!) // Pass Task data to PlaceNewJob
-                    : CompleteMilestone(selectedTab: widget.selectedTab,task: widget.task!,), // Pass Task data to AddNewMilestone
+                    : CompleteMilestone(selectedTab: widget.selectedTab, task: widget.task!), // Pass Task data to AddNewMilestone
               ),
             ],
           ),
-          // Only show FloatingActionButton if selectedTab is "Todo" or "Pending"
-          if (widget.selectedTab == "Todo" || widget.selectedTab == "Pending")
+          // Show FloatingActionButton only if:
+          // - selectedTab is "Todo" or "Pending"
+          // - user role is Courier
+          if ((widget.selectedTab == "Todo" || widget.selectedTab == "Pending") && isCourier)
             Positioned(
               bottom: 20,
               right: 20,
@@ -145,4 +151,5 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
       ),
     );
   }
+
 }
