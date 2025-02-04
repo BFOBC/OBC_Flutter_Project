@@ -50,6 +50,8 @@ dependencies:
   firebase_auth: ^5.3.3
   firebase_storage: ^12.3.6
   image_picker: ^1.1.2
+  google_maps_flutter: ^2.3.0 # Use the latest stable version
+
   #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 
 

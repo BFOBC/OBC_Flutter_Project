@@ -1,5 +1,7 @@
+import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
+import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -38,13 +40,59 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 
   List<FlightData> flights = [];
   List<FlightData> filteredFlights = [];
-
+  List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
+  List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
+  AirportModel? selectedFromAirport;
+  AirportModel? selectedToAirport;
   @override
   void initState() {
     super.initState();
     _fetchFlights(); // Fetch model from Firestore when screen initializes
   }
-
+  // Fetch airports that match the query for From Location
+  Future<void> _fetchFromAirportData(String query) async {
+    if (query.isNotEmpty) {
+      try {
+        final airports = await fetchAirportsFromDatabase(query);
+        setState(() {
+          fromAirportSuggestions = airports;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching airports: $e')));
+      }
+    } else {
+      setState(() {
+        fromAirportSuggestions = [];
+      });
+    }
+  }
+  // Fetch airports that match the query for To Location
+  Future<void> _fetchToAirportData(String query) async {
+    if (query.isNotEmpty) {
+      try {
+        final airports = await fetchAirportsFromDatabase(query);
+        setState(() {
+          toAirportSuggestions = airports;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching airports: $e')));
+      }
+    } else {
+      setState(() {
+        toAirportSuggestions = [];
+      });
+    }
+  }
+  Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
+    final dbHelper = DatabaseOperation();
+    try {
+      List<AirportModel> airports = await dbHelper.fetchAirportsFromDatabase(query);
+      return airports;
+    } catch (e) {
+      print('Error _fetchAirports $e');
+      return [];
+    }
+  }
   void _fetchFlights() {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -263,13 +311,45 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
                 controller: _searchController2,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Arrival',
                   border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.grey),
+                  icon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: _searchController2.text.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () {
+                      _searchController2.clear(); // Clear text input
+                    },
+                  )
+                      : null, // Don't show the icon if text is empty
                 ),
+                onChanged: (String value) {
+                  print("Arrival text changed: $value");
+                  _fetchFromAirportData(value);
+                },
               ),
             ),
+
+            // Show suggestions below 'From Location'
+            if (fromAirportSuggestions.isNotEmpty)
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: fromAirportSuggestions.length,
+                itemBuilder: (context, index) {
+                  final airport = fromAirportSuggestions[index];
+                  return ListTile(
+                    title: Text(airport.name ?? 'Unknown'),
+                    onTap: () {
+                      setState(() {
+                        _searchController2.text = airport.name ?? '';
+                        selectedFromAirport = airport;
+                        fromAirportSuggestions = [];
+                      });
+                    },
+                  );
+                },
+              ),
             const SizedBox(height: 15),
 
             // Departure Search Bar
@@ -282,13 +362,45 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
                 controller: _searchController1,
-                decoration: const InputDecoration(
+                decoration:  InputDecoration(
                   hintText: 'Departure',
                   border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.grey),
+                  icon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: _searchController1.text.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () {
+                      _searchController1.clear(); // Clear text input
+                    },
+                  )
+                      : null, // Don't show the icon if text is empty
                 ),
+                onChanged: (String value) {
+                  // This callback is triggered every time the user types.
+                  print("Departure text changed: $value");
+                  _fetchToAirportData(value);
+                },
               ),
             ),
+            // Show suggestions below 'From Location'
+            if (toAirportSuggestions.isNotEmpty)
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: toAirportSuggestions.length,
+                itemBuilder: (context, index) {
+                  final airport = toAirportSuggestions[index];
+                  return ListTile(
+                    title: Text(airport.name ?? 'Unknown'),
+                    onTap: () {
+                      setState(() {
+                        _searchController1.text = airport.name ?? '';
+                        selectedToAirport = airport;
+                        toAirportSuggestions = [];
+                      });
+                    },
+                  );
+                },
+              ),
             const SizedBox(height: 15),
             // Search Button
             Column(

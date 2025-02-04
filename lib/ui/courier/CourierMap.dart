@@ -1,14 +1,15 @@
+import 'dart:async';
 import 'dart:math';
+
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:card_stack_widget/card_stack_widget.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../data/DatabaseOperation.dart';
 import '../common/models/AirportModel.dart';
 import '../common/widgets/ConfirmLocationChangeDialog.dart';
@@ -40,7 +41,7 @@ class _CourierMapState extends State<CourierMap>
   bool _isLoading = true;
 
   // Add a MapController to control the map
-  late MapController _mapController;
+  Completer<GoogleMapController> _mapController = Completer();
 
   //Location location = Location(); // Create a Location instance
 
@@ -52,7 +53,7 @@ class _CourierMapState extends State<CourierMap>
   List<Map<String, dynamic>> brokerInfoList = [];
 
   List<AirportModel> airportList = [];
-  List<Marker> _markers = [];
+  Set<Marker> _markers = {};
   late User _currentUser;
 
   late Future<List<Map<String, dynamic>>> _brokerDataFuture;
@@ -69,7 +70,6 @@ class _CourierMapState extends State<CourierMap>
           ..addListener(() {
             setState(() {});
           });
-    _mapController = MapController();
     _currentUser = FirebaseAuth.instance.currentUser!;
     // _getCurrentLocation();
     //_onSearch("abc");
@@ -202,6 +202,12 @@ class _CourierMapState extends State<CourierMap>
     }
   }
 
+// Generate a random unique markerId
+  String generateUniqueMarkerId() {
+    final random = Random();
+    return 'marker_${DateTime.now().millisecondsSinceEpoch}_${random.nextInt(10000)}';
+  }
+
   void _onCountrySelected(AirportModel airportItem) {
     showDialog(
       context: context,
@@ -214,29 +220,45 @@ class _CourierMapState extends State<CourierMap>
               double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
               LatLng latLng = LatLng(lat, long);
 
-              // Update the map and markers (UI updates)
+              // Create a unique markerId
+              String markerId = generateUniqueMarkerId();
+
+              // Update the markers set with a new marker
               setState(() {
                 country = airportItem.countryCode.toString();
-                print("country $country");
                 _baseLocation = latLng; // Update the selected location
-                _mapController.move(
-                    _baseLocation, 8.0); // Animate to the new location
-                _markers = [
+                _markers = { // Create a new Set with a single marker
                   Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: _baseLocation,
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.blue,
-                      size: 40,
-                    ),
+                    markerId: MarkerId(markerId), // Unique identifier for the marker
+                    position: _baseLocation,
+                    icon: BitmapDescriptor.defaultMarker,
+                    onTap: () {
+                      // Use Future.delayed to ensure Snackbar is shown after UI updates
+                      Future.delayed(Duration(milliseconds: 100), () {
+                        print('Marker tapped!');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'You are available at (${airportItem.country}, ${airportItem.city})',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: Colors.blue,
+                          ),
+                        );
+                      });
+                    },
                   ),
-                ];
+                };
+
+                // Animate the camera to the new location
+                animateCamera(_baseLocation, 10.0);
+
+                // Reset other UI elements
                 _searchText = "";
                 _suggestedCountries = [];
                 airportList = [];
               });
+
               // Call Firebase to update the base location asynchronously
               _updateBaseLocation(lat, long);
             } catch (e, stackTrace) {
@@ -248,6 +270,14 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
+
+  void animateCamera(LatLng location, double zoom) async {
+    final GoogleMapController controller = await _mapController.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(target: location, zoom: zoom),
+    ));
+  }
+
 
   Future<void> _updateBaseLocation(double lat, double long) async {
     try {
@@ -271,26 +301,6 @@ class _CourierMapState extends State<CourierMap>
     }
   }
 
-  void _onSearch(String query) {
-/*    if (query.isNotEmpty) {
-      setState(() {
-        _isSearching = true;
-      });
-
-      _radarController.forward().then((_) {
-        setState(() {
-          _isSearching = false;
-          _showCardStack = true;
-          _filteredUsers = _buildMockList(context, size: 2);
-        });
-      });
-    } else {
-      setState(() {
-        _showCardStack = false;
-        _isSearching = false;
-      });
-    }*/
-  }
 
   void _openBottomSheet() {
     showModalBottomSheet(
@@ -410,23 +420,7 @@ class _CourierMapState extends State<CourierMap>
                       // Determine the selected location
                       _selectedLocation =
                           _isBaseSelected ? _baseLocation : _currentLocation;
-
-                      // Move the map to the selected location
-                      _mapController.move(_selectedLocation, 8.0);
-
-                      // Add a marker at the selected location (optional)
-                      /*_markers = [
-                      Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: _selectedLocation,
-                        builder: (ctx) => const Icon(
-                          Icons.location_on,
-                          color: Colors.blue,
-                          size: 40,
-                        ),
-                      ),
-                    ];*/
+                      animateCamera(_selectedLocation, 10.0);
 
                       // Show Snackbar
                       String message = _isBaseSelected
@@ -498,11 +492,13 @@ class _CourierMapState extends State<CourierMap>
     for (var brokerData in brokerDataList) {
       var brokerProfile = brokerData['broker'] ?? {};
       String userName = brokerProfile['name']?.toString() ?? 'Unknown Broker';
-      String userImage = brokerProfile['profilePictureUrl']?.toString() ?? 'https://via.placeholder.com/150';
+      String userImage = brokerProfile['profilePictureUrl']?.toString() ??
+          'https://via.placeholder.com/150';
       String id = brokerProfile['brokerID']?.toString() ?? 'dfdf ID';
 
       // Access nodeID directly from brokerData
-      String nodeID = brokerData['emptyLegRequestID']?.toString() ?? 'nodeID Not Found';
+      String nodeID =
+          brokerData['emptyLegRequestID']?.toString() ?? 'nodeID Not Found';
 
       double rating = Random().nextDouble() * 5; // Placeholder rating
       print('emptyLegRequestID------------------------');
@@ -519,8 +515,10 @@ class _CourierMapState extends State<CourierMap>
                 context,
                 MaterialPageRoute(
                   builder: (context) => SelectBroker(
-                    brokerID: id,       // Passing the correct brokerID for the selected card
-                    emptyLegRequestID: nodeID,     // Passing the correct nodeID for the selected card
+                    brokerID: id,
+                    // Passing the correct brokerID for the selected card
+                    emptyLegRequestID:
+                        nodeID, // Passing the correct nodeID for the selected card
                   ),
                 ),
               );
@@ -575,110 +573,27 @@ class _CourierMapState extends State<CourierMap>
     }
     return list;
   }
-
-/*  List<CardModel> _buildMockList(BuildContext context, {int size = 0}) {
-    final double containerWidth = MediaQuery.of(context).size.width - 50;
-
-    var list = <CardModel>[];
-    for (int i = 0; i < size; i++) {
-      // var color = Color((Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
-      var color = Colors.white;
-
-      var userName = 'Broker ${i + 1}';
-      var userImage = 'https://via.placeholder.com/150';
-      var rating = Random().nextDouble() * 5;
-      var brokerID;
-
-      list.add(
-        CardModel(
-          backgroundColor: color,
-          shadowColor: Colors.black.withOpacity(0.2),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SelectBroker(
-                    brokerID: brokerID,
-                  ),
-                ),
-              );
-            },
-            child: SizedBox(
-              height: 150,
-              width: containerWidth,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundImage: NetworkImage(userImage),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            userName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          RatingBarIndicator(
-                            rating: rating,
-                            itemBuilder: (context, index) => const Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                            ),
-                            itemCount: 5,
-                            itemSize: 25.0,
-                            direction: Axis.horizontal,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return list;
-  }*/
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Your existing FlutterMap widget here
-          FlutterMap(
-            mapController: _mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(30.3753, 69.3451),
-              initialZoom: 5.0,
+          // In the GoogleMap widget, pass _markers directly
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _baseLocation, // Initial position for the map
+              zoom: 10.0, // Zoom level
             ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: _markers,
-              ),
-            ],
+            markers: _markers, // Pass _markers directly, no need for .toSet()
+            onMapCreated: (GoogleMapController controller) {
+              _mapController.complete(controller); // Store the controller if needed
+            },
+            onTap: (LatLng latLng) {
+              // Optional: Add logic to handle map taps if needed
+              print('Marker tapped!');
+            },
           ),
+
 
           // Conditionally show the progress bar
           if (_isLoading)
