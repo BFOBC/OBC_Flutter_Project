@@ -1,9 +1,37 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 
+class Rating {
+  String from; // The user who gave the rating (courier ID)
+  double rating;
+  String comment;
+
+  Rating({
+    required this.from,
+    required this.rating,
+    required this.comment,
+  });
+
+  // Convert to Firestore map
+  Map<String, dynamic> toMap() {
+    return {
+      'from': from,
+      'rating': rating,
+      'comment': comment,
+    };
+  }
+
+  // Create from Firestore map
+  factory Rating.fromMap(Map<String, dynamic> map) {
+    return Rating(
+      from: map['from'] ?? '',
+      rating: (map['rating'] is int) ? (map['rating'] as int).toDouble() : (map['rating'] ?? 0.0),
+      comment: map['comment'] ?? '',
+    );
+  }
+}
+
 class BrokerProfileData {
-  String brokerID; // Firebase Auth UID
+  String brokerID;
   String name;
   String contact;
   double rating;
@@ -13,7 +41,8 @@ class BrokerProfileData {
   List<String> license;
   String email;
   String paymentTerms;
-  String? profilePictureUrl; // New field for profile picture URL
+  String? profilePictureUrl;
+  List<Rating> ratings; // New field for storing ratings
 
   BrokerProfileData({
     required this.brokerID,
@@ -27,9 +56,9 @@ class BrokerProfileData {
     required this.email,
     required this.paymentTerms,
     this.profilePictureUrl,
+    this.ratings = const [],
   });
 
-  // Convert object to Firestore document map
   Map<String, dynamic> toMap() {
     return {
       'brokerID': brokerID,
@@ -43,16 +72,16 @@ class BrokerProfileData {
       'email': email,
       'paymentTerms': paymentTerms,
       'profilePictureUrl': profilePictureUrl,
+      'ratings': ratings.map((r) => r.toMap()).toList(), // Convert ratings to a list of maps
     };
   }
 
-  // Create object from Firestore document snapshot
   factory BrokerProfileData.fromMap(String id, Map<String, dynamic> map) {
     return BrokerProfileData(
-      brokerID: id, // Use document ID as brokerID if it's not a field
+      brokerID: id,
       name: map['name'] ?? 'Unknown',
       contact: map['contact'] ?? 'N/A',
-      rating: map['rating'] != null ? double.tryParse(map['rating'].toString()) ?? 0.0 : 0.0,
+      rating: (map['rating'] is int) ? (map['rating'] as int).toDouble() : (map['rating'] ?? 0.0),
       website: map['website'] ?? 'N/A',
       company: map['company'] ?? 'N/A',
       country: map['country'] ?? 'N/A',
@@ -60,73 +89,9 @@ class BrokerProfileData {
       email: map['email'] ?? 'N/A',
       paymentTerms: map['paymentTerms'] ?? 'N/A',
       profilePictureUrl: map['profilePictureUrl'] as String?,
+      ratings: map['ratings'] != null
+          ? List<Rating>.from(map['ratings'].map((r) => Rating.fromMap(r)))
+          : [],
     );
   }
-
-  // Helper method to safely parse the rating field
-  static double _parseRating(dynamic rating) {
-    if (rating is double) {
-      return rating;
-    } else if (rating is String) {
-      // Try to parse string as double
-      return double.tryParse(rating) ?? 0.0; // Default to 0.0 if parsing fails
-    }
-    return 0.0; // Default to 0.0 if rating is not provided or invalid
-  }
-}
-
-class BrokerProfileProvider with ChangeNotifier {
-  BrokerProfileData _profile = BrokerProfileData(
-    brokerID: 'OBC001',
-    name: 'N/A',
-    contact:  'N/A',
-    rating:0,
-    website:  'N/A',
-    company:  'N/A',
-    country:  'N/A',
-    license: ['', '', ''],
-    email:  'N/A',
-    paymentTerms:  'N/A',
-    profilePictureUrl: null, // Initialize new field
-  );
-
-  BrokerProfileData get profile => _profile;
-
-  void updateProfile(BrokerProfileData updatedProfile) {
-    _profile = updatedProfile;
-    notifyListeners();
-  }
-
-  void updateField(String field, dynamic value) {
-    switch (field) {
-      case 'name':
-        _profile.name = value as String;
-        break;
-      case 'contact':
-        _profile.contact = value as String;
-      case 'rating':
-        _profile.rating = value as double;
-        break;
-      case 'website':
-        _profile.website = value as String;
-        break;
-      case 'country':
-        _profile.country = value as String;
-        break;
-      case 'license':
-        _profile.license = List<String>.from(value as List<dynamic>);
-        break;
-      case 'email':
-        _profile.email = value as String;
-        break;
-      case 'paymentTerms':
-        _profile.paymentTerms = value as String;
-        break;
-      case 'profilePictureUrl':
-        _profile.profilePictureUrl = value as String?; // Allow null values here
-        break;
-    }
-    notifyListeners();
-  }
-
 }

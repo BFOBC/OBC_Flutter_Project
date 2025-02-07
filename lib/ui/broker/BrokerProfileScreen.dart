@@ -157,7 +157,7 @@ void _addLicenseField() {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildProfileField('Broker ID',_currentUser.uid),
+                  //  _buildProfileField('Broker ID',_currentUser.uid),
                     const SizedBox(height: 10),
                     _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
                     const SizedBox(height: 10),

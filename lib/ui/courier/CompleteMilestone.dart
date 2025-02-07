@@ -372,10 +372,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
           // After the success dialog is dismissed, trigger the rating dialog
           await showDialog(
             context: context,
-            builder: (context) => RatingDialog(
-              brokerName: "John Doe",
-              brokerImage: "https://via.placeholder.com/150", // Dummy Image URL
-            ),
+            builder: (context) => RatingDialog(),
           );
         },
       );
@@ -486,11 +483,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                 showDialog(
                   context: context,
                   builder: (context) =>
-                      RatingDialog(
-                        brokerName: "John Doe",
-                        brokerImage: "https://via.placeholder.com/150", // Dummy Image URL
-                      ),
-                );
+                      RatingDialog());
               });
 
               return SizedBox(); // Return empty widget until the dialog is triggered

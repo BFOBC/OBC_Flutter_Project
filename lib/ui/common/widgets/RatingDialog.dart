@@ -2,11 +2,18 @@ import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-class RatingDialog extends StatelessWidget {
-  final String brokerName;
-  final String brokerImage;
+class RatingDialog extends StatefulWidget {
+  final String profilePicture="https://via.placeholder.com/150";
+  final String name="Broker";
+  RatingDialog();
 
-  RatingDialog({required this.brokerName, required this.brokerImage});
+  @override
+  _RatingDialogState createState() => _RatingDialogState();
+}
+
+class _RatingDialogState extends State<RatingDialog> {
+  double _rating = 0;
+  TextEditingController _commentController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +21,7 @@ class RatingDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         padding: EdgeInsets.all(16),
-        height: 350, // Adjust height as needed
+        height: 400, // Adjust height to accommodate comment section
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -22,13 +29,13 @@ class RatingDialog extends StatelessWidget {
             // Broker Image at the top
             CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage(brokerImage), // Replace with real image
+              backgroundImage: NetworkImage(widget.profilePicture),
               backgroundColor: Colors.grey[300],
             ),
             SizedBox(height: 16),
             // Broker Name
             Text(
-              brokerName,
+              widget.name,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -42,34 +49,46 @@ class RatingDialog extends StatelessWidget {
               itemSize: 30,
               allowHalfRating: true,
               itemCount: 5,
-              itemBuilder: (context, index) => Icon(
+              itemBuilder: (context, _) => Icon(
                 Icons.star,
                 color: Colors.amber,
               ),
               onRatingUpdate: (rating) {
-                // You can handle rating updates here
-                print("Rating: $rating");
-              },
-            ),
-            Spacer(),
-            // 'Later' Button
-            ElevatedButton(
-              onPressed: () async {
-                // Close the rating dialog first
-                Navigator.of(context).pop();
-
-                // Ensure navigation happens after pop completes
-                Future.microtask(() {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => DrawerScreen()),
-                        (route) => false, // Clear all previous screens
-                  );
+                setState(() {
+                  _rating = rating;
                 });
               },
-
-
-              child: Text("Later"),
+            ),
+            SizedBox(height: 16),
+            // Comment TextField
+            TextField(
+              controller: _commentController,
+              decoration: InputDecoration(
+                hintText: "Leave a comment...",
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+            Spacer(),
+            // Submit and Later Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // Handle submission logic (store rating and comment in Firestore)
+                    print("Rating: $_rating, Comment: ${_commentController.text}");
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("Submit"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("Later"),
+                ),
+              ],
             ),
           ],
         ),
