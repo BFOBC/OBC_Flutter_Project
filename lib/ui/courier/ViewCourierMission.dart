@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
 import 'package:broker_flutter_pp/ui/courier/TaskDetailScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,19 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
       _selectedToggle[1 - index] = false; // Toggle between the two options
     });
   }
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing by tapping outside
+        builder: (context) => RatingDialog(task: widget.task!),
+      );
+    });
+  }
+
 
   // Function to show the dialog
   void _showStartJobDialog() {

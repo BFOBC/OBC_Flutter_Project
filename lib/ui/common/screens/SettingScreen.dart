@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
 import 'package:flutter/material.dart';
 
 class SettingScreen extends StatelessWidget {
@@ -68,6 +69,7 @@ class SettingScreen extends StatelessWidget {
                 subtitle: 'Manage your privacy and security',
                 onTap: () {
                   // Navigate to Privacy Settings Screen
+
                 },
               ),
 

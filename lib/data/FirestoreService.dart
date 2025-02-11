@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
+import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,6 +12,7 @@ class FirestoreService {
   final BuildContext context;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   User _currentUser = FirebaseAuth.instance.currentUser!;
+
   FirestoreService(this.context);
 
   Future<void> saveBrokerProfile({
@@ -35,9 +37,13 @@ class FirestoreService {
       // Prepare the new data
       Map<String, dynamic> newData = {
         'name': nameController.text.isEmpty ? 'N/A' : nameController.text,
-        'website': websiteController.text.isEmpty ? 'N/A' : websiteController.text,
-        'country': countryController.text.isEmpty ? 'N/A' : countryController.text,
-        'paymentTerms': paymentTermsController.text.isEmpty ? 'N/A' : paymentTermsController.text,
+        'website': websiteController.text.isEmpty ? 'N/A' : websiteController
+            .text,
+        'country': countryController.text.isEmpty ? 'N/A' : countryController
+            .text,
+        'paymentTerms': paymentTermsController.text.isEmpty
+            ? 'N/A'
+            : paymentTermsController.text,
         'license': updatedLicenses,
         'email': email,
         'profilePictureUrl': profilePictureUrl,
@@ -45,7 +51,9 @@ class FirestoreService {
 
       // Merge the new data with existing data
       if (snapshot.exists) {
-        Map<String, dynamic>? existingData = snapshot.data() as Map<String, dynamic>?;
+        Map<String, dynamic>? existingData = snapshot.data() as Map<
+            String,
+            dynamic>?;
         newData.addAll(existingData ?? {});
       }
 
@@ -61,7 +69,9 @@ class FirestoreService {
       );
     }
   }
-  Future<void> updateLegIDS(String emptyLegRequestID,List<String> milestoneNodeID) async {
+
+  Future<void> updateLegIDS(String emptyLegRequestID,
+      List<String> milestoneNodeID) async {
     try {
       // Reference to the milestones collection
       CollectionReference milestones = _firestore.collection('milestones');
@@ -80,7 +90,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> saveEmptyLegRequest(EmptyLegRequest request,List<String> milestone) async {
+  Future<void> saveEmptyLegRequest(EmptyLegRequest request,
+      List<String> milestone) async {
     try {
       // Reference to the collection
       CollectionReference requests = _firestore.collection('emptyLegRequests');
@@ -91,17 +102,23 @@ class FirestoreService {
       // Update the nodeID dynamically
       request.emptyLegRequestID = docRef.id;
 
-      String msg="Broker sent you New Job request  ${_currentUser.email}";
-      createNotification(brokerID: request.brokerID, courierID: request.courierID, emptyLegRequestID: request.emptyLegRequestID.toString(),sentBy: "Broker", message: msg);
+      String msg = "Broker sent you New Job request  ${_currentUser.email}";
+      createNotification(brokerID: request.brokerID,
+          courierID: request.courierID,
+          emptyLegRequestID: request.emptyLegRequestID.toString(),
+          sentBy: "Broker",
+          message: msg);
       // Save the request with the updated nodeID
       await docRef.set(request.toJson());
-      updateLegIDS(request.emptyLegRequestID.toString(),milestone);
+      updateLegIDS(request.emptyLegRequestID.toString(), milestone);
       print('Request saved with nodeID: ${request.emptyLegRequestID}');
     } catch (e) {
       print('Error saving request: $e');
     }
   }
-  Future<List<Milestone>> getMilestonesByEmptyLegRequestID(String emptyLegRequestID) async {
+
+  Future<List<Milestone>> getMilestonesByEmptyLegRequestID(
+      String emptyLegRequestID) async {
     try {
       // Reference to the milestones collection
       CollectionReference milestones = _firestore.collection('milestones');
@@ -120,7 +137,8 @@ class FirestoreService {
         return Milestone.fromMap(data);
       }).toList();
 
-      print('Successfully fetched ${milestoneList.length} milestones with emptyLegRequestID: $emptyLegRequestID');
+      print('Successfully fetched ${milestoneList
+          .length} milestones with emptyLegRequestID: $emptyLegRequestID');
       return milestoneList;
     } catch (e) {
       print('Error fetching milestones: $e');
@@ -139,10 +157,13 @@ class FirestoreService {
         print('Document data: ${doc.data()}'); // Debug: print document data
         return EmptyLegRequest.fromMap(doc.data() as Map<String, dynamic>);
       })
-          .where((request) => request.status?.toLowerCase() == 'pending') // Filter for status = 'pending' (case insensitive)
+          .where((request) =>
+      request.status?.toLowerCase() ==
+          'pending') // Filter for status = 'pending' (case insensitive)
           .toList();
 
-      print('Filtered emptyLegRequests docs in querySnapshot: ${requestsList.length}');
+      print('Filtered emptyLegRequests docs in querySnapshot: ${requestsList
+          .length}');
       print('Filtered Requests List: $requestsList');
 
       return requestsList;
@@ -154,7 +175,8 @@ class FirestoreService {
 
 
   // Method to fetch brokers by brokerIDs using the BrokerProfileData model
-  Future<List<BrokerProfileData>> getBrokersByBrokerID(List<String> brokerIDs) async {
+  Future<List<BrokerProfileData>> getBrokersByBrokerID(
+      List<String> brokerIDs) async {
     try {
       // Reference to the broker collection
       CollectionReference brokers = _firestore.collection('broker');
@@ -169,7 +191,8 @@ class FirestoreService {
             .get();
 
         brokersList.addAll(querySnapshot.docs.map((doc) {
-          return BrokerProfileData.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+          return BrokerProfileData.fromMap(
+              doc.id, doc.data() as Map<String, dynamic>);
         }));
       }
 
@@ -180,10 +203,12 @@ class FirestoreService {
       return [];
     }
   }
+
   List<List<T>> chunkList<T>(List<T> list, int chunkSize) {
     List<List<T>> chunks = [];
     for (var i = 0; i < list.length; i += chunkSize) {
-      chunks.add(list.sublist(i, i + chunkSize > list.length ? list.length : i + chunkSize));
+      chunks.add(list.sublist(
+          i, i + chunkSize > list.length ? list.length : i + chunkSize));
     }
     return chunks;
   }
@@ -192,7 +217,6 @@ class FirestoreService {
   // Method to fetch emptyLegRequests and associated brokers
   Future<List<Map<String, dynamic>>> getEmptyLegRequestsWithBrokers() async {
     try {
-
       // Get all the empty leg requests
       List<EmptyLegRequest> requests = await getEmptyLegRequests();
 
@@ -218,19 +242,20 @@ class FirestoreService {
         // Find the broker data for each request
         BrokerProfileData? brokerData = brokers.firstWhere(
               (broker) => broker.brokerID == request.brokerID,
-          orElse: () => BrokerProfileData(
-            brokerID: 'Not found',
-            name: 'Unknown',
-            contact: 'N/A',
-            rating: 0,
-            website: 'N/A',
-            company: 'N/A',
-            country:  'N/A',
-            license: [],
-            email:  'N/A',
-            paymentTerms:  'N/A',
-            profilePictureUrl: null,
-          ),
+          orElse: () =>
+              BrokerProfileData(
+                brokerID: 'Not found',
+                name: 'Unknown',
+                contact: 'N/A',
+                rating: 0,
+                website: 'N/A',
+                company: 'N/A',
+                country: 'N/A',
+                license: [],
+                email: 'N/A',
+                paymentTerms: 'N/A',
+                profilePictureUrl: null,
+              ),
         );
 
         // Add broker information to request data
@@ -245,6 +270,7 @@ class FirestoreService {
       return [];
     }
   }
+
   Future<List<BrokerProfileData>> fetchBrokerProfile(String brokerID) async {
     try {
       print('Broker brokerID');
@@ -273,11 +299,13 @@ class FirestoreService {
       return [];
     }
   }
+
   // Method to get emptyLegRequest data from Firestore based on nodeID
   Future<EmptyLegRequest> getEmptyLegRequest(String nodeID) async {
     try {
       // Reference to the emptyLegRequests collection and specific document
-      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(nodeID);
+      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(
+          nodeID);
 
       // Fetch the document from Firestore
       DocumentSnapshot snapshot = await docRef.get();
@@ -304,56 +332,73 @@ class FirestoreService {
   Future<void> updateJobStatus(String nodeID, String status) async {
     try {
       // Reference to the emptyLegRequests collection and specific document
-      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(nodeID);
+      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(
+          nodeID);
       // Update the 'status' field
       await docRef.update({
-        'status': status,  // Field name 'status' and its new value
+        'status': status, // Field name 'status' and its new value
       });
       print('Status updated successfully');
     } catch (e) {
       print('Error updating status: $e');
-      throw Exception('Error updating status: $e');  // Throwing an exception if error occurs
+      throw Exception(
+          'Error updating status: $e'); // Throwing an exception if error occurs
     }
   }
+
   Future<void> updateMilestoneStatus(String nodeID, String status) async {
     try {
       // Reference to the emptyLegRequests collection and specific document
-      DocumentReference docRef = _firestore.collection('milestones').doc(nodeID);
+      DocumentReference docRef = _firestore.collection('milestones').doc(
+          nodeID);
       // Update the 'status' field
       await docRef.update({
-        'milestoneStatus': status,  // Field name 'status' and its new value
+        'milestoneStatus': status, // Field name 'status' and its new value
       });
       print('Status updated successfully');
     } catch (e) {
       print('Error updating status: $e');
-      throw Exception('Error updating status: $e');  // Throwing an exception if error occurs
+      throw Exception(
+          'Error updating status: $e'); // Throwing an exception if error occurs
     }
   }
+
   Future<void> createNotification({
-    String brokerID = '',          // Default value is an empty string
-    String courierID = '',         // Default value is an empty string
+    String brokerID = '', // Default value is an empty string
+    String courierID = '', // Default value is an empty string
     String emptyLegRequestID = '', // Default value is an empty string
-    String sentBy = '',            // Default value is an empty string
-    String milestoneID = '',       // Default value is an empty string
-    String message = '',    // Default value is an empty string
+    String sentBy = '', // Default value is an empty string
+    String milestoneID = '', // Default value is an empty string
+    String message = '', // Default value is an empty string
   }) async {
     try {
       // Reference to the notification collection
       CollectionReference notifications = _firestore.collection('notification');
 
       // Generate a new nodeID using Firestore's auto-ID generator
-      String nodeID = notifications.doc().id;
+      String nodeID = notifications
+          .doc()
+          .id;
 
       // Prepare the data to be saved
       Map<String, dynamic> notificationData = {
         'notificationID': nodeID,
-        'emptyLegRequestID': emptyLegRequestID.isNotEmpty ? emptyLegRequestID : 'N/A', // Default to 'N/A' if empty
-        'brokerID': brokerID.isNotEmpty ? brokerID : 'N/A',                               // Default to 'N/A' if empty
-        'courierID': courierID.isNotEmpty ? courierID : 'N/A',                             // Default to 'N/A' if empty
-        'sentBy': sentBy.isNotEmpty ? sentBy : 'Unknown',                                  // Default to 'Unknown' if empty
-        'message': message.isNotEmpty ? message : 'No message',                  // Default to 'No message provided' if empty
-        'milestoneID': milestoneID.isNotEmpty ? milestoneID : 'N/A',                      // Default to 'N/A' if empty
-        'currentDateTime': DateTime.now().toUtc().toIso8601String(), // UTC format
+        'emptyLegRequestID': emptyLegRequestID.isNotEmpty
+            ? emptyLegRequestID
+            : 'N/A',
+        // Default to 'N/A' if empty
+        'brokerID': brokerID.isNotEmpty ? brokerID : 'N/A',
+        // Default to 'N/A' if empty
+        'courierID': courierID.isNotEmpty ? courierID : 'N/A',
+        // Default to 'N/A' if empty
+        'sentBy': sentBy.isNotEmpty ? sentBy : 'Unknown',
+        // Default to 'Unknown' if empty
+        'message': message.isNotEmpty ? message : 'No message',
+        // Default to 'No message provided' if empty
+        'milestoneID': milestoneID.isNotEmpty ? milestoneID : 'N/A',
+        // Default to 'N/A' if empty
+        'currentDateTime': DateTime.now().toUtc().toIso8601String(),
+        // UTC format
       };
 
       // Save the data under the generated nodeID
@@ -364,6 +409,7 @@ class FirestoreService {
       print('Error saving notification: $e');
     }
   }
+
   Future<List<Map<String, dynamic>>> readNotifications() async {
     try {
       // Reference to the notification collection
@@ -374,7 +420,8 @@ class FirestoreService {
 
       // Convert documents to a list of maps
       List<Map<String, dynamic>> notificationsList = querySnapshot.docs
-          .map((doc) => {
+          .map((doc) =>
+      {
         'notificationID': doc.id,
         ...doc.data() as Map<String, dynamic>,
       })
@@ -387,6 +434,7 @@ class FirestoreService {
       return [];
     }
   }
+
   // Method to delete a notification by its ID
   Future<void> deleteNotification(String notificationID) async {
     try {
@@ -401,11 +449,13 @@ class FirestoreService {
       print('Error deleting notification: $e');
     }
   }
+
   Future<String> getBrokerName(String brokerID) async {
     try {
       // Reference to the broker document with only the 'name' field selected
       DocumentSnapshot<Map<String, dynamic>> brokerDoc =
-      await _firestore.collection('broker').doc(brokerID).get(const GetOptions(source: Source.server));
+      await _firestore.collection('broker').doc(brokerID).get(
+          const GetOptions(source: Source.server));
 
       // Check if the document exists
       if (brokerDoc.exists) {
@@ -419,11 +469,13 @@ class FirestoreService {
       return 'Error Fetching Name';
     }
   }
+
   Future<String> getCourierName(String brokerID) async {
     try {
       // Reference to the broker document with only the 'name' field selected
       DocumentSnapshot<Map<String, dynamic>> brokerDoc =
-      await _firestore.collection('courier').doc(brokerID).get(const GetOptions(source: Source.server));
+      await _firestore.collection('courier').doc(brokerID).get(
+          const GetOptions(source: Source.server));
 
       // Check if the document exists
       if (brokerDoc.exists) {
@@ -437,6 +489,7 @@ class FirestoreService {
       return 'Error Fetching Name';
     }
   }
+
   Future<List<Map<String, dynamic>>> getJobsByCourierID() async {
     try {
       final querySnapshot = await _firestore
@@ -450,6 +503,7 @@ class FirestoreService {
       return [];
     }
   }
+
   Future<List<Map<String, dynamic>>> getJobsWithMilestones() async {
     try {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
@@ -491,7 +545,8 @@ class FirestoreService {
             final milestones = await getMilestoneByNodeID(milestoneNodeID);
 
             if (milestones != null) {
-              debugPrint("Found milestones for NodeID $milestoneNodeID: $milestones");
+              debugPrint(
+                  "Found milestones for NodeID $milestoneNodeID: $milestones");
               allMilestones.add(milestones);
             } else {
               debugPrint("No milestones found for NodeID $milestoneNodeID");
@@ -517,7 +572,8 @@ class FirestoreService {
   }
 
 
-  Future<Map<String, dynamic>?> getMilestoneByNodeID(String milestoneNodeID) async {
+  Future<Map<String, dynamic>?> getMilestoneByNodeID(
+      String milestoneNodeID) async {
     try {
       debugPrint("Fetching milestone for Node ID: $milestoneNodeID");
 
@@ -527,7 +583,9 @@ class FirestoreService {
           .get();
 
       if (querySnapshot.exists) {
-        debugPrint("Milestone found for Node ID $milestoneNodeID: ${querySnapshot.data()}");
+        debugPrint(
+            "Milestone found for Node ID $milestoneNodeID: ${querySnapshot
+                .data()}");
         return querySnapshot.data();
       } else {
         debugPrint("No milestone found for Node ID: $milestoneNodeID");
@@ -538,7 +596,9 @@ class FirestoreService {
       return null;
     }
   }
-  Future<List<Milestone>> getMilestonesByEmptyLegCourierID(String emptyLegCourierID) async {
+
+  Future<List<Milestone>> getMilestonesByEmptyLegCourierID(
+      String emptyLegCourierID) async {
     try {
       // Query the milestones collection for documents where emptyLegRequestID matches the provided value
       final querySnapshot = await _firestore
@@ -557,5 +617,43 @@ class FirestoreService {
       return [];
     }
   }
+
+  Future<void> addRating(Rating rating) async {
+    try {
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      String collectionName = roleProvider.role == UserRole.broker ? 'courier' : 'broker';
+
+      // Logged-in user's ID
+      String userID = _currentUser.uid;
+
+      // If broker is logged in, they rate a courier (assign courierID)
+      if (roleProvider.role == UserRole.broker) {
+        rating.brokerID = userID;  // Logged-in user is the broker
+      }
+      // If courier is logged in, they rate a broker (assign brokerID)
+      else {
+        rating.courierID = userID;  // Logged-in user is the courier
+      }
+
+      // Reference to the correct Firestore path (rating stored under recipient’s ID)
+      DocumentReference ratingRef = _firestore
+          .collection(collectionName)  // Store under 'courier' or 'broker' collection
+          .doc(rating.brokerID ?? rating.courierID)  // The person being rated (receiver)
+          .collection('rating')  // Sub-collection for ratings
+          .doc();  // Auto-generate rating ID
+
+      // Assign auto-generated ratingID
+      rating.ratingID = ratingRef.id;
+
+      // Store rating data
+      await ratingRef.set(rating.toMap());
+
+      print('Rating stored successfully under $collectionName -> ${rating.brokerID ?? rating.courierID} -> rating -> ${rating.ratingID}');
+    } catch (e) {
+      print('Error storing rating: $e');
+      throw Exception('Error storing rating: $e');
+    }
+  }
+
 
 }

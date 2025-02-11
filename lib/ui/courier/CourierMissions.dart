@@ -24,6 +24,7 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
     Colors.lightGreen,    // Pending
     Colors.green,  // Completed
   ];
+  Task selectedTask=new Task();
   bool isLoading = true; // Track loading state
 
   @override

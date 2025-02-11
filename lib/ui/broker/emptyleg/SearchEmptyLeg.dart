@@ -5,6 +5,7 @@ import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../common/utils/CustomDialog.dart';
@@ -328,6 +329,9 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   print("Arrival text changed: $value");
                   _fetchFromAirportData(value);
                 },
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Allows only letters and spaces
+                ],
               ),
             ),
 
@@ -380,6 +384,9 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   print("Departure text changed: $value");
                   _fetchToAirportData(value);
                 },
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Allows only letters and spaces
+                ],
               ),
             ),
             // Show suggestions below 'From Location'

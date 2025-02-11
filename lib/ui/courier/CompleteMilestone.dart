@@ -24,171 +24,172 @@ class CompleteMilestone extends StatefulWidget {
 
 class _CompleteMilestoneState extends State<CompleteMilestone> {
   late Future<List<Milestone>> milestonesFuture;
+  List<Milestone> _milestones = []; // ✅ Define the list
 
   @override
   void initState() {
     super.initState();
-    milestonesFuture =
-        _fetchMilestones(); // Fetch the milestones when the screen loads
+    milestonesFuture = _fetchMilestones();
   }
 
-  // Method to fetch milestones based on emptyLegCourierID
   Future<List<Milestone>> _fetchMilestones() async {
     final firestoreService = FirestoreService(context);
-    return await firestoreService
-        .getMilestonesByEmptyLegCourierID(widget.task.emptyLegRequestID!);
+    List<Milestone> milestones = await firestoreService.getMilestonesByEmptyLegCourierID(
+      widget.task.emptyLegRequestID!,
+    );
+
+    if (mounted) {
+      setState(() {
+        _milestones = milestones;
+      });
+
+      // Check if all milestones are completed
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      if (roleProvider.role == UserRole.courier && widget.selectedTab == "In Progress") {
+        _checkAndCompleteJob();
+      }
+    }
+
+    return milestones; // ✅ Return the fetched milestones
   }
+
+  void _checkAndCompleteJob() {
+    bool allCompleted = _milestones.isNotEmpty && _milestones.every((m) => m.milestoneStatus == "Completed");
+
+    print("allCompleted: $allCompleted");
+
+    if (allCompleted) {
+      // Add a slight delay before calling completeJob to ensure smooth UI transition
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (mounted) {
+          completeJob(context, widget.task.brokerId!, widget.task.emptyLegRequestID.toString());
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Milestone>>(
-        future: milestonesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final milestones = snapshot.data ?? [];
-
-          if (milestones.isEmpty) {
-            return const Center(child: Text("No milestones available"));
-          }
-
-          // Check if there's any milestone with title 'Pending'
-          bool hasPendingMilestone = milestones.any((milestone) => milestone.milestoneStatus == 'Pending');
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: milestones.length,
-                  itemBuilder: (context, index) {
-                    final milestone = milestones[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
+      body: _milestones.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: _milestones.length,
+              itemBuilder: (context, index) {
+                final milestone = _milestones[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Column(
                           children: [
-                            Column(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: milestone.milestoneStatus == "Done"
-                                        ? Colors.green
-                                        : Colors.grey,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                Container(
-                                  width: 2,
-                                  height: 60,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.grey,
-                                    shape: BoxShape.rectangle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    milestone.title ?? 'No Title',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      'Description: ${milestone.description ?? 'N/A'}'),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      'Start: ${milestone.milestoneStartDateTime ?? 'N/A'}'),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      'End: ${milestone.milestoneEndDateTime ?? 'N/A'}'),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                      'Status: ${milestone.milestoneStatus ?? 'N/A'}'),
-                                ],
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: milestone.milestoneStatus == "Completed"
+                                    ? Colors.green
+                                    : Colors.grey,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                _showMilestoneDialog(context, milestone);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                              child: const Text(
-                                'View',
-                                style: TextStyle(color: Colors.white),
+                            Container(
+                              width: 2,
+                              height: 60,
+                              decoration: const BoxDecoration(
+                                color: Colors.grey,
+                                shape: BoxShape.rectangle,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                milestone.title ?? 'No Title',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text('Description: ${milestone.description ?? 'N/A'}'),
+                              const SizedBox(height: 4),
+                              Text('Start: ${milestone.milestoneStartDateTime ?? 'N/A'}'),
+                              const SizedBox(height: 4),
+                              Text('End: ${milestone.milestoneEndDateTime ?? 'N/A'}'),
+                              const SizedBox(height: 4),
+                              Text('Status: ${milestone.milestoneStatus ?? 'N/A'}'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            _showMilestoneDialog(context, milestone);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: const Text(
+                            'View',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
 
-              // Conditionally show the Complete Job button
-              if (hasPendingMilestone)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 30.0), // More bottom spacing
-                  child: SizedBox(
-                    width: double.infinity, // Makes the button take full width
-                    child: ElevatedButton(
-                      onPressed: () {
-                        showJobCompletionDialog(context, milestonesFuture);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Palette.primaryColor, // Green background color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12), // More rounded corners for a modern look
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10.0), // Increased vertical padding
-                        elevation: 4, // Adds slight shadow for better visibility
-                      ),
-                      child: const Text(
-                        'Complete Job',
-                        style: TextStyle(
-                          color: Colors.white, // White text color
-                          fontSize: 15, // Slightly larger font
-                          fontWeight: FontWeight.w600, // Semi-bold for better readability
-                          letterSpacing: 1.0, // Adds slight spacing for aesthetics
-                        ),
-                      ),
+          // Conditionally show the Complete Job button
+          if (_milestones.any((m) => m.milestoneStatus == 'Pending'))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 30.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    showJobCompletionDialog(context, Future.value(_milestones));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Palette.primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10.0),
+                    elevation: 4,
+                  ),
+                  child: const Text(
+                    'Complete Job',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.0,
                     ),
                   ),
                 ),
-
-            ],
-          );
-        },
+              ),
+            ),
+        ],
       ),
     );
   }
-
-
-
-
   void _showMilestoneDialog(BuildContext context, Milestone milestone) {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
@@ -228,53 +229,37 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                     Center(
                       child: widget.selectedTab == "In Progress" &&
                           FirebaseAuth.instance.currentUser != null &&
-                          roleProvider.role ==
-                              UserRole
-                                  .courier // Only show "Mark as Done" for couriers
+                          roleProvider.role == UserRole.courier
                           ? ElevatedButton(
-                        onPressed: milestone.milestoneStatus ==
-                            "Completed"
+                        onPressed: milestone.milestoneStatus == "Completed"
                             ? null
-                            : () {
-                          final firestoreService =
-                          FirestoreService(context);
+                            : () async {
+                          final firestoreService = FirestoreService(context);
 
-                          // Update job status
-                          firestoreService
-                              .updateMilestoneStatus(
-                              milestone.milestoneNodeID
-                                  .toString(),
-                              "Completed")
-                              .then((_) {
-                            // Once the status is updated, refresh the data by calling setState
-                            setState(() {
-                              milestonesFuture =
-                                  _fetchMilestones(); // Re-fetch milestones after update
-                            });
+                          await firestoreService.updateMilestoneStatus(
+                            milestone.milestoneNodeID.toString(),
+                            "Completed",
+                          );
 
-                            String milestoneID = milestone
-                                .milestoneNodeID
-                                .toString();
-                            final User currentUser =
-                            FirebaseAuth.instance.currentUser!;
-                            String email = currentUser.email!;
-
-                            firestoreService.createNotification(
-                              brokerID: milestone.brokerID!,
-                              courierID: currentUser.uid,
-                              emptyLegRequestID: widget
-                                  .task.emptyLegRequestID
-                                  .toString(),
-                              sentBy: "Courier",
-                              message: milestone.milestoneNodeID
-                                  .toString(),
-                              milestoneID:
-                              "Your Milestone $milestoneID is Completed by $email",
-                            );
-
-                            Navigator.of(context)
-                                .pop(); // Close the dialog
+                          setState(() {
+                            milestonesFuture = _fetchMilestones();
                           });
+
+                          String milestoneID = milestone.milestoneNodeID.toString();
+                          final User currentUser = FirebaseAuth.instance.currentUser!;
+                          String email = currentUser.email!;
+
+                          await firestoreService.createNotification(
+                            brokerID: milestone.brokerID!,
+                            courierID: currentUser.uid,
+                            emptyLegRequestID: widget.task.emptyLegRequestID.toString(),
+                            sentBy: "Courier",
+                            message: milestone.milestoneNodeID.toString(),
+                            milestoneID:
+                            "Your Milestone $milestoneID is Completed by $email",
+                          );
+
+                          Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
@@ -287,11 +272,11 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                           style: TextStyle(color: Colors.white),
                         ),
                       )
-                          : Container(), // Hide the "Mark as Done" button for non-couriers
+                          : Container(),
                     ),
                     if (roleProvider.role != UserRole.courier)
                       Align(
-                        alignment: Alignment.center, // Center the button
+                        alignment: Alignment.center,
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).pop();
@@ -311,7 +296,6 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                   ],
                 ),
               ),
-              // Always visible close icon
               Positioned(
                 right: 8,
                 top: 8,
@@ -324,8 +308,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                   ),
                   child: IconButton(
                     padding: EdgeInsets.zero,
-                    icon:
-                    const Icon(Icons.close, color: Colors.white, size: 16),
+                    icon: const Icon(Icons.close, color: Colors.white, size: 16),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
@@ -338,6 +321,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
       },
     );
   }
+
 
 // Method to complete the job
   Future<void> completeJob(BuildContext context, String brokerID, String emptyLegRequestID) async {
@@ -360,7 +344,8 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
         sentBy: "Courier",
         message: message,
       );
-
+      // Ensure UI updates properly before showing dialog
+      if (!context.mounted) return;
       // Show custom success dialog
       CustomDialog.showCustomDialog3(
         context,
@@ -369,11 +354,13 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
           // Close the current job completion dialog
           Navigator.of(context).pop();
 
-          // After the success dialog is dismissed, trigger the rating dialog
-          await showDialog(
-            context: context,
-            builder: (context) => RatingDialog(),
-          );
+          // Ensure context is still valid before showing rating dialog
+          if (context.mounted) {
+            await showDialog(
+              context: context,
+              builder: (context) => RatingDialog(task: widget.task,),
+            );
+          }
         },
       );
     } catch (e) {
@@ -483,7 +470,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                 showDialog(
                   context: context,
                   builder: (context) =>
-                      RatingDialog());
+                      RatingDialog(task: widget.task,));
               });
 
               return SizedBox(); // Return empty widget until the dialog is triggered

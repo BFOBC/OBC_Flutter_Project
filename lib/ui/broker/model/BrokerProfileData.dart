@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-class Rating {
+import '../../common/models/Rating.dart';
+
+/*class Rating {
   String from; // The user who gave the rating (courier ID)
   double rating;
   String comment;
@@ -28,7 +30,7 @@ class Rating {
       comment: map['comment'] ?? '',
     );
   }
-}
+}*/
 
 class BrokerProfileData {
   String brokerID;
