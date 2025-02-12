@@ -134,6 +134,7 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
 
   @override
   Widget build(BuildContext context) {
+
     final dataMap = <String, double>{
       "In Progress": 40,
       "Todo": 30,
@@ -308,5 +309,38 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
       _loadTasks();
     });
   }
+  Map<String, double> calculateStatusDistribution(List<String> statusList) {
+    if (statusList.isEmpty) {
+      return {
+        "In Progress": 0,
+        "To-Do": 0,
+        "Pending": 0,
+        "Completed": 0,
+      };
+    }
+
+    // Count occurrences of each status
+    Map<String, int> statusCount = {
+      "In Progress": 0,
+      "To-Do": 0,
+      "Pending": 0,
+      "Completed": 0,
+    };
+
+    for (var status in statusList) {
+      if (statusCount.containsKey(status)) {
+        statusCount[status] = statusCount[status]! + 1;
+      }
+    }
+
+    // Convert counts to percentage
+    int total = statusList.length;
+    Map<String, double> dataMap = statusCount.map(
+          (key, value) => MapEntry(key, (value / total) * 100),
+    );
+
+    return dataMap;
+  }
+
 }
 

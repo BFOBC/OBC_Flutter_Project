@@ -15,16 +15,16 @@ class CircularRating extends StatelessWidget {
       chartRadius: MediaQuery.of(context).size.width / 4.0, // Adjusted for a slightly smaller size
       colorList: colorList,
       initialAngleInDegree: 0,
-      chartType: ChartType.ring,
+      chartType: ChartType.disc,
       ringStrokeWidth: 10, // Reduced thickness for a thinner chart
       centerText: "",
       legendOptions: const LegendOptions(
         showLegendsInRow: false,
-        legendPosition: LegendPosition.right,
+        legendPosition: LegendPosition.left,
         showLegends: true,
         legendShape: BoxShape.circle,
         legendTextStyle: TextStyle(
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.normal,
         ),
       ),
       chartValuesOptions: const ChartValuesOptions(
@@ -32,7 +32,7 @@ class CircularRating extends StatelessWidget {
         showChartValues: true,
         showChartValuesInPercentage: false,
         showChartValuesOutside: false,
-        decimalPlaces: 0,
+        decimalPlaces: 1,
       ),
     );
   }

@@ -31,6 +31,8 @@ class Rating {
       'jobType': jobType,
       'rating': rating,
       'dateTime': dateTime,
+      'comment': comment,
+      'from': from,
     };
   }
 

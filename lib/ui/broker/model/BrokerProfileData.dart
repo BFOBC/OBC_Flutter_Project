@@ -1,50 +1,19 @@
-import 'package:flutter/material.dart';
-
 import '../../common/models/Rating.dart';
 
-/*class Rating {
-  String from; // The user who gave the rating (courier ID)
-  double rating;
-  String comment;
-
-  Rating({
-    required this.from,
-    required this.rating,
-    required this.comment,
-  });
-
-  // Convert to Firestore map
-  Map<String, dynamic> toMap() {
-    return {
-      'from': from,
-      'rating': rating,
-      'comment': comment,
-    };
-  }
-
-  // Create from Firestore map
-  factory Rating.fromMap(Map<String, dynamic> map) {
-    return Rating(
-      from: map['from'] ?? '',
-      rating: (map['rating'] is int) ? (map['rating'] as int).toDouble() : (map['rating'] ?? 0.0),
-      comment: map['comment'] ?? '',
-    );
-  }
-}*/
-
 class BrokerProfileData {
-  String brokerID;
-  String name;
-  String contact;
-  double rating;
-  String website;
-  String company;
-  String country;
-  List<String> license;
-  String email;
-  String paymentTerms;
-  String? profilePictureUrl;
-  List<Rating> ratings; // New field for storing ratings
+  final String brokerID;
+  final String name;
+  final String contact;
+  final double rating;
+  final String website;
+  final String company;
+  final String country;
+  final String phoneNumber;
+  final List<String> license;
+  final String email;
+  final String paymentTerms;
+  final String? profilePictureUrl;
+  final List<Rating> ratings;
 
   BrokerProfileData({
     required this.brokerID,
@@ -54,12 +23,34 @@ class BrokerProfileData {
     required this.website,
     required this.company,
     required this.country,
+    required this.phoneNumber,
     required this.license,
     required this.email,
     required this.paymentTerms,
     this.profilePictureUrl,
     this.ratings = const [],
   });
+
+  factory BrokerProfileData.fromMap(String id, Map<String, dynamic> map) {
+    return BrokerProfileData(
+      brokerID: id,
+      name: map['name']?.toString() ?? 'Unknown',
+      contact: map['contact']?.toString() ?? 'N/A',
+      rating: (map['rating'] is num) ? (map['rating'] as num).toDouble() : 0.0,
+      website: map['website']?.toString() ?? 'N/A',
+      company: map['company']?.toString() ?? 'N/A',
+      country: map['country']?.toString() ?? 'N/A',
+      phoneNumber: map['phoneNumber']?.toString() ?? 'N/A',
+      license: (map['license'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      email: map['email']?.toString() ?? 'N/A',
+      paymentTerms: map['paymentTerms']?.toString() ?? 'N/A',
+      profilePictureUrl: map['profilePictureUrl'] as String?,
+      ratings: (map['ratings'] as List<dynamic>?)
+          ?.map((r) => Rating.fromMap(r as Map<String, dynamic>))
+          .toList() ??
+          [],
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -70,30 +61,12 @@ class BrokerProfileData {
       'website': website,
       'company': company,
       'country': country,
+      'phoneNumber': phoneNumber,
       'license': license,
       'email': email,
       'paymentTerms': paymentTerms,
       'profilePictureUrl': profilePictureUrl,
-      'ratings': ratings.map((r) => r.toMap()).toList(), // Convert ratings to a list of maps
+      'ratings': ratings.map((r) => r.toMap()).toList(),
     };
-  }
-
-  factory BrokerProfileData.fromMap(String id, Map<String, dynamic> map) {
-    return BrokerProfileData(
-      brokerID: id,
-      name: map['name'] ?? 'Unknown',
-      contact: map['contact'] ?? 'N/A',
-      rating: (map['rating'] is int) ? (map['rating'] as int).toDouble() : (map['rating'] ?? 0.0),
-      website: map['website'] ?? 'N/A',
-      company: map['company'] ?? 'N/A',
-      country: map['country'] ?? 'N/A',
-      license: map['license'] != null ? List<String>.from(map['license']) : [],
-      email: map['email'] ?? 'N/A',
-      paymentTerms: map['paymentTerms'] ?? 'N/A',
-      profilePictureUrl: map['profilePictureUrl'] as String?,
-      ratings: map['ratings'] != null
-          ? List<Rating>.from(map['ratings'].map((r) => Rating.fromMap(r)))
-          : [],
-    );
   }
 }

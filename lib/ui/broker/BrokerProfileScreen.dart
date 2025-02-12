@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:intl_phone_field/intl_phone_field.dart';
+
 
 class BrokerProfileScreen extends StatefulWidget {
 
@@ -25,8 +27,11 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _companyNameController = TextEditingController();
   final TextEditingController _countryController = TextEditingController();
   final TextEditingController _paymentTermsController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  String _selectedPhoneNumber = "";
   List<TextEditingController> _licenseControllers = [];
   String? _profilePictureUrl;
 
@@ -45,7 +50,9 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       Map<String, dynamic> data = profileSnapshot.data() as Map<String, dynamic>;
       _nameController.text = data['name'] ?? 'N/A';
       _websiteController.text = data['website'] ?? 'N/A';
+      _companyNameController.text = data['company'] ?? 'N/A';
       _countryController.text = data['country'] ?? 'N/A';
+      _phoneController.text = data['phoneNumber'] ?? 'N/A';
       _paymentTermsController.text = data['paymentTerms'] ?? 'N/A';
       _licenseControllers = (data['license'] as List<dynamic>? ?? [])
           .map((license) => TextEditingController(text: license as String))
@@ -68,7 +75,9 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         profilePictureUrl: _profilePictureUrl,
         nameController: _nameController,
         websiteController: _websiteController,
+        companyNameController: _companyNameController,
         countryController: _countryController,
+        phoneNumberController: _selectedPhoneNumber,
         paymentTermsController: _paymentTermsController,
         licenseControllers: _licenseControllers,
       );
@@ -156,19 +165,27 @@ void _addLicenseField() {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 15),
                   //  _buildProfileField('Broker ID',_currentUser.uid),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
                     _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
                     _buildEditableField('Name', _nameController),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
                     _buildEditableField('Website', _websiteController),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5),
+                    _buildEditableField('Company', _companyNameController),
+
+                    const SizedBox(height: 5),
                     _buildEditableField('Country', _countryController),
-                    const SizedBox(height: 10),
+                    _buildPhoneNumberField(_phoneController, (phone) {
+                      setState(() {
+                        _selectedPhoneNumber = phone;
+                      });
+                    }),
+                    const SizedBox(height: 5),
                     _buildEditableField('Payment Terms', _paymentTermsController),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     _buildLicenseCard(),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -284,6 +301,40 @@ void _addLicenseField() {
           ),
           border: InputBorder.none,
         ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneNumberField(
+      TextEditingController controller, Function(String) onChanged) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: IntlPhoneField(
+        controller: controller,
+        decoration: const InputDecoration(
+          labelText: 'Phone Number',
+          labelStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          border: InputBorder.none,
+        ),
+        initialCountryCode: 'PK', // Default country
+        onChanged: (phone) {
+          onChanged(phone.completeNumber); // Callback to get full number
+        },
       ),
     );
   }

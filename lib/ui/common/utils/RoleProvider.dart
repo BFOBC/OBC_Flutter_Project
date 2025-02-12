@@ -19,6 +19,7 @@ class RoleProvider with ChangeNotifier {
     website: 'www.johndoe.com',
     company: 'OBC',
     country: 'USA',
+    phoneNumber: '+923065000660',
     license: ['XYZ-1234', 'ABC-5678', 'DEF-9012'],
     email: "broker@gmail.com",
     paymentTerms: "hehe",

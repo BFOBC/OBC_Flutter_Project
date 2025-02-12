@@ -21,7 +21,9 @@ class FirestoreService {
     required String? profilePictureUrl,
     required TextEditingController nameController,
     required TextEditingController websiteController,
+    required TextEditingController companyNameController,
     required TextEditingController countryController,
+    required String phoneNumberController,
     required TextEditingController paymentTermsController,
     required List<TextEditingController> licenseControllers,
   }) async {
@@ -39,8 +41,11 @@ class FirestoreService {
         'name': nameController.text.isEmpty ? 'N/A' : nameController.text,
         'website': websiteController.text.isEmpty ? 'N/A' : websiteController
             .text,
-        'country': countryController.text.isEmpty ? 'N/A' : countryController
+        'company': websiteController.text.isEmpty ? 'N/A' : companyNameController
             .text,
+        'country': countryController.text.isEmpty ? 'N/A' : countryController.text,
+        'phoneNumber': phoneNumberController.isEmpty ? 'N/A' : phoneNumberController.toString().trim(),
+
         'paymentTerms': paymentTermsController.text.isEmpty
             ? 'N/A'
             : paymentTermsController.text,
@@ -251,6 +256,7 @@ class FirestoreService {
                 website: 'N/A',
                 company: 'N/A',
                 country: 'N/A',
+                phoneNumber: 'N/A',
                 license: [],
                 email: 'N/A',
                 paymentTerms: 'N/A',
@@ -297,6 +303,66 @@ class FirestoreService {
       print('Error fetching broker details: $e');
       // Return an empty list in case of an error
       return [];
+    }
+  }
+  Future<BrokerProfileData?> fetchBrokerProfile2(String brokerID) async {
+    try {
+      print('Fetching broker profile for ID: $brokerID');
+
+      // Fetch broker document from Firestore
+      DocumentSnapshot brokerDoc = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(brokerID)
+          .get();
+
+      if (!brokerDoc.exists || brokerDoc.data() == null) {
+        print('No broker found for ID: $brokerID');
+        return null;
+      }
+
+      // Convert broker details
+      BrokerProfileData brokerProfile = BrokerProfileData.fromMap(
+        brokerID,
+        brokerDoc.data() as Map<String, dynamic>,
+      );
+
+      // Fetch ratings from broker -> brokerID -> rating collection
+      QuerySnapshot ratingsSnapshot = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(brokerID)
+          .collection('rating')
+          .get();
+
+      List<Rating> ratings = ratingsSnapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        print('Fetched rating: $data'); // Log rating data
+        return Rating.fromMap(data);
+      }).toList();
+
+      // Assign the fetched ratings to brokerProfile
+      brokerProfile = BrokerProfileData(
+        brokerID: brokerProfile.brokerID,
+        name: brokerProfile.name,
+        contact: brokerProfile.contact,
+        rating: ratings.isNotEmpty
+            ? ratings.map((r) => r.rating).reduce((a, b) => a + b) / ratings.length
+            : 0.0, // Calculate average rating if available
+        website: brokerProfile.website,
+        company: brokerProfile.company,
+        country: brokerProfile.country,
+        phoneNumber: brokerProfile.phoneNumber,
+        license: brokerProfile.license,
+        email: brokerProfile.email,
+        paymentTerms: brokerProfile.paymentTerms,
+        profilePictureUrl: brokerProfile.profilePictureUrl,
+        ratings: ratings, // Add fetched ratings
+      );
+
+      print('Final broker profile: ${brokerProfile.toMap()}'); // Log final profile
+      return brokerProfile;
+    } catch (e) {
+      print('Error fetching broker details: $e');
+      return null;
     }
   }
 
