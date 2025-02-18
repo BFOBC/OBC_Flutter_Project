@@ -195,7 +195,8 @@ class _SelectBrokerState extends State<SelectBroker> {
             const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
             children: _toggleText
                 .map((text) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(text),
             ))
                 .toList(),
@@ -208,7 +209,6 @@ class _SelectBrokerState extends State<SelectBroker> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Show Basic Info when 'Basic Info' tab is selected
                   if (_showProfile)
                     BrokerBasicInfo(
                       name: brokerInfo!.name,
@@ -218,57 +218,71 @@ class _SelectBrokerState extends State<SelectBroker> {
                       company: brokerInfo!.company ?? 'N/A',
                     ),
 
-                  // Show Circular Rating when 'Rating' tab is selected
                   if (_showPieChart)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 10),
                       child: CircularRating(
-                        dataMap: calculateRatingDistribution(brokerInfo!.ratings ?? []),
+                        dataMap: calculateRatingDistribution(
+                            brokerInfo!.ratings ?? []),
                         colorList: _colorList,
                       ),
                     ),
 
-                  // Show Rating List when 'Rating' tab is selected
                   if (_showPieChart) ...[
                     brokerInfo!.ratings != null &&
                         brokerInfo!.ratings!.isNotEmpty
                         ? ListView.builder(
                       shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics:
+                      const NeverScrollableScrollPhysics(),
                       itemCount: brokerInfo!.ratings!.length,
                       itemBuilder: (context, index) {
-                        var ratingItem = brokerInfo!.ratings![index];
+                        var ratingItem =
+                        brokerInfo!.ratings![index];
                         return Card(
                           margin: const EdgeInsets.symmetric(
                               vertical: 5, horizontal: 15),
                           elevation: 3,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius:
+                            BorderRadius.circular(10),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(10),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  ratingItem.from ?? "Anonymous",
+                                  ratingItem.from ??
+                                      "Anonymous",
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 RatingBarIndicator(
-                                  rating: ratingItem.rating?.toDouble() ?? 0.0,
-                                  itemBuilder: (context, index) =>
-                                  const Icon(Icons.star, color: Colors.amber),
+                                  rating: ratingItem.rating
+                                      ?.toDouble() ??
+                                      0.0,
+                                  itemBuilder: (context,
+                                      index) =>
+                                  const Icon(Icons.star,
+                                      color:
+                                      Colors.amber),
                                   itemCount: 5,
                                   itemSize: 20.0,
                                   direction: Axis.horizontal,
                                 ),
                                 const SizedBox(height: 5),
                                 Text(
-                                  ratingItem.comment ?? "No comment provided.",
-                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                  ratingItem.comment ??
+                                      "No comment provided.",
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color:
+                                      Colors.grey[700]),
                                 ),
                               ],
                             ),
@@ -277,7 +291,9 @@ class _SelectBrokerState extends State<SelectBroker> {
                       },
                     )
                         : const Text("No rating available",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ],
               ),
@@ -285,6 +301,39 @@ class _SelectBrokerState extends State<SelectBroker> {
           ),
         ],
       ),
+
+      // Bottom Button placed in bottomNavigationBar
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(25.0),
+        child: SizedBox(
+          width: double.infinity,
+          height: 40,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => JobDetails(
+                      emptyLegRequestID: widget.emptyLegRequestID,
+                      brokerID: widget.brokerID,
+                    )),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor:Colors.green,
+              foregroundColor: Colors.white,
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+            ),
+            child: const Text('View Job Details'),
+          ),
+        ),
+      ),
     );
   }
+
 }

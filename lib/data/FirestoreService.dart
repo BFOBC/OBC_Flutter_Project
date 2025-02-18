@@ -721,5 +721,23 @@ class FirestoreService {
     }
   }
 
+  // Method to update status in emptyLegRequests collection for a specific nodeID
+  Future<void> updateRatingFlag(String nodeID, String keyName,String value) async {
+    try {
+      // Reference to the emptyLegRequests collection and specific document
+      DocumentReference docRef = _firestore.collection('emptyLegRequests').doc(
+          nodeID);
+      // Update the 'status' field
+      await docRef.update({
+        keyName: value, // Field name 'status' and its new value
+      });
+      print('Status updated successfully');
+    } catch (e) {
+      print('Error updating status: $e');
+      throw Exception(
+          'Error updating status: $e'); // Throwing an exception if error occurs
+    }
+  }
+
 
 }

@@ -16,6 +16,8 @@ class EmptyLegRequest {
   final String? arrivalLocation;
   final String? bid;
   final String? courierCapacity;
+  final String? isBrokerRated;
+  final String? isCourierRated;
 
   // Constructor
   EmptyLegRequest({
@@ -31,6 +33,8 @@ class EmptyLegRequest {
     this.arrivalLocation,
     this.bid,
     this.courierCapacity,
+    this.isBrokerRated,
+    this.isCourierRated,
   });
 
   // Convert model to a map for Firestore
@@ -48,6 +52,8 @@ class EmptyLegRequest {
       'arrivalLocation': arrivalLocation,
       'bid': bid,
       'courierCapacity': courierCapacity,
+      'isCourierRated': isCourierRated,
+      'isBrokerRated': isBrokerRated,
     };
   }
 
@@ -66,6 +72,8 @@ class EmptyLegRequest {
       arrivalLocation: map['arrivalLocation'],
       bid: map['bid'],
       courierCapacity: map['courierCapacity'],
+      isBrokerRated: map['isBrokerRated'],
+      isCourierRated: map['isCourierRated'],
     );
   }
 }

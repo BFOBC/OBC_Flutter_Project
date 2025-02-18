@@ -203,6 +203,8 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       departureLocation: savedTask!.departureFrom!,
       arrivalLocation: savedTask!.arriveAt!,
       bid: savedTask!.bid!,
+      isCourierRated: 'false',
+      isBrokerRated: 'false',
 
     );
 

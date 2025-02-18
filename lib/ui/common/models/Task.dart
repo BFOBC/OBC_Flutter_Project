@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 class Task {
   String? brokerId;
   String? flightNumber;
@@ -14,7 +16,8 @@ class Task {
   String? bid;
   String? description;
   String? title;
-
+  String? isCourierRated;
+  String? isBrokerRated;
   Task({
     this.brokerId,
     this.flightNumber,
@@ -31,5 +34,7 @@ class Task {
     this.bid,
     this.title,
     this.description,
+    this.isCourierRated,
+    this.isBrokerRated
   });
 }

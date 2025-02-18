@@ -19,11 +19,12 @@ class ViewCourierMission extends StatefulWidget {
   @override
   _ViewCourierMissionState createState() => _ViewCourierMissionState();
 }
-
 class _ViewCourierMissionState extends State<ViewCourierMission> {
   int _selectedIndex = 0; // Selected toggle index (0 for Empty Leg, 1 for Milestone)
   final List<bool> _selectedToggle = [true, false]; // Default is Empty Leg selected
   final List<String> _toggleText = ["Submission", "Milestone"];
+
+  bool _dialogShown = false; // ڈائیلاگ شو ہونے کا ٹریکر
 
   void _onTogglePressed(int index) {
     setState(() {
@@ -35,16 +36,41 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
   @override
   void initState() {
     super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(
-        context: context,
-        barrierDismissible: false, // Prevent dismissing by tapping outside
-        builder: (context) => RatingDialog(task: widget.task!),
-      );
-    });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+
+// Check if the task is not rated (based on the role) and the selected tab is "Completed"
+    bool shouldShowDialog = widget.selectedTab == "Completed" && !_dialogShown;
+
+    if (roleProvider.role == UserRole.courier && widget.task?.isCourierRated == "false" && shouldShowDialog) {
+      _dialogShown = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => RatingDialog(task: widget.task!),
+        );
+      });
+    } else if (roleProvider.role != UserRole.courier && widget.task?.isBrokerRated == "false" && shouldShowDialog) {
+      _dialogShown = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => RatingDialog(task: widget.task!),
+        );
+      });
+    }
+
+
+  }
 
   // Function to show the dialog
   void _showStartJobDialog() {

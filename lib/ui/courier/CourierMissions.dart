@@ -85,6 +85,8 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
               ? job['milestones'][0]['status'] ?? 'N/A'
               : 'N/A',
           emptyLegRequestID: job['emptyLegRequestID'] ?? 'Unknown',
+          isCourierRated: job['isCourierRated'] ?? 'false',
+          isBrokerRated: job['isBrokerRated'] ?? 'false'
         ));
         // Add milestones to milestone list
         if (job['milestones'] != null && job['milestones'].isNotEmpty) {

@@ -174,6 +174,15 @@ class _RatingDialogState extends State<RatingDialog> {
 
       await service.addRating(rating); // Save to Firestore
 
+      // If broker is logged in, they rate a courier (assign courierID)
+      if (roleProvider.role == UserRole.broker) {
+        service.updateRatingFlag(widget.task.emptyLegRequestID.toString(),"isBrokerRated","true"); // Save to Firestore
+      }else{
+        service.updateRatingFlag(widget.task.emptyLegRequestID.toString(),"isCourierRated","true"); // Save to Firestore
+
+      }
+
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Rating submitted successfully!")),
       );
