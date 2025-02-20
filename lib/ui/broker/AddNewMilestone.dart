@@ -101,7 +101,6 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       _saveMilestone(newMilestone);
     }
   }
-
   void _showMilestoneDialog() {
     showDialog(
       context: context,
@@ -111,8 +110,12 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
             'Saved Milestones',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
-          content: StreamBuilder<QuerySnapshot>(
-            stream: milestonesCollection.snapshots(),
+          content: listMilestoneNodeIDS.isEmpty
+              ? const SizedBox(height: 100, child: Center(child: Text("No milestones found."))) // Handle empty list
+              : StreamBuilder<QuerySnapshot>(
+            stream: milestonesCollection
+                .where(FieldPath.documentId, whereIn: listMilestoneNodeIDS)
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -123,20 +126,18 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
                   setState(() {
                     _isViewButtonEnabled = false;
                   });
-                  Navigator.pop(context); // Close the dialog when empty
+                  Navigator.pop(context); // Close dialog if no data
                 });
-                return const SizedBox(); // Empty state (since the dialog will close)
+                return const SizedBox();
               }
-
-              var milestones = snapshot.data!.docs;
 
               return SizedBox(
                 height: 300,
                 width: 350,
                 child: ListView.builder(
-                  itemCount: milestones.length,
+                  itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
-                    var milestone = milestones[index];
+                    var milestone = snapshot.data!.docs[index];
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 8),
