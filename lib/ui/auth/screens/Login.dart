@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
 import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
+import '../../../data/FirestoreService.dart';
 import '../../common/screens/DrawerScreen.dart';
 import '../../common/utils/RoleProvider.dart';
 
@@ -57,7 +58,7 @@ class _CardViewState extends State<CardView> {
   final List<bool> _selectedToggle = [true, false];
   final List<String> _toggleText = ["Broker", "Courier"];
   Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
+/*    if (_formKey.currentState!.validate()) {
       showProgressDialog(context);
       try {
         final auth = FirebaseAuth.instance;
@@ -127,6 +128,35 @@ class _CardViewState extends State<CardView> {
         hideProgressDialog(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login failed: $error')),
+        );
+      }
+    }*/
+    final _firestoreService = FirestoreService(context);
+    if (_formKey.currentState!.validate()) {
+      showProgressDialog(context);
+
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
+      roleProvider.setRole(role);
+
+      String? errorMessage = await _firestoreService.signInAndSaveUser(
+        _emailController.text,
+        _passwordController.text,
+        _selectedIndex,
+      );
+
+      hideProgressDialog(context);
+      print("error");
+      print(errorMessage);
+      if (errorMessage == null) {
+        // Success: Navigate to DrawerScreen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const DrawerScreen()),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
         );
       }
     }

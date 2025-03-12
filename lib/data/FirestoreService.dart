@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,9 +14,79 @@ import 'package:provider/provider.dart';
 class FirestoreService {
   final BuildContext context;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  User _currentUser = FirebaseAuth.instance.currentUser!;
+  final User _currentUser = FirebaseAuth.instance.currentUser!;
 
-  FirestoreService(this.context);
+
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  bool _isDialogShown = false;
+  final Connectivity _connectivity = Connectivity();
+
+  FirestoreService(this.context) {
+    _monitorConnectivity();
+  }
+  /// Check internet connection
+  Future<bool> _isConnected2(BuildContext context) async {
+    var connectivityResult = await _connectivity.checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No internet connection. Please check your network.')),
+      );
+      return false;
+    }
+    return true;
+  }
+  // Method to check internet connectivity
+  Future<bool> _isConnected() async {
+    var result = await _connectivity.checkConnectivity();
+    return result != ConnectivityResult.none;
+  }
+// Monitor internet connectivity (WiFi & Mobile Data)
+  void _monitorConnectivity() {
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+          print("onConnectivityChanged");
+          if (result == ConnectivityResult.wifi) {
+            print("Connected to WiFi");
+          } else if (result == ConnectivityResult.mobile) {
+            print("Connected to Mobile Data");
+          } else if (result == ConnectivityResult.none) {
+            print("No Internet Connection");
+            _showNoInternetDialog();
+          }
+        });
+  }
+
+
+  // Show alert dialog when no internet
+  void _showNoInternetDialog() {
+    if (_isDialogShown) return; // Prevent duplicate dialogs
+
+    _isDialogShown = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent closing dialog by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("No Internet Connection"),
+          content: Text("Please connect to the internet and try again."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _isDialogShown = false;
+                Navigator.pop(context);
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Dispose listener when not needed
+  void dispose() {
+    _connectivitySubscription?.cancel();
+  }
 
   Future<void> saveBrokerProfile({
     required String userId,
@@ -738,6 +811,55 @@ class FirestoreService {
           'Error updating status: $e'); // Throwing an exception if error occurs
     }
   }
+  Future<String?> signInAndSaveUser(String email, String password, int selectedIndex) async {
+    // Check internet before proceeding
+    if (!await _isConnected()) {
+      return 'No internet connection. Please check your network.';
+    }
+    try {
+      final _auth = FirebaseAuth.instance;
 
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      User? user = userCredential.user;
+      if (user != null) {
+        String collectionName = selectedIndex == 0 ? 'broker' : 'courier';
+        DocumentReference userRef = _firestore.collection(collectionName).doc(user.uid);
+
+        // Check if user document exists
+        DocumentSnapshot userDoc = await userRef.get();
+
+        if (userDoc.exists) {
+          // Update existing user
+          await userRef.update({
+            'email': user.email,
+            'uid': user.uid,
+          });
+        } else {
+          // Create new user entry
+          await userRef.set({
+            'email': user.email,
+            'uid': user.uid,
+            // You can add more fields here
+          });
+        }
+      }
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          return 'No user found for that email.';
+        case 'wrong-password':
+          return 'Wrong password provided for that user.';
+        default:
+          return 'Login failed: Invalid Credentials';
+      }
+    } catch (error) {
+      return 'Login failed: $error';
+    }
+  }
 
 }

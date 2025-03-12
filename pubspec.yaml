@@ -52,9 +52,9 @@ dependencies:
   image_picker: ^1.1.2
   google_maps_flutter: ^2.3.0 # Use the latest stable version
   intl_phone_field: ^3.2.0
+  connectivity_plus: ^5.0.2
 
-
-  #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
+    #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 
 
   # The following adds the Cupertino Icons font to your application.
