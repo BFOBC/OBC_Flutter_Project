@@ -32,3 +32,27 @@ void showSnackBar(BuildContext ctx,String message) {
     SnackBar(content: Text(message)),
   );
 }
+String getCurrentTimeInUTC() {
+  final now = DateTime.now(); // System/local time
+  final utcTime = now.toUtc(); // Convert to UTC
+  return utcTime.toIso8601String(); // Return ISO 8601 formatted string
+}
+String convertUTCToLocal(String utcTimeString) {
+  final utcTime = DateTime.parse(utcTimeString).toUtc(); // Ensure it's UTC
+  final localTime = utcTime.toLocal(); // Convert to local time
+  return localTime.toString(); // Or use toIso8601String() if needed
+}
+String convertToUTCFromCustomFormat(String dateTimeString) {
+  try {
+    // Parse the input string into a DateTime object (local time)
+    DateTime localTime = DateTime.parse(dateTimeString.replaceAll(' ', 'T') + ':00'); // Adding seconds part
+
+    // Convert the DateTime to UTC
+    DateTime utcTime = localTime.toUtc();
+
+    // Return the UTC time in ISO 8601 format
+    return utcTime.toIso8601String();
+  } catch (e) {
+    return "Invalid Date Format"; // Handle invalid format
+  }
+}

@@ -57,12 +57,14 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
 
   Future<void> _saveToFirStore() async {
     try {
+      String fromDateTime=(convertToUTCFromCustomFormat(_fromDateTimeController.text.toString()));
+      String toDateTime=(convertToUTCFromCustomFormat(_toDateTimeController.text.toString()));
       String courierID = getCurrentUserId();
       await FirebaseFirestore.instance.collection('emptyLegs').add({
         'fromLocation': _fromLocationController.text,
         'toLocation': _toLocationController.text,
-        'fromDateTime': _fromDateTimeController.text,
-        'toDateTime': _toDateTimeController.text,
+        'fromDateTime': fromDateTime,
+        'toDateTime': toDateTime,
         'flightNumber': _flightNumberController.text,
         'capacity': _capacityController.text,
         'createdAt': DateTime.now().toIso8601String(),

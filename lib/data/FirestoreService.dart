@@ -11,6 +11,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../ui/common/utils/DateTimePicker.dart';
+
 class FirestoreService {
   final BuildContext context;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -177,6 +179,8 @@ class FirestoreService {
       // Create a new document with an auto-generated ID
       DocumentReference docRef = requests.doc();
 
+      request.startTimeDate=convertToUTCFromCustomFormat(request.startTimeDate.toString());
+      request.endTimeDate=convertToUTCFromCustomFormat(request.endTimeDate.toString());
       // Update the nodeID dynamically
       request.emptyLegRequestID = docRef.id;
 
@@ -255,7 +259,7 @@ class FirestoreService {
   // Method to fetch brokers by brokerIDs using the BrokerProfileData model
   Future<List<BrokerProfileData>> getBrokersByBrokerID(
       List<String> brokerIDs) async {
-    try {
+    try { 
       // Reference to the broker collection
       CollectionReference brokers = _firestore.collection('broker');
       List<BrokerProfileData> brokersList = [];

@@ -10,8 +10,8 @@ class EmptyLegRequest {
   final String requestDateTime;
   final String? status;
   final List<String?> milestoneNodeIDs; // Changed to List<String?>
-  final String? startTimeDate;
-  final String? endTimeDate;
+  String? startTimeDate;
+  String? endTimeDate;
   final String? departureLocation;
   final String? arrivalLocation;
   final String? bid;

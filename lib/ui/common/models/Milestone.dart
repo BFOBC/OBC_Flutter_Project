@@ -1,8 +1,8 @@
 class Milestone {
   final String title;
   final String description;
-  final String milestoneStartDateTime;
-  final String milestoneEndDateTime;
+  String? milestoneStartDateTime;
+  String? milestoneEndDateTime;
   final String? courierID;
   final String? brokerID;
   String? milestoneNodeID;

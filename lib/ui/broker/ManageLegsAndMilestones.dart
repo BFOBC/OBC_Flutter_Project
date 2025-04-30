@@ -189,7 +189,6 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
   Future<void> sendEmptyLegRequest(BuildContext context) async {
     FirestoreService firestoreService = FirestoreService(context);
     // Create a new EmptyLegRequest with nodeID initially null
-
     EmptyLegRequest newRequest = EmptyLegRequest(
       brokerID: widget.brokerKey,
       courierID: widget.courierKey,
@@ -209,6 +208,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     );
 
     // Save the request to Firestore
+
     await firestoreService.saveEmptyLegRequest(newRequest,milestoneNodeID);
 
 

@@ -43,6 +43,8 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       milestone.milestoneNodeID = docRef.id;
       mileStoneNodeID = milestone.milestoneNodeID!;
       milestone.milestoneStatus = "pending";
+      milestone.milestoneStartDateTime=convertToUTCFromCustomFormat(milestone.milestoneEndDateTime.toString());
+      milestone.milestoneEndDateTime=convertToUTCFromCustomFormat(milestone.milestoneEndDateTime.toString());
       listMilestoneNodeIDS.add(mileStoneNodeID);
 
       if (widget.onMilestoneSaved != null) {
