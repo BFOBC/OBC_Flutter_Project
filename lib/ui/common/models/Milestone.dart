@@ -1,3 +1,5 @@
+import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
+
 class Milestone {
   final String title;
   final String description;
@@ -48,4 +50,7 @@ class Milestone {
       emptyLegRequestID: map['emptyLegRequestID'] ?? '',
     );
   }
+  // Getters for local time conversion
+  String get localStartDateTime => convertUTCToLocal(milestoneStartDateTime ?? '');
+  String get localEndDateTime => convertUTCToLocal(milestoneEndDateTime ?? '');
 }

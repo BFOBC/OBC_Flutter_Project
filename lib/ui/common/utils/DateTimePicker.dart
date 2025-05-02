@@ -37,11 +37,23 @@ String getCurrentTimeInUTC() {
   final utcTime = now.toUtc(); // Convert to UTC
   return utcTime.toIso8601String(); // Return ISO 8601 formatted string
 }
+
 String convertUTCToLocal(String utcTimeString) {
-  final utcTime = DateTime.parse(utcTimeString).toUtc(); // Ensure it's UTC
-  final localTime = utcTime.toLocal(); // Convert to local time
-  return localTime.toString(); // Or use toIso8601String() if needed
+  print("UTC input: $utcTimeString"); // 👈 print to debug
+
+  if (utcTimeString.isEmpty) return "N/A";
+
+  try {
+    final utcTime = DateTime.parse(utcTimeString);
+    final localTime = utcTime.toLocal();
+    return DateFormat('dd MMM yyyy, hh:mm a').format(localTime);
+  } catch (e) {
+    print("Error parsing date: $e");
+    return "Invalid date";
+  }
 }
+
+
 String convertToUTCFromCustomFormat(String dateTimeString) {
   try {
     // Parse the input string into a DateTime object (local time)
@@ -54,5 +66,23 @@ String convertToUTCFromCustomFormat(String dateTimeString) {
     return utcTime.toIso8601String();
   } catch (e) {
     return "Invalid Date Format"; // Handle invalid format
+  }
+}
+String convertToUTCFromStandardFormat(String dateTimeString) {
+  try {
+    // Define your input format
+    final inputFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+
+    // Parse as local time
+    DateTime localTime = inputFormat.parse(dateTimeString);
+
+    // Convert to UTC
+    DateTime utcTime = localTime.toUtc();
+
+    // Return in ISO 8601 format
+    return utcTime.toIso8601String(); // e.g., 2025-05-02T13:01:00.000Z
+  } catch (e) {
+    print("Error parsing datetime: $e");
+    return "Invalid Date testtttttt";
   }
 }

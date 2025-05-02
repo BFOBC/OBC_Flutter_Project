@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
@@ -189,6 +190,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
   Future<void> sendEmptyLegRequest(BuildContext context) async {
     FirestoreService firestoreService = FirestoreService(context);
     // Create a new EmptyLegRequest with nodeID initially null
+
     EmptyLegRequest newRequest = EmptyLegRequest(
       brokerID: widget.brokerKey,
       courierID: widget.courierKey,
@@ -206,8 +208,15 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       isBrokerRated: 'false',
 
     );
+    String startTimeManageLeg=newRequest.startTimeDate.toString();
+    String endTimeManageLeg=newRequest.startTimeDate.toString();
 
+
+    newRequest.startTimeDate=convertToUTCFromStandardFormat(newRequest.startTimeDate.toString());
+    newRequest.endTimeDate=convertToUTCFromStandardFormat(newRequest.endTimeDate.toString());
     // Save the request to Firestore
+    print("startTimeManageLeg: $startTimeManageLeg");
+    print(newRequest.startTimeDate.toString());
 
     await firestoreService.saveEmptyLegRequest(newRequest,milestoneNodeID);
 
@@ -267,5 +276,8 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
         _navigateToDrawerPage();
       }
     });
+
+
   }
+
 }

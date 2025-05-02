@@ -49,14 +49,14 @@ class _DrawerScreenState extends State<DrawerScreen> {
       'title': AppStrings.myMissions,
       'icon': Icons.access_alarm,
     },
-    AppStrings.history: {
+/*    AppStrings.history: {
       'title': AppStrings.history,
       'icon': Icons.history,
     },
     AppStrings.inviteFriends: {
       'title': AppStrings.inviteFriends,
       'icon': Icons.people,
-    },
+    },*/
     AppStrings.faq: {
       'title': AppStrings.faq,
       'icon': Icons.help,
@@ -65,10 +65,10 @@ class _DrawerScreenState extends State<DrawerScreen> {
       'title': AppStrings.logout,
       'icon': Icons.logout,
     },
-    AppStrings.settings: {
+/*    AppStrings.settings: {
       'title': AppStrings.settings,
       'icon': Icons.settings,
-    }
+    }*/
   };
 
   @override

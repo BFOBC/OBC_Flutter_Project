@@ -1,5 +1,7 @@
 import 'dart:ffi';
 
+import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
+
 class Task {
   String? brokerId;
   String? flightNumber;
@@ -37,4 +39,7 @@ class Task {
     this.isCourierRated,
     this.isBrokerRated
   });
+  // Getters for local time conversion
+  String get localStartDateTime => convertUTCToLocal(startDateTime ?? '');
+  String get localEndDateTime => convertUTCToLocal(endDateTime ?? '');
 }

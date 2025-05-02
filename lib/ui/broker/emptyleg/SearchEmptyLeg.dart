@@ -2,6 +2,7 @@ import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
+import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -551,12 +552,13 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       String brokerID = getCurrentUserId();
       // Generate a custom nodeID (you can replace this with any unique value generator)
       String nodeID = FirebaseFirestore.instance.collection('emptyLegRequests').doc().id;
-
+     String currentDateTime= DateTime.now().toString();
+    String UTCTime=  convertToUTCFromCustomFormat(currentDateTime.toString());
       await FirebaseFirestore.instance.collection('emptyLegRequests').doc(nodeID).set({
         'emptyLegRequestID': nodeID, // Add nodeID explicitly
         'brokerID': brokerID,
         'status': "pending",
-        'requestDateTime': DateTime.now().toIso8601String(),
+        'requestDateTime':UTCTime,
         'courierID': courierID,
       });
 

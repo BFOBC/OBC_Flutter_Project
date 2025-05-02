@@ -179,8 +179,8 @@ class FirestoreService {
       // Create a new document with an auto-generated ID
       DocumentReference docRef = requests.doc();
 
-      request.startTimeDate=convertToUTCFromCustomFormat(request.startTimeDate.toString());
-      request.endTimeDate=convertToUTCFromCustomFormat(request.endTimeDate.toString());
+    //  request.startTimeDate=convertToUTCFromCustomFormat(request.startTimeDate.toString());
+     // request.endTimeDate=convertToUTCFromCustomFormat(request.endTimeDate.toString());
       // Update the nodeID dynamically
       request.emptyLegRequestID = docRef.id;
 

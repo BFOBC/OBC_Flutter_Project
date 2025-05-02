@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/ui/common/utils/CustomDialog.dart';
+import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:path/path.dart';
@@ -76,4 +77,7 @@ class EmptyLegRequest {
       isCourierRated: map['isCourierRated'],
     );
   }
+  // Getters for local time conversion
+  String get localStartDateTime => convertUTCToLocal(startTimeDate ?? '');
+  String get localEndDateTime => convertUTCToLocal(endTimeDate ?? '');
 }

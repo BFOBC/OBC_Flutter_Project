@@ -5,7 +5,9 @@ import '../common/models/Task.dart';
 class TaskDetailScreen extends StatelessWidget {
   final Task task;
 
-  const TaskDetailScreen({Key? key, required this.task}) : super(key: key);
+  TaskDetailScreen({Key? key, required this.task}) : super(key: key);
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +38,8 @@ class TaskDetailScreen extends StatelessWidget {
                     detailCard("Broker ID", task.brokerId),
                     detailCard("Departure From", task.departureFrom),
                     detailCard("Arrive At", task.arriveAt),
-                    detailCard("Start Date And Time", task.startDateTime),
-                    detailCard("End Date And Time", task.endDateTime),
+                    detailCard("Start Date And Time", task.localStartDateTime),
+                    detailCard("End Date And Time", task.localEndDateTime),
                     detailCard("Bid", task.bid),
                     detailCard("Description", task.description),
                   ],
