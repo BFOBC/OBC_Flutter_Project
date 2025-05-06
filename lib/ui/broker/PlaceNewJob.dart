@@ -1,7 +1,10 @@
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 
 class PlaceNewJob extends StatefulWidget {
   final Task? data;
@@ -20,7 +23,7 @@ class PlaceNewJobState extends State<PlaceNewJob> {
   final TextEditingController _field4Controller = TextEditingController();
   final TextEditingController _field5Controller = TextEditingController();
   final TextEditingController _fieldBidController = TextEditingController();
-  bool _isViewEnabled = false;
+  bool _isViewEnabled = true;
 
   @override
   void initState() {
@@ -31,18 +34,32 @@ class PlaceNewJobState extends State<PlaceNewJob> {
       _field3Controller.text = widget.data!.departureFrom!;
       _field4Controller.text = widget.data!.arriveAt!;
       _fieldBidController.text = widget.data!.bid!;
-      _field5Controller.text = widget.data!.flightNumber!;
+      _field5Controller.text = widget.data!.courierCapacity!;
     }
   }
 
   bool validate() {
-    return _field1Controller.text.isNotEmpty &&
-        _field2Controller.text.isNotEmpty &&
-        _field3Controller.text.isNotEmpty &&
-        _field4Controller.text.isNotEmpty &&
-        _fieldBidController.text.isNotEmpty &&
-        _field5Controller.text.isNotEmpty;
+    if (_field1Controller.text.isEmpty ||
+        _field2Controller.text.isEmpty ||
+        _field3Controller.text.isEmpty ||
+        _field4Controller.text.isEmpty ||
+        _fieldBidController.text.isEmpty ||
+        _field5Controller.text.isEmpty) {
+      // Show Toast when fields are empty
+      Fluttertoast.showToast(
+        msg: "Please fill all fields correctly.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return false; // return false if validation fails
+    }
+    return true; // return true if all fields are filled
   }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -78,15 +95,14 @@ class PlaceNewJobState extends State<PlaceNewJob> {
                           arriveAt: _field4Controller.text,
                           bid: _fieldBidController.text,
                           flightNumber: _field5Controller.text,
+                          courierCapacity: _field5Controller.text,
                         );
                         widget.onSave(newTask);
+                        clearFields();
+                        Provider.of<RoleProvider>(context, listen: false).setTask(newTask);
                         setState(() => _isViewEnabled = true);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Submission saved successfully!')),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please fill all fields correctly.')),
                         );
                       }
                     },
@@ -119,9 +135,16 @@ class PlaceNewJobState extends State<PlaceNewJob> {
       ),
     );
   }
-
-// View اور Delete ڈائیلاگ
   void _showSubmissionDetails() {
+    final task = Provider.of<RoleProvider>(context, listen: false).task;
+
+    if (task == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Submission not available.")),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -131,35 +154,51 @@ class PlaceNewJobState extends State<PlaceNewJob> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             elevation: 4,
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(8.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Start Time: ${_field1Controller.text}'),
-                  Text('End Time: ${_field2Controller.text}'),
-                  Text('Departure: ${_field3Controller.text}'),
-                  Text('Arrival: ${_field4Controller.text}'),
-                  Text('Bid: ${_fieldBidController.text}'),
-                  Text('Courier Capacity: ${_field5Controller.text}'),
+                  Text('Start Time: ${task.startDateTime}'),
+                  Text('End Time: ${task.endDateTime}'),
+                  Text('Departure: ${task.departureFrom ?? "N/A"}'),
+                  Text('Arrival: ${task.arriveAt ?? "N/A"}'),
+                  Text('Bid: ${task.bid ?? "N/A"}'),
+                  Text('Courier Capacity: ${task.courierCapacity ?? "N/A"}'),
                 ],
               ),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => _showDeleteConfirmation(), // کنفرمیشن ڈائیلاگ شو ہوگا
+              onPressed: () {
+                _showDeleteConfirmation(); // Confirm delete
+              },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+              onPressed: () {
+                // ✅ Set task data to controllers
+                _field1Controller.text = task.startDateTime!;
+                _field2Controller.text = task.endDateTime!;
+                _field3Controller.text = task.departureFrom ?? "";
+                _field4Controller.text = task.arriveAt ?? "";
+                _fieldBidController.text = task.bid ?? "";
+                _field5Controller.text = task.courierCapacity ?? ""; // Assuming this is courier capacity
+
+                Navigator.pop(context); // Close the dialog
+              },
+              child: const Text('Edit'),
             ),
           ],
         );
       },
     );
+
   }
+
+
+
   void _showDeleteConfirmation() {
     showDialog(
       context: context,
@@ -176,6 +215,8 @@ class PlaceNewJobState extends State<PlaceNewJob> {
               onPressed: () {
                 Navigator.of(context, rootNavigator: true).pop(); // ڈائیلاگ بند کرنے کا درست طریقہ
                 _deleteSubmission(); // ڈیلیٹ کی فنکشن کال
+                Provider.of<RoleProvider>(context, listen: false).clearTask();
+
               },
               child: const Text("Yes", style: TextStyle(color: Colors.red)),
             ),
@@ -189,17 +230,20 @@ class PlaceNewJobState extends State<PlaceNewJob> {
   void _deleteSubmission() {
     setState(() {
       Navigator.pop(context); // Close confirmation dialog
-      _isViewEnabled = false;
-      _field1Controller.clear();
-      _field2Controller.clear();
-      _field3Controller.clear();
-      _field4Controller.clear();
-      _fieldBidController.clear();
-      _field5Controller.clear();
+      _isViewEnabled = true;
+      clearFields();
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Submission deleted successfully!')),
     );
+  }
+  void clearFields(){
+    _field1Controller.clear();
+    _field2Controller.clear();
+    _field3Controller.clear();
+    _field4Controller.clear();
+    _fieldBidController.clear();
+    _field5Controller.clear();
   }
 
 
@@ -243,5 +287,10 @@ class PlaceNewJobState extends State<PlaceNewJob> {
       }
     }
   }
-
+  @override
+  void dispose() {
+    // Clear milestone list from provider
+    Provider.of<RoleProvider>(context, listen: false).clearTask();
+    super.dispose();
+  }
 }

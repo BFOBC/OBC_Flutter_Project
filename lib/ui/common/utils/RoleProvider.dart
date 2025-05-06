@@ -1,5 +1,6 @@
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/courier/models/CourierProfileData.dart';
 import 'package:flutter/foundation.dart';
@@ -72,4 +73,51 @@ class RoleProvider with ChangeNotifier {
     _brokerProfileData = updatedProfile;
     notifyListeners();
   }
+  /// 🔴 Your dynamic milestone node ID list
+  late List<String> _listMilestoneNodeIDS = [];
+  /// ✅ Getter
+  List<String> get listMilestoneNodeIDS => _listMilestoneNodeIDS;
+  /// ✅ Setter / Save method
+  void setMilestoneNodeIDS(List<String> newList) {
+    _listMilestoneNodeIDS = newList;
+    notifyListeners(); // Optional: Only if UI depends on this
+  }
+  /// ✅ Add single item
+  void addMilestoneNodeID(String id) {
+    if (!_listMilestoneNodeIDS.contains(id)) {
+      _listMilestoneNodeIDS.add(id);
+      notifyListeners();
+    }
+  }
+  /// ✅ Remove single item
+  void removeMilestoneNodeID(String id) {
+    _listMilestoneNodeIDS.remove(id);
+    notifyListeners();
+  }
+  /// ✅ Clear all
+  void clearMilestoneNodeIDS() {
+    _listMilestoneNodeIDS.clear();
+    notifyListeners();
+  }
+
+  /// 🔵 Single task instance
+  Task? _task;
+
+  /// ✅ Getter
+  Task? get task => _task;
+
+  /// ✅ Setter / Save method
+  void setTask(Task newTask) {
+    _task = newTask;
+    notifyListeners(); // Notify UI if it's listening
+  }
+
+  /// ✅ Clear / Delete method
+  void clearTask() {
+    _task = null;
+    notifyListeners();
+  }
+
+  /// ✅ Check if task is available
+  bool get hasTask => _task != null;
 }

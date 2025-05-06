@@ -20,6 +20,7 @@ class Task {
   String? title;
   String? isCourierRated;
   String? isBrokerRated;
+  String? courierCapacity;
   Task({
     this.brokerId,
     this.flightNumber,
@@ -37,7 +38,8 @@ class Task {
     this.title,
     this.description,
     this.isCourierRated,
-    this.isBrokerRated
+    this.isBrokerRated,
+    this.courierCapacity
   });
   // Getters for local time conversion
   String get localStartDateTime => convertUTCToLocal(startDateTime ?? '');

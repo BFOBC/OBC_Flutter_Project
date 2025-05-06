@@ -53,6 +53,8 @@ dependencies:
   google_maps_flutter: ^2.3.0 # Use the latest stable version
   intl_phone_field: ^3.2.0
   connectivity_plus: ^5.0.2
+  geolocator: ^10.1.0
+  fluttertoast: ^8.1.1  # Latest version
 
     #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 

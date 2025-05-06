@@ -53,6 +53,20 @@ String convertUTCToLocal(String utcTimeString) {
   }
 }
 
+String convertToUTCFromCustomFormat2(String localTimeString) {
+  print("Local input: $localTimeString"); // 👈 debug
+
+  if (localTimeString.isEmpty) return "N/A";
+
+  try {
+    final localTime = DateFormat('dd MMM yyyy, hh:mm a').parse(localTimeString);
+    final utcTime = localTime.toUtc();
+    return utcTime.toIso8601String(); // standard UTC format
+  } catch (e) {
+    print("Error converting to UTC: $e");
+    return "Invalid date";
+  }
+}
 
 String convertToUTCFromCustomFormat(String dateTimeString) {
   try {

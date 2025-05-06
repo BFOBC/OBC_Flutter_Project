@@ -3,14 +3,18 @@ import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 import '../../res/custom_colors.dart';
 import '../common/utils/DateTimePicker.dart';
+import '../common/utils/RoleProvider.dart';
 
 class AddNewMilestone extends StatefulWidget {
   final Task? data;
   final String courierKey;
   final String brokerKey;
-  final Function(List<String> milestoneNodeID)? onMilestoneSaved; // Callback function
+  final Function(List<String> milestoneNodeID)?
+      onMilestoneSaved; // Callback function
 
   AddNewMilestone({
     super.key,
@@ -26,16 +30,22 @@ class AddNewMilestone extends StatefulWidget {
 
 class AddNewMilestoneScreenState extends State<AddNewMilestone> {
   late String mileStoneNodeID;
-  late List<String> listMilestoneNodeIDS = [];
+  String? _editingMilestoneNodeID;
+  String? _originalStartDateTime;
+  String? _originalEndDateTime;
+
+  late List<String> listMilestoneNodeIDSLocal = [];
   final TextEditingController _summaryController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _startTimeAndDateController = TextEditingController();
-  final TextEditingController _endTimeAndDateController = TextEditingController();
+  final TextEditingController _startTimeAndDateController =
+      TextEditingController();
+  final TextEditingController _endTimeAndDateController =
+      TextEditingController();
 
   final CollectionReference milestonesCollection =
-  FirebaseFirestore.instance.collection('milestones');
+      FirebaseFirestore.instance.collection('milestones');
 
-  bool _isViewButtonEnabled = false;
+  bool _isViewButtonEnabled = true;
 
   Future<void> _saveMilestone(Milestone milestone) async {
     try {
@@ -43,12 +53,20 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       milestone.milestoneNodeID = docRef.id;
       mileStoneNodeID = milestone.milestoneNodeID!;
       milestone.milestoneStatus = "pending";
-      milestone.milestoneStartDateTime=convertToUTCFromCustomFormat(milestone.milestoneEndDateTime.toString());
-      milestone.milestoneEndDateTime=convertToUTCFromCustomFormat(milestone.milestoneEndDateTime.toString());
-      listMilestoneNodeIDS.add(mileStoneNodeID);
+      milestone.milestoneStartDateTime = convertToUTCFromCustomFormat(
+          milestone.milestoneEndDateTime.toString());
+      milestone.milestoneEndDateTime = convertToUTCFromCustomFormat(
+          milestone.milestoneEndDateTime.toString());
 
+      /// ✅ Save ID to provider without listening
+      Provider.of<RoleProvider>(context, listen: false)
+          .addMilestoneNodeID(mileStoneNodeID);
+
+      /// ✅ Retrieve without listening
       if (widget.onMilestoneSaved != null) {
-        widget.onMilestoneSaved!(listMilestoneNodeIDS);
+        List<String> ids = Provider.of<RoleProvider>(context, listen: false)
+            .listMilestoneNodeIDS;
+        widget.onMilestoneSaved!(ids);
       }
 
       await docRef.set(milestone.toMap());
@@ -56,7 +74,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       setState(() {
         _isViewButtonEnabled = true;
       });
-
+      _clearFormFields();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Milestone saved successfully!')),
       );
@@ -67,6 +85,40 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       print("Error saving milestone: $e");
     }
   }
+  Future<void> _updateMilestone(String nodeID, Milestone milestone) async {
+    try {
+      final docRef = milestonesCollection.doc(nodeID);
+      // Only convert to UTC if value has changed
+      if (_startTimeAndDateController.text != _originalStartDateTime) {
+        milestone.milestoneStartDateTime = convertToUTCFromCustomFormat(_startTimeAndDateController.text);
+      }else{
+        milestone.milestoneStartDateTime = convertToUTCFromCustomFormat2(_startTimeAndDateController.text);
+      }
+      if (_endTimeAndDateController.text != _originalEndDateTime) {
+        milestone.milestoneEndDateTime = convertToUTCFromCustomFormat(_endTimeAndDateController.text);
+      }else{
+        milestone.milestoneEndDateTime = convertToUTCFromCustomFormat2(_endTimeAndDateController.text);
+      }
+
+      // ✅ Update milestone in Firestore
+      await docRef.update(milestone.toMap());
+
+      setState(() {
+        _isViewButtonEnabled = true;
+      });
+
+      _clearFormFields();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Milestone updated successfully!')),
+      );
+    } catch (e) {
+      print("Error updating milestone: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating milestone: $e')),
+      );
+    }
+  }
 
   void _clearFormFields() {
     _summaryController.clear();
@@ -75,18 +127,31 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
     _endTimeAndDateController.clear();
   }
 
+
   bool validateInputs() {
+    print("Validating inputs...");
     if (_summaryController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
         _startTimeAndDateController.text.isEmpty ||
         _endTimeAndDateController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields correctly.')),
-      );
+      print("Fields are empty. Showing Toast...");
+      Future.delayed(Duration(milliseconds: 100), () {
+        Fluttertoast.showToast(
+          msg: "Please fill all fields correctly.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      });
       return false;
     }
     return true;
   }
+
+
 
   void _submitForm() {
     if (validateInputs()) {
@@ -99,24 +164,36 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
         milestoneNodeID: null,
         brokerID: widget.brokerKey,
       );
-
-      _saveMilestone(newMilestone);
+      if (_editingMilestoneNodeID != null) {
+        _updateMilestone(_editingMilestoneNodeID!, newMilestone);
+        _editingMilestoneNodeID = null; // reset after update
+      } else {
+        _saveMilestone(newMilestone);
+      }
     }
   }
   void _showMilestoneDialog() {
+    List<String> ids =
+        Provider.of<RoleProvider>(context, listen: false).listMilestoneNodeIDS;
+
+    if (ids.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No milestones available')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text(
-            'Saved Milestones',
+            'Added Milestones',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
-          content: listMilestoneNodeIDS.isEmpty
-              ? const SizedBox(height: 100, child: Center(child: Text("No milestones found."))) // Handle empty list
-              : StreamBuilder<QuerySnapshot>(
+          content: StreamBuilder<QuerySnapshot>(
             stream: milestonesCollection
-                .where(FieldPath.documentId, whereIn: listMilestoneNodeIDS)
+                .where(FieldPath.documentId, whereIn: ids)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -124,13 +201,13 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  setState(() {
-                    _isViewButtonEnabled = false;
-                  });
-                  Navigator.pop(context); // Close dialog if no data
+                Future.microtask(() {
+                  Navigator.pop(dialogContext); // Close dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('No milestones found')),
+                  );
                 });
-                return const SizedBox();
+                return const SizedBox.shrink();
               }
 
               return SizedBox(
@@ -141,36 +218,59 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
                   itemBuilder: (context, index) {
                     var milestone = snapshot.data!.docs[index];
 
+                    // ✅ Use your method here
+                    String startDate = convertUTCToLocal(milestone['milestoneStartDateTime']);
+                    String endDate = convertUTCToLocal(milestone['milestoneEndDateTime']);
+
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       elevation: 3,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(8),
-                        title: Text(
-                          milestone['title'],
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(milestone['description']),
-                            const SizedBox(height: 5),
                             Text(
-                              'Start Date And Time: ${milestone['milestoneStartDateTime']}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              milestone['title'],
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(milestone['description']),
+                            Text(
+                              'Start Date And Time: $startDate',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
                             ),
                             Text(
-                              'End Date And Time: ${milestone['milestoneEndDateTime']}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              'End Date And Time: $endDate',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () {
+                                    _setMilestoneDataForEditing(milestone);
+                                    Navigator.pop(dialogContext);
+                                  },
+                                  label: const Text("Edit",
+                                      style: TextStyle(color: Colors.blue)),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () =>
+                                      _showDeleteConfirmation(milestone.id),
+                                  label: const Text("Delete",
+                                      style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
                             ),
                           ],
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _showDeleteConfirmation(milestone.id),
                         ),
                       ),
                     );
@@ -181,7 +281,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'Close',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -194,13 +294,31 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
   }
 
 
+  void _setMilestoneDataForEditing(QueryDocumentSnapshot milestone) {
+    _summaryController.text = milestone['title'];
+    _descriptionController.text = milestone['description'];
+    _startTimeAndDateController.text =
+        convertUTCToLocal(milestone['milestoneStartDateTime']);
+    _endTimeAndDateController.text =
+        convertUTCToLocal(milestone['milestoneEndDateTime']);
+
+    _editingMilestoneNodeID = milestone.id; // 👈 yahan set karo
+
+    _originalStartDateTime = _startTimeAndDateController.text;
+    _originalEndDateTime = _endTimeAndDateController.text;
+  }
+
+
+
+
   void _showDeleteConfirmation(String id) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text("Delete Milestone"),
-          content: const Text("Are you sure you want to delete this milestone?"),
+          content:
+              const Text("Are you sure you want to delete this milestone?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context), // Close dialog (Cancel)
@@ -208,6 +326,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
             ),
             TextButton(
               onPressed: () {
+                _clearFormFields();
                 Navigator.pop(context); // Close confirmation dialog
                 _deleteMilestone(id); // Proceed with deletion
               },
@@ -219,7 +338,6 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
     );
   }
 
-
   Future<void> _deleteMilestone(String id) async {
     try {
       await milestonesCollection.doc(id).delete();
@@ -227,10 +345,10 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       var snapshot = await milestonesCollection.get();
       if (snapshot.docs.isEmpty) {
         setState(() {
-          _isViewButtonEnabled = false;
+          _isViewButtonEnabled = true;
         });
       }
-
+      context.read<RoleProvider>().removeMilestoneNodeID(id);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Milestone deleted successfully!')),
       );
@@ -240,7 +358,6 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -308,9 +425,11 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                   ),
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                  child:
+                      const Text('Save', style: TextStyle(color: Colors.white)),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
@@ -320,9 +439,11 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
                   ),
-                  child: const Text('View', style: TextStyle(color: Colors.white)),
+                  child:
+                      const Text('View', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

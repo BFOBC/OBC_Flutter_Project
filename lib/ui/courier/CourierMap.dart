@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:card_stack_widget/card_stack_widget.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../data/DatabaseOperation.dart';
 import '../common/models/AirportModel.dart';
@@ -46,9 +47,9 @@ class _CourierMapState extends State<CourierMap>
   //Location location = Location(); // Create a Location instance
 
   LatLng _baseLocation =
-      const LatLng(40.7128, -74.0060); // Example: New York City
+      const LatLng(30.3753, 69.3451);  // Example: New York City
   LatLng _currentLocation =
-      const LatLng(34.0522, -118.2437); // Example: Los Angeles
+      const LatLng(30.3753, 69.3451); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
   List<Map<String, dynamic>> brokerInfoList = [];
 
@@ -71,7 +72,7 @@ class _CourierMapState extends State<CourierMap>
             setState(() {});
           });
     _currentUser = FirebaseAuth.instance.currentUser!;
-    // _getCurrentLocation();
+    getCurrentLocation(context);
     //_onSearch("abc");
     //fetchEmptyLegRequests();
     // FirestoreService firestoreService = FirestoreService(context);
@@ -80,49 +81,58 @@ class _CourierMapState extends State<CourierMap>
     fetchEmptyLegRequests();
   }
 
-/*  Future<void> _getCurrentLocation() async {
-    Location location = Location();
+  Future<Position?> getCurrentLocation(BuildContext context) async {
     bool serviceEnabled;
-    PermissionStatus permissionGranted;
+    LocationPermission permission;
 
-    serviceEnabled = await location.serviceEnabled();
+    // Step 1: Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
-      if (!serviceEnabled) {
-        return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ Location services are disabled.')),
+      );
+      return null;
+    }
+
+    // Step 2: Check current permission status
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Location permission denied by user.')),
+        );
+        return null;
       }
     }
 
-    permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        return;
-      }
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❗ Location permission permanently denied. Open settings.')),
+      );
+      await Geolocator.openAppSettings();
+      return null;
     }
 
-    // Get current location
-    LocationData _locationData = await location.getLocation();
-
-    setState(() {
-      _currentLocation = LatLng(_locationData.latitude!, _locationData.longitude!);
-
-      // Update the map and markers
-      _mapController.move(_currentLocation, 15.0);
-      _markers = [
-        Marker(
-          width: 80.0,
-          height: 80.0,
-          point: _baseLocation,
-          child: const Icon(
-            Icons.location_on,
-            color: Colors.red,
-            size: 40,
-          ),
-        ),
-      ];
-    });
-  }*/
+    // Step 3: Get current position
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      _currentLocation=LatLng(position.latitude, position.longitude);
+      // Animate the camera to the new location
+      animateCamera(_currentLocation, 10.0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('📍 Location: ${position.latitude}, ${position.longitude}')),
+      );
+      return position;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('🚫 Error fetching location: $e')),
+      );
+      return null;
+    }
+  }
 
   Future<void> fetchEmptyLegRequests() async {
     setState(() {
@@ -270,13 +280,42 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
-
   void animateCamera(LatLng location, double zoom) async {
     final GoogleMapController controller = await _mapController.future;
+
+    // Animate the camera to the location
     controller.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(target: location, zoom: zoom),
     ));
+
+    if(_isBaseSelected){
+      // Add or update green marker at the location
+      Marker newMarker = Marker(
+        markerId: MarkerId('base_location'),
+        position: location,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen), // 👈 green color
+        infoWindow: InfoWindow(title: 'Base Location'),
+      );
+      _markers.clear(); // Optional: if you only want one marker at a time
+      _markers.add(newMarker);
+    }else{
+
+      // Add or update green marker at the location
+      Marker newMarker = Marker(
+        markerId: MarkerId('current_location'),
+        position: location,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange), // 👈 green color
+        infoWindow: InfoWindow(title: 'Current Location'),
+      );
+      _markers.clear(); // Optional: if you only want one marker at a time
+      _markers.add(newMarker);
+    }
+
+
+    // Trigger UI update (make sure you're in a stateful widget)
+    setState(() {});
   }
+
 
 
   Future<void> _updateBaseLocation(double lat, double long) async {
@@ -289,8 +328,31 @@ class _CourierMapState extends State<CourierMap>
         'baseLocationLat': lat,
         'baseLocationLong': long,
         'country': country,
-        'base': _isBaseSelected,
-        'current': !_isBaseSelected,
+        'base': true,
+        'current': false,
+      }, SetOptions(merge: true));
+
+      // Firebase update completed
+      print("Base location updated successfully!");
+    } catch (e) {
+      // Handle Firebase errors
+      print("Error updating base location: $e");
+    }
+  }
+
+
+  Future<void> _updateCurrentLocation(double lat, double long) async {
+    try {
+      // Perform Firebase update asynchronously without blocking the UI
+      await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(_currentUser.uid)
+          .set({
+        'currentLocationLat': lat,
+        'currentLocationLong': long,
+        'country': country,
+        'base': false,
+        'current': true,
       }, SetOptions(merge: true));
 
       // Firebase update completed
@@ -420,8 +482,15 @@ class _CourierMapState extends State<CourierMap>
                       // Determine the selected location
                       _selectedLocation =
                           _isBaseSelected ? _baseLocation : _currentLocation;
-                      animateCamera(_selectedLocation, 10.0);
 
+
+                      if(_isBaseSelected){
+                        animateCamera(_baseLocation, 10.0);
+                        _updateBaseLocation(_baseLocation.longitude, _baseLocation.longitude);
+                      }else{
+                        animateCamera(_currentLocation, 10.0);
+                        _updateCurrentLocation(_currentLocation.latitude,_currentLocation.longitude);
+                      }
                       // Show Snackbar
                       String message = _isBaseSelected
                           ? "You are available at Base Location"

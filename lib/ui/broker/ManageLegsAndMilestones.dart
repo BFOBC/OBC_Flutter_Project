@@ -2,8 +2,10 @@ import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../res/custom_colors.dart';
 import 'PlaceNewJob.dart'; // Import the Add New Empty Leg screen
 import 'AddNewMilestone.dart'; // Import the Add New Milestone screen
@@ -80,90 +82,94 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Place New Job'),
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ToggleButtons(
-                      isSelected: _selectedToggle,
-                      onPressed: _onTogglePressed,
-                      borderRadius: BorderRadius.circular(10),
-                      selectedBorderColor: Colors.grey,
-                      selectedColor: Colors.white,
-                      fillColor: Palette.primaryColor,
-                      color: Colors.black,
-                      constraints: const BoxConstraints(
-                          minHeight: 40.0, minWidth: 120.0),
-                      children: _toggleText.map((text) => Text(text)).toList(),
-                    ),
-                    // Removed SizedBox here to remove the extra margin
-                  ],
-                ),
-              ),
-              Expanded(
-                child: _selectedIndex == 1
-                    ? PlaceNewJob(
-                  data: widget.data,
-                  onSave: (savedData) {
-                    // Handle the saved data from PlaceNewJob
-                    print("Saved Data: $savedData");
-                    // Add any additional logic for handling the saved data here
-                    _handleSave(savedData); // Call the parent method to process the saved data
-                  },
-                )
-                    : AddNewMilestone(
-                  brokerKey: widget.brokerKey,
-                  courierKey: widget.courierKey,
-                  data: widget.data,
-                  onMilestoneSaved: (nodeID) {
-                    // Handle the milestone node ID from AddNewMilestone
-                    print("Milestone saved with ID: $nodeID");
-                    milestoneNodeID = nodeID;
-                    // Add any additional logic here, such as updating the state
-                  },
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    width: 300,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _placeJob();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Palette.secondaryColor,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20.0),
-                        ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Aap yahan pe apna custom logic dal sakte hain
+        print("Back press hua!");
+        dispose();
+        // Agar back press ko allow karna hai to true return karein
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Place New Job'),
+        ),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ToggleButtons(
+                        isSelected: _selectedToggle,
+                        onPressed: _onTogglePressed,
+                        borderRadius: BorderRadius.circular(10),
+                        selectedBorderColor: Colors.grey,
+                        selectedColor: Colors.white,
+                        fillColor: Palette.primaryColor,
+                        color: Colors.black,
+                        constraints: const BoxConstraints(
+                            minHeight: 40.0, minWidth: 120.0),
+                        children: _toggleText.map((text) => Text(text)).toList(),
                       ),
-                      child: const Text('Request the Job'),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _selectedIndex == 1
+                      ? PlaceNewJob(
+                    data: widget.data,
+                    onSave: (savedData) {
+                      print("Saved Data: $savedData");
+                      _handleSave(savedData);
+                    },
+                  )
+                      : AddNewMilestone(
+                    brokerKey: widget.brokerKey,
+                    courierKey: widget.courierKey,
+                    data: widget.data,
+                    onMilestoneSaved: (nodeID) {
+                      print("Milestone saved with ID: $nodeID");
+                      milestoneNodeID = nodeID;
+                    },
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      width: 300,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _placeJob();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Palette.secondaryColor,
+                          foregroundColor: Colors.white,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20.0),
+                          ),
+                        ),
+                        child: const Text('Request the Job'),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
-
     );
   }
+
 
   Future<void> showErrorDialog(BuildContext context, String message) async {
     // Ensure the context is still valid before showing the dialog
@@ -206,16 +212,12 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       bid: savedTask!.bid!,
       isCourierRated: 'false',
       isBrokerRated: 'false',
+      courierCapacity: savedTask!.courierCapacity
 
     );
-    String startTimeManageLeg=newRequest.startTimeDate.toString();
-    String endTimeManageLeg=newRequest.startTimeDate.toString();
-
-
     newRequest.startTimeDate=convertToUTCFromStandardFormat(newRequest.startTimeDate.toString());
     newRequest.endTimeDate=convertToUTCFromStandardFormat(newRequest.endTimeDate.toString());
     // Save the request to Firestore
-    print("startTimeManageLeg: $startTimeManageLeg");
     print(newRequest.startTimeDate.toString());
 
     await firestoreService.saveEmptyLegRequest(newRequest,milestoneNodeID);
@@ -278,6 +280,14 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     });
 
 
+  }
+  @override
+  void dispose() {
+    // Clear milestone list from provider
+    Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
+    Provider.of<RoleProvider>(context, listen: false).clearTask();
+    print("Manage Leg dispose call ho rha ha");
+    super.dispose();
   }
 
 }
