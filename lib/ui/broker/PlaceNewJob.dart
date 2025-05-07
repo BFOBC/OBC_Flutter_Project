@@ -45,7 +45,6 @@ class PlaceNewJobState extends State<PlaceNewJob> {
         _field4Controller.text.isEmpty ||
         _fieldBidController.text.isEmpty ||
         _field5Controller.text.isEmpty) {
-      // Show Toast when fields are empty
       Fluttertoast.showToast(
         msg: "Please fill all fields correctly.",
         toastLength: Toast.LENGTH_SHORT,
@@ -55,10 +54,42 @@ class PlaceNewJobState extends State<PlaceNewJob> {
         textColor: Colors.white,
         fontSize: 16.0,
       );
-      return false; // return false if validation fails
+      return false;
     }
-    return true; // return true if all fields are filled
+
+    // Date validation
+    try {
+      DateTime startDate = DateTime.parse(_field1Controller.text); // Start Date
+      DateTime endDate = DateTime.parse(_field2Controller.text);   // End Date
+
+      if (!startDate.isBefore(endDate)) {
+        Fluttertoast.showToast(
+          msg: "Start date must be before end date.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+        return false;
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Invalid date format.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return false;
+    }
+
+    return true;
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +167,9 @@ class PlaceNewJobState extends State<PlaceNewJob> {
     );
   }
   void _showSubmissionDetails() {
-    final task = Provider.of<RoleProvider>(context, listen: false).task;
+    final task = Provider
+        .of<RoleProvider>(context, listen: false)
+        .task;
 
     if (task == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -151,7 +184,8 @@ class PlaceNewJobState extends State<PlaceNewJob> {
         return AlertDialog(
           title: const Text('Submitted Details'),
           content: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15)),
             elevation: 4,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -184,7 +218,8 @@ class PlaceNewJobState extends State<PlaceNewJob> {
                 _field3Controller.text = task.departureFrom ?? "";
                 _field4Controller.text = task.arriveAt ?? "";
                 _fieldBidController.text = task.bid ?? "";
-                _field5Controller.text = task.courierCapacity ?? ""; // Assuming this is courier capacity
+                _field5Controller.text = task.courierCapacity ??
+                    ""; // Assuming this is courier capacity
 
                 Navigator.pop(context); // Close the dialog
               },
@@ -194,11 +229,7 @@ class PlaceNewJobState extends State<PlaceNewJob> {
         );
       },
     );
-
   }
-
-
-
   void _showDeleteConfirmation() {
     showDialog(
       context: context,

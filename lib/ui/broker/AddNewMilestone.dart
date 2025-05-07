@@ -53,10 +53,8 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       milestone.milestoneNodeID = docRef.id;
       mileStoneNodeID = milestone.milestoneNodeID!;
       milestone.milestoneStatus = "pending";
-      milestone.milestoneStartDateTime = convertToUTCFromCustomFormat(
-          milestone.milestoneEndDateTime.toString());
-      milestone.milestoneEndDateTime = convertToUTCFromCustomFormat(
-          milestone.milestoneEndDateTime.toString());
+      milestone.milestoneStartDateTime = convertToUTCFromCustomFormat(milestone.milestoneStartDateTime.toString());
+      milestone.milestoneEndDateTime = convertToUTCFromCustomFormat(milestone.milestoneEndDateTime.toString());
 
       /// ✅ Save ID to provider without listening
       Provider.of<RoleProvider>(context, listen: false)
@@ -130,6 +128,9 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
 
   bool validateInputs() {
     print("Validating inputs...");
+
+    String startDateTime = "", endDateTime = "";
+
     if (_summaryController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
         _startTimeAndDateController.text.isEmpty ||
@@ -148,8 +149,58 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       });
       return false;
     }
+
+    try {
+      if (_startTimeAndDateController.text != _originalStartDateTime) {
+        startDateTime = convertToUTCFromCustomFormat(_startTimeAndDateController.text);
+      } else {
+        startDateTime = convertToUTCFromCustomFormat2(_startTimeAndDateController.text);
+      }
+
+      if (_endTimeAndDateController.text != _originalEndDateTime) {
+        endDateTime = convertToUTCFromCustomFormat(_endTimeAndDateController.text);
+      } else {
+        endDateTime = convertToUTCFromCustomFormat2(_endTimeAndDateController.text);
+      }
+
+      print("StartDateTime: $startDateTime");
+      print("EndDateTime: $endDateTime");
+
+      DateTime startDate = DateTime.parse(startDateTime);
+      DateTime endDate = DateTime.parse(endDateTime);
+
+      if (!startDate.isBefore(endDate)) {
+        Fluttertoast.showToast(
+          msg: "Start date must be before end date.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+        return false;
+      }
+    } catch (e) {
+      print("Dates Format Error: $e");
+      print("startDateTime: $startDateTime");
+      print("endDateTime: $endDateTime");
+
+      Fluttertoast.showToast(
+        msg: "Invalid date format.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return false;
+    }
+
     return true;
   }
+
 
 
 

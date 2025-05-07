@@ -86,6 +86,8 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
       onWillPop: () async {
         // Aap yahan pe apna custom logic dal sakte hain
         print("Back press hua!");
+        bool shouldLeave = await showExitConfirmationDialog(context);
+        return shouldLeave; // agar true return hoga to back ho jaye ga
         dispose();
         // Agar back press ko allow karna hai to true return karein
         return true;
@@ -194,6 +196,9 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     }
   }
   Future<void> sendEmptyLegRequest(BuildContext context) async {
+    // Clear milestone list from provider
+    Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
+    Provider.of<RoleProvider>(context, listen: false).clearTask();
     FirestoreService firestoreService = FirestoreService(context);
     // Create a new EmptyLegRequest with nodeID initially null
 
@@ -289,5 +294,35 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     print("Manage Leg dispose call ho rha ha");
     super.dispose();
   }
+  Future<bool> showExitConfirmationDialog(BuildContext context) async {
+    bool? result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Are you sure?"),
+          content: const Text("If you go back, your changes will be removed."),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop(false); // don't leave
+              },
+            ),
+            ElevatedButton(
+              child: const Text("Yes"),
+              onPressed: () {
+                // Clear milestone list from provider
+                Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
+                Provider.of<RoleProvider>(context, listen: false).clearTask();
+                Navigator.of(context).pop(true); // allow back
+              },
+            ),
+          ],
+        );
+      },
+    );
 
+    return result ?? false; // default to false if dialog dismissed
+  }
 }
+
