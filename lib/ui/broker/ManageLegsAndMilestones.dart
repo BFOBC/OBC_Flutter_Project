@@ -72,6 +72,14 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
         });
         return; // Return early without sending the request
     }
+    Task? task=Provider.of<RoleProvider>(context, listen: false).task;
+    if(task==null){
+      // Delayed execution to ensure dialog appears after the current frame is drawn
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showErrorDialog(context, "Please add submission details");
+      });
+      return; // Return early without sending the request
+    }
     sendEmptyLegRequest(context);
   }
 

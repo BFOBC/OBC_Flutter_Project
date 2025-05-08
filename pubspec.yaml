@@ -55,7 +55,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   geolocator: ^10.1.0
   fluttertoast: ^8.1.1  # Latest version
-
+  geocoding: ^2.1.0
     #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 
 

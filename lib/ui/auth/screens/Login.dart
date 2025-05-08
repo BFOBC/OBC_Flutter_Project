@@ -1,3 +1,4 @@
+import 'package:broker_flutter_pp/ui/auth/screens/TestScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,7 +38,6 @@ class LoginCard extends StatelessWidget {
   }
 }
 
-
 class CardView extends StatefulWidget {
   const CardView({super.key});
 
@@ -46,8 +46,10 @@ class CardView extends StatefulWidget {
 }
 
 class _CardViewState extends State<CardView> {
-  final TextEditingController _emailController = TextEditingController(text: 'broker@gmail.com');
-  final TextEditingController _passwordController = TextEditingController(text: '123456');
+  final TextEditingController _emailController =
+      TextEditingController(text: 'broker@gmail.com');
+  final TextEditingController _passwordController =
+      TextEditingController(text: '123456');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   int _selectedIndex = 0;
@@ -57,108 +59,103 @@ class _CardViewState extends State<CardView> {
 
   final List<bool> _selectedToggle = [true, false];
   final List<String> _toggleText = ["Broker", "Courier"];
-  Future<void> _submitForm() async {
-/*    if (_formKey.currentState!.validate()) {
-      showProgressDialog(context);
-      try {
-        final auth = FirebaseAuth.instance;
-        UserCredential userCredential = await auth.signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
 
-        // Get role from selected index
+  Future<void> _submitForm() async {
+    print("SubmitForm called");
+
+    if (_formKey.currentState!.validate()) {
+      print("Form validated");
+
+      showProgressDialog(context);
+
+      try {
         final roleProvider = Provider.of<RoleProvider>(context, listen: false);
         final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
         roleProvider.setRole(role);
 
-        // Store user info in Firestore based on role
-        final firestore = FirebaseFirestore.instance;
-        final collectionName = _selectedIndex == 0 ? 'broker' : 'courier';
-        final user = userCredential.user;
+        String? errorMessage = await signInAndSaveUser(
+          _emailController.text.trim(),
+          _passwordController.text,
+          _selectedIndex,
+        );
 
-        if (user != null) {
-          // Check if the document already exists
-          DocumentSnapshot userDoc = await firestore.collection(collectionName).doc(user.uid).get();
+        print("Calling signInAndSaveUser...");
 
-          if (userDoc.exists) {
-            // If the document exists, update only the email and UID fields
-            await firestore.collection(collectionName).doc(user.uid).update({
-              'email': user.email,
-              'uid': user.uid,
-            });
-          } else {
-            // If the document does not exist, create a new one with all fields
-            await firestore.collection(collectionName).doc(user.uid).set({
-              'email': user.email,
-              'uid': user.uid,
-              // Add other necessary user details if needed, for example:
-              // 'name': 'User Name',
-              // 'profilePicture': 'URL',
-            });
+        // Hide progress only once here
+        if (context.mounted) hideProgressDialog(context);
+
+        if (errorMessage == null) {
+          print("Login successful — navigating to DrawerScreen");
+          if (context.mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const DrawerScreen()),
+            );
+          }
+        } else {
+          print("Login failed — showing SnackBar: $errorMessage");
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
         }
+      } catch (e) {
+        if (context.mounted) hideProgressDialog(context);
 
-        hideProgressDialog(context);
+        print("Exception occurred: $e");
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const DrawerScreen(),
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Something went wrong. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      print("Form validation failed");
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please fix the errors in the form"),
+            backgroundColor: Colors.orange,
           ),
         );
-      } on FirebaseAuthException catch (e) {
-        hideProgressDialog(context);
-
-        String errorMessage;
-        switch (e.code) {
-          case 'user-not-found':
-            errorMessage = 'No user found for that email.';
-            break;
-          case 'wrong-password':
-            errorMessage = 'Wrong password provided for that user.';
-            break;
-          default:
-            errorMessage = 'Login failed: Invalid Credentials';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      } catch (error) {
-        hideProgressDialog(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $error')),
-        );
       }
-    }*/
-    final _firestoreService = FirestoreService(context);
-    if (_formKey.currentState!.validate()) {
-      showProgressDialog(context);
+    }
+  }
 
-      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
-      roleProvider.setRole(role);
 
-      String? errorMessage = await _firestoreService.signInAndSaveUser(
-        _emailController.text,
-        _passwordController.text,
-        _selectedIndex,
-      );
+  Future<String?> signInAndSaveUser(
+      String email, String password, int selectedIndex) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-      hideProgressDialog(context);
-      print("error");
-      print(errorMessage);
-      if (errorMessage == null) {
-        // Success: Navigate to DrawerScreen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const DrawerScreen()),
-        );
-      } else {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      }
+      // Add logging to confirm successful login
+      print("Login successful: ${userCredential.user?.uid}");
+
+      // Save user info in Firestore (optional)
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'email': email,
+        'role': selectedIndex == 0 ? 'broker' : 'courier',
+      }, SetOptions(merge: true));
+
+      return null; // no error
+    } on FirebaseAuthException catch (e) {
+      print("Firebase Auth Error: ${e.code} - ${e.message}");
+      return e.message;
+    } catch (e) {
+      print("Unknown error: $e");
+      return "Something went wrong. Please try again.";
     }
   }
 
@@ -185,10 +182,10 @@ class _CardViewState extends State<CardView> {
                       _selectedIndex = index;
                       _selectedToggle[index] = true;
                       _selectedToggle[1 - index] = false;
-                      if (_selectedIndex==0) {
-                        _emailController.text='broker@gmail.com';
-                      } else{
-                        _emailController.text='courier@gmail.com';
+                      if (_selectedIndex == 0) {
+                        _emailController.text = 'broker@gmail.com';
+                      } else {
+                        _emailController.text = 'courier@gmail.com';
                       }
                     });
                   },
@@ -197,7 +194,8 @@ class _CardViewState extends State<CardView> {
                   selectedColor: Colors.white,
                   fillColor: Palette.primaryColor,
                   color: Colors.black,
-                  constraints: const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
+                  constraints:
+                      const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
                   children: _toggleText.map((text) => Text(text)).toList(),
                 ),
                 const SizedBox(height: 20.0),
@@ -242,7 +240,8 @@ class _CardViewState extends State<CardView> {
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
-                          return Validator.validatePassword(password: value ?? '');
+                          return Validator.validatePassword(
+                              password: value ?? '');
                         },
                       ),
                     ),
@@ -257,8 +256,7 @@ class _CardViewState extends State<CardView> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   child: const SizedBox(
-                      width: 250,
-                      child: Center(child: Text('Login'))),
+                      width: 250, child: Center(child: Text('Login'))),
                 ),
               ],
             ),

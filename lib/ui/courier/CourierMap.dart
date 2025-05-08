@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:card_stack_widget/card_stack_widget.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../data/DatabaseOperation.dart';
@@ -27,7 +28,7 @@ class CourierMap extends StatefulWidget {
 class _CourierMapState extends State<CourierMap>
     with SingleTickerProviderStateMixin {
   bool _showCardStack = false;
-  List<CardModel> _filteredUsers = [];
+  List<Widget> _filteredUsers = [];
 
   bool _isSearching = false;
   bool _isSearchBarVisible = true; // Visibility state for search bar
@@ -47,7 +48,7 @@ class _CourierMapState extends State<CourierMap>
   //Location location = Location(); // Create a Location instance
 
   LatLng _baseLocation =
-      const LatLng(30.3753, 69.3451);  // Example: New York City
+      const LatLng(30.3753, 69.3451); // Example: New York City
   LatLng _currentLocation =
       const LatLng(30.3753, 69.3451); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
@@ -108,7 +109,9 @@ class _CourierMapState extends State<CourierMap>
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❗ Location permission permanently denied. Open settings.')),
+        SnackBar(
+            content: Text(
+                '❗ Location permission permanently denied. Open settings.')),
       );
       await Geolocator.openAppSettings();
       return null;
@@ -119,11 +122,13 @@ class _CourierMapState extends State<CourierMap>
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      _currentLocation=LatLng(position.latitude, position.longitude);
+      _currentLocation = LatLng(position.latitude, position.longitude);
       // Animate the camera to the new location
       animateCamera(_currentLocation, 10.0);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('📍 Location: ${position.latitude}, ${position.longitude}')),
+        SnackBar(
+            content: Text(
+                '📍 Location: ${position.latitude}, ${position.longitude}')),
       );
       return position;
     } catch (e) {
@@ -150,7 +155,8 @@ class _CourierMapState extends State<CourierMap>
     if (requests.isNotEmpty) {
       print('requests Data');
       print(requests);
-      _filteredUsers = _buildCardStacks(context, requests);
+      // _filteredUsers = _buildCardStacks(context, requests);
+      _filteredUsers = _buildBottomSheetList(context, requests);
     }
   }
 
@@ -235,11 +241,15 @@ class _CourierMapState extends State<CourierMap>
 
               // Update the markers set with a new marker
               setState(() {
-                country = airportItem.countryCode.toString();
+                if (_isBaseSelected) {
+                  country = airportItem.countryCode.toString();
+                }
                 _baseLocation = latLng; // Update the selected location
-                _markers = { // Create a new Set with a single marker
+                _markers = {
+                  // Create a new Set with a single marker
                   Marker(
-                    markerId: MarkerId(markerId), // Unique identifier for the marker
+                    markerId: MarkerId(markerId),
+                    // Unique identifier for the marker
                     position: _baseLocation,
                     icon: BitmapDescriptor.defaultMarker,
                     onTap: () {
@@ -270,7 +280,7 @@ class _CourierMapState extends State<CourierMap>
               });
 
               // Call Firebase to update the base location asynchronously
-              _updateBaseLocation(lat, long);
+              _updateBaseLocation(lat, long, true);
             } catch (e, stackTrace) {
               print("Error in onConfirm: $e");
               print(stackTrace);
@@ -280,6 +290,7 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
+
   void animateCamera(LatLng location, double zoom) async {
     final GoogleMapController controller = await _mapController.future;
 
@@ -288,81 +299,102 @@ class _CourierMapState extends State<CourierMap>
       CameraPosition(target: location, zoom: zoom),
     ));
 
-    if(_isBaseSelected){
+    if (_isBaseSelected) {
       // Add or update green marker at the location
       Marker newMarker = Marker(
         markerId: MarkerId('base_location'),
         position: location,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen), // 👈 green color
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        // 👈 green color
         infoWindow: InfoWindow(title: 'Base Location'),
       );
       _markers.clear(); // Optional: if you only want one marker at a time
       _markers.add(newMarker);
-    }else{
-
+    } else {
       // Add or update green marker at the location
       Marker newMarker = Marker(
         markerId: MarkerId('current_location'),
         position: location,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange), // 👈 green color
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+        // 👈 green color
         infoWindow: InfoWindow(title: 'Current Location'),
       );
       _markers.clear(); // Optional: if you only want one marker at a time
       _markers.add(newMarker);
     }
 
-
     // Trigger UI update (make sure you're in a stateful widget)
     setState(() {});
   }
 
-
-
-  Future<void> _updateBaseLocation(double lat, double long) async {
+  Future<String?> getCountryFromLatLng(
+      double latitude, double longitude) async {
     try {
-      // Perform Firebase update asynchronously without blocking the UI
-      await FirebaseFirestore.instance
-          .collection('courier')
-          .doc(_currentUser.uid)
-          .set({
-        'baseLocationLat': lat,
-        'baseLocationLong': long,
-        'country': country,
-        'base': true,
-        'current': false,
-      }, SetOptions(merge: true));
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(latitude, longitude);
+      if (placemarks.isNotEmpty) {
+        return placemarks.first.country;
+      }
+    } catch (e) {
+      print('Error getting country: $e');
+    }
+    return null;
+  }
 
-      // Firebase update completed
+  Future<void> _updateBaseLocation(
+      double lat, double long, bool isLocationUpdate) async {
+    final courierRef =
+        FirebaseFirestore.instance.collection('courier').doc(_currentUser.uid);
+
+    final data = isLocationUpdate
+        ? {
+            'baseLocationLat': lat,
+            'baseLocationLong': long,
+            'country': country,
+            'base': true,
+            'current': false,
+          }
+        : {
+            'base': true,
+            'current': false,
+            'country': country,
+          };
+
+    try {
+      await courierRef.set(data, SetOptions(merge: true));
       print("Base location updated successfully!");
     } catch (e) {
-      // Handle Firebase errors
       print("Error updating base location: $e");
     }
   }
 
-
   Future<void> _updateCurrentLocation(double lat, double long) async {
+    print("Updating current location...");
+    print("Latitude: $lat");
+    print("Longitude: $long");
+    print("User ID: ${_currentUser.uid}");
+
+    // Await the async method call
+    String? country = await getCountryFromLatLng(lat, long);
+    print("Country: $country");
+
     try {
-      // Perform Firebase update asynchronously without blocking the UI
       await FirebaseFirestore.instance
           .collection('courier')
           .doc(_currentUser.uid)
           .set({
         'currentLocationLat': lat,
         'currentLocationLong': long,
-        'country': country,
+        'country': country ?? '',
         'base': false,
         'current': true,
       }, SetOptions(merge: true));
 
-      // Firebase update completed
-      print("Base location updated successfully!");
+      print("Current location updated successfully!");
     } catch (e) {
-      // Handle Firebase errors
-      print("Error updating base location: $e");
+      print("Error updating current location: $e");
     }
   }
-
 
   void _openBottomSheet() {
     showModalBottomSheet(
@@ -483,13 +515,14 @@ class _CourierMapState extends State<CourierMap>
                       _selectedLocation =
                           _isBaseSelected ? _baseLocation : _currentLocation;
 
-
-                      if(_isBaseSelected){
+                      if (_isBaseSelected) {
                         animateCamera(_baseLocation, 10.0);
-                        _updateBaseLocation(_baseLocation.longitude, _baseLocation.longitude);
-                      }else{
+                        _updateBaseLocation(_baseLocation.longitude,
+                            _baseLocation.longitude, false);
+                      } else {
                         animateCamera(_currentLocation, 10.0);
-                        _updateCurrentLocation(_currentLocation.latitude,_currentLocation.longitude);
+                        _updateCurrentLocation(_currentLocation.latitude,
+                            _currentLocation.longitude);
                       }
                       // Show Snackbar
                       String message = _isBaseSelected
@@ -525,7 +558,7 @@ class _CourierMapState extends State<CourierMap>
     );
   }
 
-  CardStackWidget _buildCardStackWidget(BuildContext context) {
+/*  CardStackWidget _buildCardStackWidget(BuildContext context) {
     return CardStackWidget(
       opacityChangeOnDrag: true,
       swipeOrientation: CardOrientation.both,
@@ -538,7 +571,7 @@ class _CourierMapState extends State<CourierMap>
       dismissedCardDuration: const Duration(milliseconds: 150),
       cardList: _filteredUsers,
     );
-  }
+  }*/
 
   Widget _buildRadarAnimation() {
     return Center(
@@ -642,6 +675,97 @@ class _CourierMapState extends State<CourierMap>
     }
     return list;
   }
+
+  List<Widget> _buildBottomSheetList(
+      BuildContext context, List<Map<String, dynamic>> brokerDataList) {
+    final double containerWidth = MediaQuery.of(context).size.width;
+
+    var list = <Widget>[];
+
+    for (var brokerData in brokerDataList) {
+      var brokerProfile = brokerData['broker'] ?? {};
+      String userName = brokerProfile['name']?.toString() ?? 'Unknown Broker';
+      String userImage = brokerProfile['profilePictureUrl']?.toString() ??
+          'https://via.placeholder.com/150';
+      String id = brokerProfile['brokerID']?.toString() ?? 'dfdf ID';
+      String nodeID =
+          brokerData['emptyLegRequestID']?.toString() ?? 'nodeID Not Found';
+
+      double rating = Random().nextDouble() * 5;
+
+      list.add(
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SelectBroker(
+                  brokerID: id,
+                  emptyLegRequestID: nodeID,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            width: containerWidth,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundImage: NetworkImage(userImage),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      RatingBarIndicator(
+                        rating: rating,
+                        itemBuilder: (context, index) => const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                        ),
+                        itemCount: 5,
+                        itemSize: 24.0,
+                        direction: Axis.horizontal,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return list;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -655,14 +779,14 @@ class _CourierMapState extends State<CourierMap>
             ),
             markers: _markers, // Pass _markers directly, no need for .toSet()
             onMapCreated: (GoogleMapController controller) {
-              _mapController.complete(controller); // Store the controller if needed
+              _mapController
+                  .complete(controller); // Store the controller if needed
             },
             onTap: (LatLng latLng) {
               // Optional: Add logic to handle map taps if needed
               print('Marker tapped!');
             },
           ),
-
 
           // Conditionally show the progress bar
           if (_isLoading)
@@ -736,17 +860,35 @@ class _CourierMapState extends State<CourierMap>
           Positioned.fill(
             child: _buildRadarAnimation(), // Radar animation always visible
           ),
-          Positioned(
-            bottom: 20.0,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SizedBox(
-                height: 300,
-                child:
-                    _buildCardStackWidget(context), // Card stack always visible
-              ),
-            ),
+          DraggableScrollableSheet(
+            initialChildSize: 0.5, // Sheet visible just a bit initially
+            minChildSize: 0.2, // Minimum height (closed state)
+            maxChildSize: 0.8, // Half screen height
+            builder: (BuildContext context, ScrollController scrollController) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    )
+                  ],
+                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: _filteredUsers.length,
+                        itemBuilder: (context, index) {
+                          return _filteredUsers[
+                              index]; // Your custom card widgets
+                        },
+                      ),
+              );
+            },
           ),
         ],
       ),
