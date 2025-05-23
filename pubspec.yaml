@@ -56,6 +56,7 @@ dependencies:
   geolocator: ^10.1.0
   fluttertoast: ^8.1.1  # Latest version
   geocoding: ^2.1.0
+  firebase_messaging: ^15.2.5
     #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 
 
