@@ -56,6 +56,7 @@ class _CourierMapState extends State<CourierMap>
 
   List<AirportModel> airportList = [];
   Set<Marker> _markers = {};
+  Set<Circle> _circles = {};
   late User _currentUser;
 
   late Future<List<Map<String, dynamic>>> _brokerDataFuture;
@@ -65,20 +66,15 @@ class _CourierMapState extends State<CourierMap>
   @override
   void initState() {
     super.initState();
-    _radarController =
+/*    _radarController =
         AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _radarAnimation =
         Tween<double>(begin: 0, end: 300).animate(_radarController)
           ..addListener(() {
             setState(() {});
-          });
+          });*/
     _currentUser = FirebaseAuth.instance.currentUser!;
     getCurrentLocation(context);
-    //_onSearch("abc");
-    //fetchEmptyLegRequests();
-    // FirestoreService firestoreService = FirestoreService(context);
-
-    //_brokerDataFuture = firestoreService.getEmptyLegRequestsWithBrokers();
     fetchEmptyLegRequests();
   }
 
@@ -162,7 +158,7 @@ class _CourierMapState extends State<CourierMap>
 
   @override
   void dispose() {
-    _radarController.dispose();
+   // _radarController.dispose();
     super.dispose();
   }
 
@@ -290,42 +286,63 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
-
   void animateCamera(LatLng location, double zoom) async {
     final GoogleMapController controller = await _mapController.future;
 
-    // Animate the camera to the location
-    controller.animateCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(target: location, zoom: zoom),
-    ));
+    // ✅ Move camera close to the location
+    controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: location, zoom: 16.0), // 👈 try zoom = 16.0
+      ),
+    );
+
+    // Marker & Circle
+    Marker newMarker;
+    Circle circle;
 
     if (_isBaseSelected) {
-      // Add or update green marker at the location
-      Marker newMarker = Marker(
+      newMarker = Marker(
         markerId: MarkerId('base_location'),
         position: location,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        // 👈 green color
         infoWindow: InfoWindow(title: 'Base Location'),
       );
-      _markers.clear(); // Optional: if you only want one marker at a time
-      _markers.add(newMarker);
+
+      circle = Circle(
+        circleId: CircleId('base_circle'),
+        center: location,
+        radius: 300, // 👈 1000 meters = 1km radius
+        fillColor: Colors.green.withOpacity(0.2),
+        strokeColor: Colors.green,
+        strokeWidth: 2,
+      );
     } else {
-      // Add or update green marker at the location
-      Marker newMarker = Marker(
+      newMarker = Marker(
         markerId: MarkerId('current_location'),
         position: location,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-        // 👈 green color
         infoWindow: InfoWindow(title: 'Current Location'),
       );
-      _markers.clear(); // Optional: if you only want one marker at a time
-      _markers.add(newMarker);
+
+      circle = Circle(
+        circleId: CircleId('current_circle'),
+        center: location,
+        radius: 300, // 👈 Increase radius here too
+        fillColor: Colors.red.withOpacity(0.15),
+        strokeColor: Colors.red.withOpacity(0.5),
+        strokeWidth: 2,
+      );
     }
 
-    // Trigger UI update (make sure you're in a stateful widget)
-    setState(() {});
+    setState(() {
+      _markers.clear();
+      _markers.add(newMarker);
+
+      _circles.clear();
+      _circles.add(circle);
+    });
   }
+
 
   Future<String?> getCountryFromLatLng(
       double latitude, double longitude) async {
@@ -557,22 +574,6 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
-
-/*  CardStackWidget _buildCardStackWidget(BuildContext context) {
-    return CardStackWidget(
-      opacityChangeOnDrag: true,
-      swipeOrientation: CardOrientation.both,
-      cardDismissOrientation: CardOrientation.both,
-      positionFactor: 3,
-      scaleFactor: 1.5,
-      alignment: Alignment.center,
-      reverseOrder: true,
-      animateCardScale: true,
-      dismissedCardDuration: const Duration(milliseconds: 150),
-      cardList: _filteredUsers,
-    );
-  }*/
-
   Widget _buildRadarAnimation() {
     return Center(
       child: CustomPaint(
@@ -774,19 +775,19 @@ class _CourierMapState extends State<CourierMap>
           // In the GoogleMap widget, pass _markers directly
           GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: _baseLocation, // Initial position for the map
-              zoom: 10.0, // Zoom level
+              target: _baseLocation,
+              zoom: 10.0,
             ),
-            markers: _markers, // Pass _markers directly, no need for .toSet()
+            markers: _markers, // ✅ Already added
+            circles: _circles, // ✅ 👈 Add this line here
             onMapCreated: (GoogleMapController controller) {
-              _mapController
-                  .complete(controller); // Store the controller if needed
+              _mapController.complete(controller);
             },
             onTap: (LatLng latLng) {
-              // Optional: Add logic to handle map taps if needed
-              print('Marker tapped!');
+              print('Map tapped!');
             },
           ),
+
 
           // Conditionally show the progress bar
           if (_isLoading)
@@ -857,9 +858,6 @@ class _CourierMapState extends State<CourierMap>
               ),
             ),
 
-          Positioned.fill(
-            child: _buildRadarAnimation(), // Radar animation always visible
-          ),
           DraggableScrollableSheet(
             initialChildSize: 0.5, // Sheet visible just a bit initially
             minChildSize: 0.2, // Minimum height (closed state)

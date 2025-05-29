@@ -553,18 +553,22 @@ class FirestoreService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> readNotifications() async {
+  Future<List<Map<String, dynamic>>> readNotifications(String role) async {
     try {
-      // Reference to the notification collection
       CollectionReference notifications = _firestore.collection('notification');
 
-      // Fetch all documents in the collection
-      QuerySnapshot querySnapshot = await notifications.get();
+      Query query;
 
-      // Convert documents to a list of maps
+      if (role == 'Courier') {
+        query = notifications.where('courierID', isEqualTo: _currentUser.uid);
+      } else {
+        query = notifications.where('brokerID', isEqualTo: _currentUser.uid);
+      }
+
+      QuerySnapshot querySnapshot = await query.get();
+
       List<Map<String, dynamic>> notificationsList = querySnapshot.docs
-          .map((doc) =>
-      {
+          .map((doc) => {
         'notificationID': doc.id,
         ...doc.data() as Map<String, dynamic>,
       })
@@ -577,6 +581,7 @@ class FirestoreService {
       return [];
     }
   }
+
 
   // Method to delete a notification by its ID
   Future<void> deleteNotification(String notificationID) async {

@@ -1,5 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class CourierNotificationsscreen extends StatefulWidget {
   const CourierNotificationsscreen({super.key});
@@ -22,7 +24,10 @@ class _CourierNotificationsScreenState extends State<CourierNotificationsscreen>
   // Fetch notifications using FirestoreService
   Future<void> fetchNotifications() async {
     try {
-      List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications();
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      String role = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
+
+      List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications(role);
       setState(() {
         notifications = fetchedNotifications;
       });

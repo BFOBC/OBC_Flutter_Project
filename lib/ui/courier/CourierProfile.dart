@@ -333,8 +333,8 @@ class _CourierProfileState extends State<CourierProfile> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              _buildProfileField('ID', courierProfile.id.toString()),
+/*              const SizedBox(height: 20),
+              _buildProfileField('ID', courierProfile.id.toString()),*/
               const SizedBox(height: 10),
               _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
               const SizedBox(height: 10),

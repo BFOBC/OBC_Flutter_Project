@@ -1,4 +1,4 @@
-import 'package:broker_flutter_pp/ui/auth/screens/TestScreen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -44,12 +44,14 @@ class CardView extends StatefulWidget {
   @override
   _CardViewState createState() => _CardViewState();
 }
-
+/*TextEditingController(text: 'broker@gmail.com');
+final TextEditingController _passwordController =
+TextEditingController(text: '123456');*/
 class _CardViewState extends State<CardView> {
   final TextEditingController _emailController =
-      TextEditingController(text: 'broker@gmail.com');
+      TextEditingController(text: '');
   final TextEditingController _passwordController =
-      TextEditingController(text: '123456');
+      TextEditingController(text: '');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   int _selectedIndex = 0;
@@ -129,32 +131,60 @@ class _CardViewState extends State<CardView> {
       }
     }
   }
-
-
   Future<String?> signInAndSaveUser(
       String email, String password, int selectedIndex) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      // Add logging to confirm successful login
-      print("Login successful: ${userCredential.user?.uid}");
+      print("✅ Login successful: ${userCredential.user?.uid}");
 
-      // Save user info in Firestore (optional)
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set({
-        'email': email,
-        'role': selectedIndex == 0 ? 'broker' : 'courier',
-      }, SetOptions(merge: true));
+      String uid = userCredential.user!.uid;
+      String role = selectedIndex == 0 ? 'broker' : 'courier';
+      String collectionName = role; // either 'broker' or 'courier'
+
+      DocumentReference userDocRef =
+      FirebaseFirestore.instance.collection(collectionName).doc(uid);
+
+      DocumentSnapshot userDoc = await userDocRef.get();
+
+      // Sirf tab save karo agar pehle se exist nahi karta
+      if (!userDoc.exists) {
+        if(role=='courier'){
+          await userDocRef.set({
+            'email': email,
+            'role': role,
+            'createdAt': FieldValue.serverTimestamp(), // optional metadata
+            'courierID':userDoc.id, // optional metadata
+            'id': userDoc.id, // optional metadata
+            'name': 'Test Courier', // optional metadata
+            'baseLocationLat': 0.0, // optional metadata
+            'baseLocationLong': 0.0, // optional metadata
+            'currentLocationLat': 0.0, // optional metadata
+            'currentLocationLong': 0.0, // optional metadata
+          });
+        }else{
+          await userDocRef.set({
+            'email': email,
+            'role': role,
+            'createdAt': FieldValue.serverTimestamp(), // optional metadata
+            'brokerID':userDoc.id, // optional metadata
+            'id': userDoc.id, // optional metadata
+            'name': 'Test Broker', // optional metadata
+          });
+        }
+
+        print("📝 New $role record created in '$collectionName' collection.");
+      } else {
+        print("ℹ️ $role record already exists in '$collectionName'.");
+      }
 
       return null; // no error
     } on FirebaseAuthException catch (e) {
-      print("Firebase Auth Error: ${e.code} - ${e.message}");
+      print("❌ Firebase Auth Error: ${e.code} - ${e.message}");
       return e.message;
     } catch (e) {
-      print("Unknown error: $e");
+      print("❌ Unknown error: $e");
       return "Something went wrong. Please try again.";
     }
   }
@@ -183,12 +213,15 @@ class _CardViewState extends State<CardView> {
                       _selectedToggle[index] = true;
                       _selectedToggle[1 - index] = false;
                       if (_selectedIndex == 0) {
-                        _emailController.text = 'broker@gmail.com';
+                        _emailController.text = '';
                       } else {
-                        _emailController.text = 'courier@gmail.com';
+                        _emailController.text = '';
                       }
                     });
                   },
+/*    _emailController.text = 'broker@gmail.com';
+    } else {
+  _emailController.text = 'courier@gmail.com';*/
                   borderRadius: BorderRadius.circular(10),
                   selectedBorderColor: Colors.grey,
                   selectedColor: Colors.white,

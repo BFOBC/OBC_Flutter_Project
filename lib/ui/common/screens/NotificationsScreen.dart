@@ -33,13 +33,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       // Get the current role from the RoleProvider
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      String role = roleProvider.role == UserRole.broker ? "Courier" : "Broker";
+      String role = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
+
 
       print('Selected Role is');
       print(role);
 
       // Fetch all notifications from Firestore
-      List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications();
+      List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications(role);
 
       // Filter notifications based on the selected role
       List<Map<String, dynamic>> filteredNotifications = fetchedNotifications.where((notification) {

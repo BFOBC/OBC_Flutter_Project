@@ -15,7 +15,7 @@ void main() async {
   );
   await FirebaseMessaging.instance.requestPermission(); // Important for iOS
 
-/*
+
   runApp(
     MultiProvider(
       providers: [
@@ -25,9 +25,9 @@ void main() async {
       child: const MyApp(),
     ),
   );
-*/
 
-  runApp(
+
+/*  runApp(
     ChangeNotifierProvider(
       create: (_) => UserProvider(),
       child: MaterialApp(
@@ -35,7 +35,7 @@ void main() async {
         home: UserManagementScreen(),
       ),
     ),
-  );
+  );*/
 }
 
 class MyApp extends StatelessWidget {

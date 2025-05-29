@@ -26,6 +26,8 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
   bool _isAnimatingRadar = false;
 
   List<Marker> _markers = [];
+
+  Set<Circle> _circles = {};
   late GoogleMapController _mapController; // Change to GoogleMapController
   final TextEditingController _searchController = TextEditingController();
   String courierKey = "";
@@ -118,7 +120,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     return degree * pi / 180;
   }
 
-  Future<void> searchNearbyLocations(String searchCode) async {
+/*  Future<void> searchNearbyLocations(String searchCode) async {
     if (searchCode.isEmpty) {
       return; // Don't proceed if the searchCode is null or empty
     }
@@ -186,7 +188,136 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     setState(() {
       animateCamera(searchLocation, 10.0);
     });
+  }*/
+
+  Set<String> _usedLocations = {}; // keep track of used lat+lng keys
+
+  Future<void> searchNearbyLocations(String searchCode) async {
+    print('🔍 Starting search for: $searchCode');
+
+    if (searchCode.isEmpty) {
+      print('⚠️ Search code is empty. Exiting search.');
+      return;
+    }
+
+    setState(() {
+      _isAnimatingRadar = true;
+    });
+
+    try {
+      var searchedLocation = await _fetchAirports(searchCode);
+      print('📡 Fetched airports: ${searchedLocation.length}');
+
+      if (searchedLocation.isEmpty) {
+        print('❌ No airport found for code: $searchCode');
+        setState(() {
+          _isAnimatingRadar = false;
+        });
+        _markers.clear();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No location found')));
+        return;
+      }
+
+      double searchedLat = double.tryParse(searchedLocation[0].lat.toString()) ?? 0.0;
+      double searchedLong = double.tryParse(searchedLocation[0].long.toString()) ?? 0.0;
+      print('📍 Searched LatLng: $searchedLat, $searchedLong');
+
+      LatLng searchLocation = LatLng(searchedLat, searchedLong);
+
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('courier')
+          .where('country', isEqualTo: searchedLocation[0].countryCode)
+          .where('isOnline', isEqualTo: true)
+          .get();
+
+      print('🧾 Firebase docs fetched: ${snapshot.docs.length}');
+
+      List<DocumentSnapshot> nearbyLocations = [];
+      _markers.clear();
+      _usedLocations.clear();
+
+      for (var doc in snapshot.docs) {
+        try {
+          double docLat = double.tryParse(doc['baseLocationLat'].toString()) ?? 0.0;
+          double docLong = double.tryParse(doc['baseLocationLong'].toString()) ?? 0.0;
+          print('📍 Checking courier ${doc.id} at: $docLat, $docLong');
+
+          // Check and apply offset if duplicate lat+long
+          String key = '$docLat|$docLong';
+          int attempts = 0;
+          while (_usedLocations.contains(key) && attempts < 10) {
+            docLat += 0.0001;
+            docLong += 0.0001;
+            key = '$docLat|$docLong';
+            attempts++;
+          }
+          _usedLocations.add(key);
+
+          double distance = calculateDistance(searchedLat, searchedLong, docLat, docLong);
+          print('📏 Distance to searched: $distance');
+
+          BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
+            ImageConfiguration(size: Size(24, 24)),
+            'assets/map_icon.png',
+          );
+
+          LatLng location = LatLng(docLat, docLong);
+          _markers.add(Marker(
+            markerId: MarkerId(doc.id),
+            position: location,
+            icon: customIcon,
+            onTap: () => _onMarkerTapped(doc.id),
+          ));
+          nearbyLocations.add(doc);
+        } catch (e) {
+          print('❌ Error processing courier ${doc.id}: $e');
+        }
+      }
+
+      setState(() {
+        _isAnimatingRadar = false;
+        _showMarkers = nearbyLocations.isNotEmpty;
+      });
+
+      if (nearbyLocations.isEmpty) {
+        print('❌ No nearby couriers found.');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No Couriers found')));
+      } else {
+        print('✅ Found ${nearbyLocations.length} couriers.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${nearbyLocations.length} Courier found at $searchCode')),
+        );
+      }
+      double searchedLatCircle = double.tryParse(searchedLocation[0].lat.toString()) ?? 0.0;
+      double searchedLongCircle = double.tryParse(searchedLocation[0].long.toString()) ?? 0.0;
+
+      LatLng circleLocation = LatLng(searchedLatCircle, searchedLongCircle);
+      Circle circle = Circle(
+        circleId: CircleId('current_circle'),
+        center: searchLocation,
+        radius: 400,
+        fillColor: Colors.green.withOpacity(0.15),
+        strokeColor: Colors.green.withOpacity(0.5),
+        strokeWidth: 2,
+      );
+
+      setState(() {
+        _circles.clear();
+        _circles.add(circle);
+      });
+      animateCamera(searchLocation, 18.0);
+    } catch (e, stackTrace) {
+      print('❌ Exception in searchNearbyLocations: $e');
+      print(stackTrace);
+
+      setState(() {
+        _isAnimatingRadar = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('An error occurred during search.')));
+    }
   }
+
 
   @override
   void dispose() {
@@ -206,6 +337,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
             _mapController = controller; // Initialize GoogleMapController
           },
           markers: Set<Marker>.of(_markers),
+          circles: _circles, // ✅ 👈 Add this line here
         ),
 
         Positioned(
