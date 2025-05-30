@@ -1,5 +1,4 @@
-import 'package:broker_flutter_pp/admin/UserManagementScreen.dart';
-import 'package:broker_flutter_pp/admin/UserProvider.dart';
+
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -8,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensures binding is initialized
   await Firebase.initializeApp(
@@ -25,17 +26,6 @@ void main() async {
       child: const MyApp(),
     ),
   );
-
-
-/*  runApp(
-    ChangeNotifierProvider(
-      create: (_) => UserProvider(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: UserManagementScreen(),
-      ),
-    ),
-  );*/
 }
 
 class MyApp extends StatelessWidget {
@@ -44,7 +34,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Broker App',
+      navigatorKey: navigatorKey, // 👈 Add this line
+      title: 'OBC App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CardStackWidget extends StatefulWidget {
@@ -22,9 +23,10 @@ class _CardStackWidgetState extends State<CardStackWidget> {
 
   Future<void> _fetchBrokerRequests() async {
     try {
+      var _currentUser = FirebaseAuth.instance.currentUser!;
       FirestoreService firestoreService = FirestoreService(context);
       List<Map<String, dynamic>> requests =
-      await firestoreService.getEmptyLegRequestsWithBrokers();
+      await firestoreService.getEmptyLegRequestsWithBrokers(_currentUser.uid);
 
       List<Map<String, dynamic>> formattedRequests = requests.map((request) {
         return {

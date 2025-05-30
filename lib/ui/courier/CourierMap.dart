@@ -58,6 +58,7 @@ class _CourierMapState extends State<CourierMap>
   Set<Marker> _markers = {};
   Set<Circle> _circles = {};
   late User _currentUser;
+  bool _hasData = false;
 
   late Future<List<Map<String, dynamic>>> _brokerDataFuture;
 
@@ -137,24 +138,24 @@ class _CourierMapState extends State<CourierMap>
 
   Future<void> fetchEmptyLegRequests() async {
     setState(() {
-      _isLoading = true; // Show progress bar
+      _isLoading = true;
     });
 
     FirestoreService firestoreService = FirestoreService(context);
     List<Map<String, dynamic>> requests =
-        await firestoreService.getEmptyLegRequestsWithBrokers();
+    await firestoreService.getEmptyLegRequestsWithBrokers(_currentUser.uid);
 
     setState(() {
-      _isLoading = false; // Hide progress bar after data is fetched
+      _isLoading = false;
+      if (requests.isNotEmpty) {
+        _filteredUsers = _buildBottomSheetList(context, requests);
+        _hasData = true; // ✅ data available
+      } else {
+        _hasData = false; // ❌ no data, so don’t show sheet
+      }
     });
-
-    if (requests.isNotEmpty) {
-      print('requests Data');
-      print(requests);
-      // _filteredUsers = _buildCardStacks(context, requests);
-      _filteredUsers = _buildBottomSheetList(context, requests);
-    }
   }
+
 
   @override
   void dispose() {
@@ -858,6 +859,7 @@ class _CourierMapState extends State<CourierMap>
               ),
             ),
 
+        if(_hasData)
           DraggableScrollableSheet(
             initialChildSize: 0.5, // Sheet visible just a bit initially
             minChildSize: 0.2, // Minimum height (closed state)
@@ -881,8 +883,7 @@ class _CourierMapState extends State<CourierMap>
                         controller: scrollController,
                         itemCount: _filteredUsers.length,
                         itemBuilder: (context, index) {
-                          return _filteredUsers[
-                              index]; // Your custom card widgets
+                          return _filteredUsers[index]; // Your custom card widgets
                         },
                       ),
               );

@@ -1,7 +1,7 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
-import 'package:broker_flutter_pp/res/strings.dart';
+import 'package:broker_flutter_pp/main.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
-import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
+import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/courier/MilestonesScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -204,14 +204,7 @@ class _JobDetailsState extends State<JobDetails> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-
-                handleJobAction(
-                  context,
-                  nodeID,
-                  acceptJob,
-                  widget.brokerID,
-                  widget.emptyLegRequestID,
-                );
+                handleJobAction(context, nodeID, acceptJob, widget.brokerID, widget.emptyLegRequestID);
               },
               child: const Text('YES'),
             ),
@@ -220,30 +213,27 @@ class _JobDetailsState extends State<JobDetails> {
       },
     );
   }
+
   void handleJobAction(BuildContext context, String nodeID, bool acceptJob, String brokerID, String emptyLegRequestID) {
-    // Close the dialog
-    Navigator.of(context).pop();
+    // **Remove this extra pop** - dialog already closed in _showRequestDialog
+    // Navigator.of(context).pop();
 
-    // Initialize the Firestore service
     final FirestoreService service = FirestoreService(context);
-
-    // Update job status
     final String jobStatus = acceptJob ? 'todo' : 'decline';
     service.updateJobStatus(nodeID, jobStatus);
 
-    // Prepare notification message
     final User currentUser = FirebaseAuth.instance.currentUser!;
     final String email = currentUser.email ?? 'Unknown User';
     final String message = acceptJob
         ? "Your Job accepted by $email"
         : "Your Job declined by $email";
 
-    // Show custom dialog
     CustomDialog.showCustomDialog3(
       context,
       acceptJob ? "Job Accepted successfully" : "Job Declined",
       onOkPressed: () {
-        // Create notification
+        // Dialog will already be closed at this point
+
         service.createNotification(
           brokerID: brokerID,
           courierID: currentUser.uid,
@@ -252,14 +242,17 @@ class _JobDetailsState extends State<JobDetails> {
           message: message,
         );
 
-        // Navigate to DrawerScreen
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/DrawerScreen',
-              (route) => false, // Clear the navigation stack
-        );
+        // Navigate after a slight delay
+        Future.delayed(const Duration(milliseconds: 200), () {
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const DrawerScreen()),
+                (Route<dynamic> route) => false,
+          );
+        });
       },
     );
+
   }
+
 
 }

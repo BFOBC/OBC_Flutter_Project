@@ -140,43 +140,65 @@ class _CardViewState extends State<CardView> {
       print("✅ Login successful: ${userCredential.user?.uid}");
 
       String uid = userCredential.user!.uid;
-      String role = selectedIndex == 0 ? 'broker' : 'courier';
-      String collectionName = role; // either 'broker' or 'courier'
 
-      DocumentReference userDocRef =
-      FirebaseFirestore.instance.collection(collectionName).doc(uid);
+      // Selected role user ne UI se choose kiya (e.g., index 0 = broker, 1 = courier)
+      String selectedRole = selectedIndex == 0 ? 'broker' : 'courier';
 
-      DocumentSnapshot userDoc = await userDocRef.get();
+      // 🔍 First check both collections to find correct role
+      DocumentSnapshot brokerDoc = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(uid)
+          .get();
 
-      // Sirf tab save karo agar pehle se exist nahi karta
-      if (!userDoc.exists) {
-        if(role=='courier'){
-          await userDocRef.set({
-            'email': email,
-            'role': role,
-            'createdAt': FieldValue.serverTimestamp(), // optional metadata
-            'courierID':userDoc.id, // optional metadata
-            'id': userDoc.id, // optional metadata
-            'name': 'Test Courier', // optional metadata
-            'baseLocationLat': 0.0, // optional metadata
-            'baseLocationLong': 0.0, // optional metadata
-            'currentLocationLat': 0.0, // optional metadata
-            'currentLocationLong': 0.0, // optional metadata
+      DocumentSnapshot courierDoc = await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(uid)
+          .get();
+
+      String? actualRole;
+      if (brokerDoc.exists) {
+        actualRole = 'broker';
+      } else if (courierDoc.exists) {
+        actualRole = 'courier';
+      }
+
+      // ❌ Role mismatch
+      if (actualRole != null && actualRole != selectedRole) {
+        await FirebaseAuth.instance.signOut();
+        return "This email is registered as a $actualRole. Please login using the correct role.";
+      }
+
+      // ✅ If role not set yet (first-time login), create new doc
+      if (actualRole == null) {
+        String collectionName = selectedRole;
+        DocumentReference userDocRef =
+        FirebaseFirestore.instance.collection(collectionName).doc(uid);
+
+        Map<String, dynamic> userData = {
+          'email': email,
+          'role': selectedRole,
+          'createdAt': FieldValue.serverTimestamp(),
+          'id': uid,
+          'name': selectedRole == 'courier' ? 'Test Courier' : 'Test Broker',
+        };
+
+        if (selectedRole == 'courier') {
+          userData.addAll({
+            'courierID': uid,
+            'baseLocationLat': 0.0,
+            'baseLocationLong': 0.0,
+            'currentLocationLat': 0.0,
+            'currentLocationLong': 0.0,
           });
-        }else{
-          await userDocRef.set({
-            'email': email,
-            'role': role,
-            'createdAt': FieldValue.serverTimestamp(), // optional metadata
-            'brokerID':userDoc.id, // optional metadata
-            'id': userDoc.id, // optional metadata
-            'name': 'Test Broker', // optional metadata
-          });
+        } else {
+          userData['brokerID'] = uid;
+          userData['isOnline'] = false;
         }
 
-        print("📝 New $role record created in '$collectionName' collection.");
+        await userDocRef.set(userData);
+        print("📝 New $selectedRole record created.");
       } else {
-        print("ℹ️ $role record already exists in '$collectionName'.");
+        print("ℹ️ Existing $actualRole user logged in.");
       }
 
       return null; // no error

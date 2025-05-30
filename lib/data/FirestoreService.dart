@@ -229,33 +229,26 @@ class FirestoreService {
   }
 
   // Method to fetch data from the emptyLegRequests collection
-  Future<List<EmptyLegRequest>> getEmptyLegRequests() async {
+  Future<List<EmptyLegRequest>> getEmptyLegRequests({required String courierID}) async {
     try {
-      CollectionReference requests = _firestore.collection('emptyLegRequests');
-      QuerySnapshot querySnapshot = await requests.get();
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('emptyLegRequests')
+          .where('status', isEqualTo: 'pending') // Filter: status = "pending"
+          .where('courierID', isEqualTo: courierID) // Filter: courierID match
+          .get();
 
-      List<EmptyLegRequest> requestsList = querySnapshot.docs
-          .map((doc) {
-        print('Document data: ${doc.data()}'); // Debug: print document data
+      List<EmptyLegRequest> requestsList = querySnapshot.docs.map((doc) {
+        print('Document data: ${doc.data()}');
         return EmptyLegRequest.fromMap(doc.data() as Map<String, dynamic>);
-      })
-          .where((request) =>
-      request.status?.toLowerCase() ==
-          'pending') // Filter for status = 'pending' (case insensitive)
-          .toList();
+      }).toList();
 
-      print('Filtered emptyLegRequests docs in querySnapshot: ${requestsList
-          .length}');
-      print('Filtered Requests List: $requestsList');
-
+      print('Filtered emptyLegRequests count: ${requestsList.length}');
       return requestsList;
     } catch (e) {
       print('Error fetching empty leg requests: $e');
       return [];
     }
   }
-
-
   // Method to fetch brokers by brokerIDs using the BrokerProfileData model
   Future<List<BrokerProfileData>> getBrokersByBrokerID(
       List<String> brokerIDs) async {
@@ -297,10 +290,10 @@ class FirestoreService {
 
 
   // Method to fetch emptyLegRequests and associated brokers
-  Future<List<Map<String, dynamic>>> getEmptyLegRequestsWithBrokers() async {
+  Future<List<Map<String, dynamic>>> getEmptyLegRequestsWithBrokers(String ID) async {
     try {
       // Get all the empty leg requests
-      List<EmptyLegRequest> requests = await getEmptyLegRequests();
+      List<EmptyLegRequest> requests = await getEmptyLegRequests(courierID: ID);
 
       // Get all unique brokerIDs from the emptyLegRequests
       List<String> brokerIDs = requests
