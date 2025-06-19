@@ -121,12 +121,32 @@ class _CourierMapState extends State<CourierMap>
       );
       _currentLocation = LatLng(position.latitude, position.longitude);
       // Animate the camera to the new location
-      animateCamera(_currentLocation, 10.0);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+
+      FirestoreService firsBase = FirestoreService(context);
+      Map<String, double> location = await firsBase.getCourierLocation(_currentUser.uid);
+      LatLng fetchLocation = LatLng(location['lat']!, location['long']!);
+      animateCamera(fetchLocation, 10.0);
+
+      final status = await firsBase.getCourierLocationStatus(_currentUser.uid);
+
+      if (status != null) {
+        String locationType = status.isCurrent ? "current" : "base";
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text(
-                '📍 Location: ${position.latitude}, ${position.longitude}')),
-      );
+              'You are available at your $locationType location in ${status.country}.',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to fetch courier location status.'),
+          ),
+        );
+      }
+
       return position;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -7,9 +7,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
 import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/FirestoreService.dart';
 import '../../common/screens/DrawerScreen.dart';
 import '../../common/utils/RoleProvider.dart';
+import '../widgets/PasswordField.dart';
 
 class LoginCard extends StatelessWidget {
   const LoginCard({super.key});
@@ -53,6 +55,7 @@ class _CardViewState extends State<CardView> {
   final TextEditingController _passwordController =
       TextEditingController(text: '');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _rememberMe = false;
 
   int _selectedIndex = 0;
 
@@ -75,26 +78,39 @@ class _CardViewState extends State<CardView> {
         final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
         roleProvider.setRole(role);
 
-        String? errorMessage = await signInAndSaveUser(
-          _emailController.text.trim(),
-          _passwordController.text,
-          _selectedIndex,
-        );
+        String email = _emailController.text.trim();
+        String password = _passwordController.text;
 
-        print("Calling signInAndSaveUser...");
+        String? errorMessage = await signInAndSaveUser(email, password, _selectedIndex);
 
-        // Hide progress only once here
+        // ✅ Save credentials if rememberMe is checked
+// ✅ Save credentials + role if rememberMe is checked
+        if (_rememberMe) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('email', email);
+          await prefs.setString('password', password);
+          await prefs.setBool('rememberMe', true);
+
+          // 🔐 Save the role string ("broker" or "courier")
+          await prefs.setString('role', role == UserRole.broker ? 'Broker' : 'Courier');
+        } else {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.remove('email');
+          await prefs.remove('password');
+          await prefs.setBool('rememberMe', false);
+          await prefs.remove('role');
+        }
+
+
         if (context.mounted) hideProgressDialog(context);
 
         if (errorMessage == null) {
-          print("Login successful — navigating to DrawerScreen");
           if (context.mounted) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => const DrawerScreen()),
             );
           }
         } else {
-          print("Login failed — showing SnackBar: $errorMessage");
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -111,7 +127,7 @@ class _CardViewState extends State<CardView> {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text("Something went wrong. Please try again."),
               backgroundColor: Colors.red,
             ),
@@ -131,6 +147,7 @@ class _CardViewState extends State<CardView> {
       }
     }
   }
+
   Future<String?> signInAndSaveUser(
       String email, String password, int selectedIndex) async {
     try {
@@ -282,27 +299,25 @@ class _CardViewState extends State<CardView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Enter Password',
-                          prefixIcon: Icon(Icons.lock),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          return Validator.validatePassword(
-                              password: value ?? '');
-                        },
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 8.0),
+                PasswordField(controller: _passwordController),
+                CheckboxListTile(
+                  value: _rememberMe,
+                  onChanged: (newValue) {
+                    setState(() {
+                      _rememberMe = newValue ?? false;
+                    });
+                  },
+                  title: const Text("Remember Me"),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+
+                  // ✅ Custom colors
+                  activeColor: Colors.green,      // Checkbox fill color when checked
+                  checkColor: Colors.white,       // Tick icon color
                 ),
-                const SizedBox(height: 16.0),
+
+
                 MaterialButton(
                   onPressed: _submitForm,
                   color: Colors.blue,

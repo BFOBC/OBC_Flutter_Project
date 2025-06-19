@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../ui/common/utils/DateTimePicker.dart';
+import '../ui/courier/models/CourierLocationStatus.dart';
 
 class FirestoreService {
   final BuildContext context;
@@ -863,5 +864,62 @@ class FirestoreService {
       return 'Login failed: $error';
     }
   }
+  Future<Map<String, double>> getCourierLocation(String courierID) async {
+    try {
+      // Get courier document
+      DocumentSnapshot<Map<String, dynamic>> courierDoc = await FirebaseFirestore
+          .instance
+          .collection('courier')
+          .doc(courierID)
+          .get(const GetOptions(source: Source.server));
+
+      if (!courierDoc.exists) {
+        print('Courier not found');
+        return {};
+      }
+
+      final data = courierDoc.data();
+      final bool isCurrent = data?['current'] ?? true;
+
+      if (isCurrent) {
+        return {
+          'lat': data?['currentLocationLat']?.toDouble() ?? 51.1657,
+          'long': data?['currentLocationLong']?.toDouble() ?? 10.4515,
+        };
+      } else {
+        return {
+          'lat': data?['baseLocationLat']?.toDouble() ?? 51.1657,
+          'long': data?['baseLocationLong']?.toDouble() ?? 10.4515,
+        };
+      }
+    } catch (e) {
+      print('Error fetching courier location: $e');
+      return {};
+    }
+  }
+  Future<CourierLocationStatus?> getCourierLocationStatus(String courierID) async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> courierDoc = await FirebaseFirestore
+          .instance
+          .collection('courier')
+          .doc(courierID)
+          .get(const GetOptions(source: Source.server));
+
+      if (!courierDoc.exists) {
+        print('Courier document not found');
+        return null;
+      }
+
+      final data = courierDoc.data();
+      bool isCurrent = data?['current'] ?? false;
+      String country = data?['country'] ?? 'Unknown';
+
+      return CourierLocationStatus(isCurrent: isCurrent, country: country);
+    } catch (e) {
+      print('Error fetching courier location status: $e');
+      return null;
+    }
+  }
+
 
 }

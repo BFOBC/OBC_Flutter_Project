@@ -213,7 +213,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
     EmptyLegRequest newRequest = EmptyLegRequest(
       brokerID: widget.brokerKey,
       courierID: widget.courierKey,
-      emptyLegRequestID: null,
+      emptyLegRequestID: savedTask!.emptyLegRequestID!,
       // Will be updated when saving
       requestDateTime: DateTime.now().toIso8601String(),
       status: 'pending',

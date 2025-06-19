@@ -1,6 +1,8 @@
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingScreen extends StatelessWidget {
   const SettingScreen({super.key});
@@ -243,7 +245,14 @@ class SettingScreen extends StatelessWidget {
               child: const Text('No'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                // 1. Sign out from Firebase
+                await FirebaseAuth.instance.signOut();
+
+                // 2. Clear SharedPreferences
+                await clearSavedLoginData();
+
+                // 3. Navigate to Login screen
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginCard()),
                       (Route<dynamic> route) => false,
@@ -251,10 +260,21 @@ class SettingScreen extends StatelessWidget {
               },
               child: const Text('Yes'),
             ),
+
           ],
         );
       },
     );
   }
+  Future<void> clearSavedLoginData() async {
+    print("I am courier clear pref method");
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('email');
+    await prefs.remove('password');
+    await prefs.remove('rememberMe');
+    await prefs.remove('role');
+  }
+
 
 }

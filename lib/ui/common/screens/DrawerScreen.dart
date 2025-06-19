@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../res/strings.dart';
 import '../../broker/BrokerMap.dart';
 import 'SettingScreen.dart';
@@ -240,7 +241,13 @@ class _DrawerScreenState extends State<DrawerScreen> {
               child: const Text('No'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                // 1. Sign out from Firebase
+                await FirebaseAuth.instance.signOut();
+
+                // 2. Clear SharedPreferences
+                await clearSavedLoginData();
+
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginCard()),
                   (Route<dynamic> route) => false,
@@ -254,7 +261,13 @@ class _DrawerScreenState extends State<DrawerScreen> {
     );
   }
 }
-
+Future<void> clearSavedLoginData() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.remove('email');
+  await prefs.remove('password');
+  await prefs.remove('rememberMe');
+  await prefs.remove('role');
+}
 class DrawerItem extends StatelessWidget {
   final IconData icon;
   final String title;
