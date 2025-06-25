@@ -171,8 +171,7 @@ class FirestoreService {
     }
   }
 
-  Future<void> saveEmptyLegRequest(EmptyLegRequest request,
-      List<String> milestone) async {
+  Future<String?> saveEmptyLegRequest(EmptyLegRequest request, List<String> milestone) async {
     try {
       // Reference to the collection
       CollectionReference requests = _firestore.collection('emptyLegRequests');
@@ -180,23 +179,36 @@ class FirestoreService {
       // Create a new document with an auto-generated ID
       DocumentReference docRef = requests.doc();
 
-    //  request.startTimeDate=convertToUTCFromCustomFormat(request.startTimeDate.toString());
-     // request.endTimeDate=convertToUTCFromCustomFormat(request.endTimeDate.toString());
-      // Update the nodeID dynamically
+      // Assign ID to the request model
       request.emptyLegRequestID = docRef.id;
 
-      String msg = "Broker sent you New Job request  ${_currentUser.email}";
-      createNotification(brokerID: request.brokerID,
-          courierID: request.courierID,
-          emptyLegRequestID: request.emptyLegRequestID.toString(),
-          sentBy: "Broker",
-          message: msg);
-      // Save the request with the updated nodeID
+      // Optional: Convert to UTC if needed
+      // request.startTimeDate = convertToUTCFromCustomFormat(request.startTimeDate.toString());
+      // request.endTimeDate = convertToUTCFromCustomFormat(request.endTimeDate.toString());
+
+      // Create a notification
+      String msg = "Broker sent you New Job request ${_currentUser.email}";
+      createNotification(
+        brokerID: request.brokerID,
+        courierID: request.courierID,
+        emptyLegRequestID: request.emptyLegRequestID!,
+        sentBy: "Broker",
+        message: msg,
+      );
+
+      // Save the request to Firestore
       await docRef.set(request.toJson());
-      updateLegIDS(request.emptyLegRequestID.toString(), milestone);
+
+      // Update milestone IDs
+      updateLegIDS(request.emptyLegRequestID!, milestone);
+
       print('Request saved with nodeID: ${request.emptyLegRequestID}');
+
+      // ✅ Return the generated ID
+      return request.emptyLegRequestID;
     } catch (e) {
       print('Error saving request: $e');
+      return null; // In case of error
     }
   }
 

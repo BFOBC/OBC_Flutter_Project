@@ -3,10 +3,10 @@ import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
-import '../../data/FirestoreService.dart';
-import '../common/models/Milestone.dart';
+import '../../../data/FirestoreService.dart';
+import '../../common/models/Milestone.dart';
 import 'ManageLegsAndMilestones.dart';
-import 'CircularRating.dart'; // Assuming you have this class imported
+import '../CircularRating.dart'; // Assuming you have this class imported
 
 class BrokerMissions extends StatefulWidget {
   const BrokerMissions({super.key});

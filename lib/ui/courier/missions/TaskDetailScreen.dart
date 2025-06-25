@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../common/models/Task.dart';
+import '../../common/models/Task.dart';
 
 class TaskDetailScreen extends StatelessWidget {
   final Task task;
@@ -35,7 +35,7 @@ class TaskDetailScreen extends StatelessWidget {
               Expanded(
                 child: ListView(
                   children: [
-                    detailCard("Broker ID", task.brokerId),
+                    //detailCard("Broker ID", task.brokerId),
                     detailCard("Departure From", task.departureFrom),
                     detailCard("Arrive At", task.arriveAt),
                     detailCard("Start Date And Time", task.localStartDateTime),

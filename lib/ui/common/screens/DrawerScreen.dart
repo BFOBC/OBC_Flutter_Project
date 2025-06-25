@@ -11,7 +11,7 @@ import '../../../res/strings.dart';
 import '../../broker/BrokerMap.dart';
 import 'SettingScreen.dart';
 import '../../broker/emptyleg/SearchEmptyLeg.dart';
-import '../../courier/CourierMissions.dart';
+import '../../courier/missions/CourierMissions.dart';
 import '../../courier/emptyleg/EmptyLegMainScreen.dart';
 import '../utils/RoleProvider.dart';
 

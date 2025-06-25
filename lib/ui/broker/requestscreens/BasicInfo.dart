@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../courier/models/CourierProfileData.dart';
+import '../../courier/models/CourierProfileData.dart';
 
 class BasicInfo extends StatelessWidget {
   final CourierProfileData courierProfileData;

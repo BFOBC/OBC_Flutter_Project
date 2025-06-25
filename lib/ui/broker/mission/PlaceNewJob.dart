@@ -10,7 +10,7 @@ class PlaceNewJob extends StatefulWidget {
   final Task? data;
   final Function(Task) onSave;
 
-  const PlaceNewJob({super.key, this.data, required this.onSave});
+  const PlaceNewJob({super.key, this.data, required this.onSave, required String brokerKey, required String courierKey});
 
   @override
   PlaceNewJobState createState() => PlaceNewJobState();
@@ -24,6 +24,7 @@ class PlaceNewJobState extends State<PlaceNewJob> {
   final TextEditingController _field5Controller = TextEditingController();
   final TextEditingController _fieldBidController = TextEditingController();
   bool _isViewEnabled = true;
+  bool _showMilestoneForm = false;
 
   @override
   void initState() {

@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:broker_flutter_pp/ui/broker/mission/PlaceNewJob.dart';
+import 'package:broker_flutter_pp/ui/broker/requestscreens/Submission.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
@@ -9,8 +11,8 @@ import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../../res/custom_colors.dart';
 import '../courier/models/CourierProfileData.dart';
-import 'BasicInfo.dart';
-import 'ManageLegsAndMilestones.dart';
+import 'requestscreens/BasicInfo.dart';
+import 'mission/ManageLegsAndMilestones.dart';
 import 'Passports.dart';  // Import the Passports widget
 import 'Visas.dart';      // Import the Visas widget
 
@@ -209,7 +211,7 @@ class _SearchCourierState extends State<SearchCourier> {
                 width: 200,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
+/*                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ManageLegsAndMilestones(
@@ -217,7 +219,25 @@ class _SearchCourierState extends State<SearchCourier> {
                             AuthUtils.getCurrentUserId2().toString(),
                             courierKey: widget.courierKey),
                       ),
+                    );*/
+              Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubmissionScreen(
+                            brokerKey:
+                            AuthUtils.getCurrentUserId2().toString(),
+                            courierKey: widget.courierKey, onSave: (Task ) {  },),
+                      ),
                     );
+/*                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlaceNewJob(
+                            brokerKey:
+                            AuthUtils.getCurrentUserId2().toString(),
+                            courierKey: widget.courierKey, onSave: (Task ) {  },),
+                      ),
+                    );*/
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Palette.secondaryColor,

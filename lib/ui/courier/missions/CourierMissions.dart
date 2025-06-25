@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
-import '../broker/CircularRating.dart';
+import '../../broker/CircularRating.dart';
 import 'ViewCourierMission.dart';
 
 class CourierMissions extends StatefulWidget {

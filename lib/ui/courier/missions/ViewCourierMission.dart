@@ -2,12 +2,12 @@ import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
-import 'package:broker_flutter_pp/ui/courier/TaskDetailScreen.dart';
+import 'package:broker_flutter_pp/ui/courier/missions/TaskDetailScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../res/custom_colors.dart';
-import 'ViewJob.dart';
+import '../../../res/custom_colors.dart';
+import '../ViewJob.dart';
 import 'CompleteMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {

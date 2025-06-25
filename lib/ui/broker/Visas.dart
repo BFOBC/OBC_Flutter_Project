@@ -1,20 +1,6 @@
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:flutter/material.dart';
 
-/*class Visa {
-  final String? country;
-  final String? countryFlagUrl;
-  final String? visaExpiryDate;
-  final String? visaIssueDate;
-
-  Visa({
-     this.country,
-     this.countryFlagUrl,
-     this.visaExpiryDate,
-     this.visaIssueDate,
-  });
-}*/
-
 class Visas extends StatelessWidget {
   final List<Visa> visas;
 
