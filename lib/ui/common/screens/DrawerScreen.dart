@@ -30,21 +30,21 @@ class _DrawerScreenState extends State<DrawerScreen> {
       'title': AppStrings.map,
       'icon': Icons.map,
     },
-    AppStrings.notifications: {
-      'title': AppStrings.notifications,
-      'icon': Icons.notifications,
-    },
     AppStrings.availabilityUpdates: {
       'title': AppStrings.availabilityUpdates,
       'icon': Icons.update,
     },
-    AppStrings.chat: {
-      'title': AppStrings.chat,
-      'icon': Icons.chat,
-    },
     AppStrings.myMissions: {
       'title': AppStrings.myMissions,
       'icon': Icons.access_alarm,
+    },
+    AppStrings.notifications: {
+      'title': AppStrings.notifications,
+      'icon': Icons.notifications,
+    },
+    AppStrings.chat: {
+      'title': AppStrings.chat,
+      'icon': Icons.chat,
     },
 /*    AppStrings.history: {
       'title': AppStrings.history,

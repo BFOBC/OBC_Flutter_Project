@@ -18,7 +18,7 @@ class BrokerMissions extends StatefulWidget {
 class _BrokerMissionsState extends State<BrokerMissions> {
   int _selectedIndex = 0;
   final List<bool> _selectedToggle = [true, false, false, false];
-  final List<String> _toggleText = ["In Progress", "Completed", "Todo","Completed"];
+  final List<String> _toggleText = ["Pending", "Todo", "In Progress","Completed"];
   bool isLoading = true; // Track loading state
   // Define the color list to match chart segments, tabs, and vertical bars
   final List<Color> _colorList = [
@@ -281,11 +281,11 @@ class _BrokerMissionsState extends State<BrokerMissions> {
   String _getStatusForIndex(int index) {
     switch (index) {
       case 0:
-        return 'In Progress';
+        return 'Pending';
       case 1:
         return 'Todo';
       case 2:
-        return 'Pending';
+        return 'In Progress';
       default:
         return 'Completed';
     }
