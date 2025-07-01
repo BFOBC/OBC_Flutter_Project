@@ -2,6 +2,7 @@ import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -29,26 +30,41 @@ class _DataSyncScreenState extends State<DataSyncScreen> {
   }
 
   Future<void> startSyncProcess() async {
-    try {
-      setState(() => statusMessage = 'Fetching data...');
-      await Future.delayed(const Duration(seconds: 1));
+    int retryCount = 0;
 
-      final AirportService service = AirportService();
-      await service.loadAirports();
+    while (true) {
+      // 🔌 Internet check
+      var connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        setState(() => statusMessage = 'No internet connection. Please connect to the internet.');
+        await Future.delayed(const Duration(seconds: 5));
+        continue; // wait and try again
+      }
 
-      setState(() => statusMessage = 'Data synchronized. Requesting location permission...');
+      try {
+        setState(() => statusMessage = 'Fetching data (attempt ${retryCount + 1})...');
+        await Future.delayed(const Duration(seconds: 1));
 
-      await Future.delayed(const Duration(seconds: 1));
-      await handleLocationPermission();
-// ✅ Save sync flag
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isDataSynced', true);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sync failed: $e')),
-      );
+        final AirportService service = AirportService();
+        await service.loadAirports();
+
+        setState(() => statusMessage = 'Data synchronized. Requesting location permission...');
+        await Future.delayed(const Duration(seconds: 1));
+
+        // ✅ Save sync flag
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isDataSynced', true);
+
+        await handleLocationPermission(); // ye navigate karega
+        break; // exit loop if all done
+      } catch (e) {
+        retryCount++;
+        setState(() => statusMessage = 'Sync failed (attempt $retryCount). Retrying in ${2 * retryCount} seconds...');
+        await Future.delayed(Duration(seconds: 2 * retryCount));
+      }
     }
   }
+
 
   Future<void> handleLocationPermission() async {
     final status = await Permission.location.request();
