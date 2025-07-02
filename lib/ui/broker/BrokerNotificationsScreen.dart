@@ -22,30 +22,45 @@ class _BrokerNotificationsScreenState extends State<BrokerNotificationsScreen> {
     fetchNotifications();
   }
 
-// Fetch notifications using FirestoreService
   Future<void> fetchNotifications() async {
     try {
-     // User? user = FirebaseAuth.instance.currentUser;
-      // Get the current role from the RoleProvider
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      String role = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
-      print('Selected Role is');
-      print(role);
-      // Fetch all notifications from Firestore
-      List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications(role);
+      String selectedRole = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
 
-      // Filter notifications based on the selected role
+      print('🔵 Selected Role: $selectedRole');
+
+      // Fetch notifications for the current user's ID
+      List<Map<String, dynamic>> fetchedNotifications =
+      await FirestoreService(context).readNotifications(selectedRole);
+
+      print('📥 Total fetched notifications: ${fetchedNotifications.length}');
+
+      // Log each notification's sentBy field
+      for (var i = 0; i < fetchedNotifications.length; i++) {
+        final notif = fetchedNotifications[i];
+        print('🔍 Notification ${i + 1} - sentBy: ${notif['sentBy']} | message: ${notif['message']}');
+      }
+
+      // Filter to show only the notifications sent by the OPPOSITE role
+      String oppositeRole = selectedRole == 'Broker' ? 'Courier' : 'Broker';
+      print('🟣 Filtering notifications where sentBy == $oppositeRole');
+
       List<Map<String, dynamic>> filteredNotifications = fetchedNotifications.where((notification) {
-        return notification['sentBy'] == role;
+        return notification['sentBy'] == oppositeRole;
       }).toList();
 
+      print('✅ Filtered notifications count: ${filteredNotifications.length}');
+
       setState(() {
-        notifications = filteredNotifications;  // Update the state with the filtered notifications
+        notifications = filteredNotifications;
       });
     } catch (e) {
-      print('Error fetching notifications: $e');
+      print('❌ Error fetching notifications: $e');
+      setState(() {});
     }
   }
+
+
 
 
   // Show confirmation dialog when trying to delete a notification

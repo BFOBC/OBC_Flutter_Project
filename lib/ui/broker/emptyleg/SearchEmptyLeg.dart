@@ -347,6 +347,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                     title: Text(airport.name ?? 'Unknown'),
                     onTap: () {
                       setState(() {
+                        FocusScope.of(context).unfocus();
                         _searchController2.text = airport.name ?? '';
                         selectedFromAirport = airport;
                         fromAirportSuggestions = [];
@@ -383,6 +384,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                 onChanged: (String value) {
                   // This callback is triggered every time the user types.
                   print("Departure text changed: $value");
+
                   _fetchToAirportData(value);
                 },
                 inputFormatters: [
@@ -401,6 +403,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                     title: Text(airport.name ?? 'Unknown'),
                     onTap: () {
                       setState(() {
+                        FocusScope.of(context).unfocus();
                         _searchController1.text = airport.name ?? '';
                         selectedToAirport = airport;
                         toAirportSuggestions = [];

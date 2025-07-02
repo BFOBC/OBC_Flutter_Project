@@ -1,5 +1,6 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/res/strings.dart';
+import 'package:broker_flutter_pp/ui/common/screens/NotificationDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -24,40 +25,48 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     fetchNotifications();
   }
 
-  // Fetch notifications using FirestoreService
+// Fetch notifications using FirestoreService
   Future<void> fetchNotifications() async {
     setState(() {
-      isLoading = true;  // Show the progress bar while fetching data
+      isLoading = true;
     });
 
     try {
-      // Get the current role from the RoleProvider
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      String role = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
+      String selectedRole = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
 
+      print('🔵 Selected Role: $selectedRole');
 
-      print('Selected Role is');
-      print(role);
+      // Fetch all notifications based on userID (courierID/brokerID)
+      List<Map<String, dynamic>> fetchedNotifications =
+      await FirestoreService(context).readNotifications(selectedRole);
 
-      // Fetch all notifications from Firestore
-      List<Map<String, dynamic>> fetchedNotifications = await FirestoreService(context).readNotifications(role);
+      print('📥 Total fetched: ${fetchedNotifications.length}');
 
-      // Filter notifications based on the selected role
+      // Determine the opposite role (whose notifications we want to see)
+      String oppositeRole = selectedRole == 'Broker' ? 'Courier' : 'Broker';
+      print('🟣 Filtering for sentBy == $oppositeRole');
+
+      // Filter notifications sent by the opposite role
       List<Map<String, dynamic>> filteredNotifications = fetchedNotifications.where((notification) {
-        return notification['sentBy'] == role;
+        print('🔍 Checking notification sentBy: ${notification['sentBy']}');
+        return notification['sentBy'] == oppositeRole;
       }).toList();
 
+      print('✅ Filtered notifications count: ${filteredNotifications.length}');
+
       setState(() {
-        notifications = filteredNotifications;  // Update the state with the filtered notifications
-        isLoading = false;  // Hide the progress bar after fetching data
+        notifications = filteredNotifications;
+        isLoading = false;
       });
     } catch (e) {
-      print('Error fetching notifications: $e');
+      print('❌ Error fetching notifications: $e');
       setState(() {
-        isLoading = false;  // Hide the progress bar if there's an error
+        isLoading = false;
       });
     }
   }
+
 
   // Show confirmation dialog when trying to delete a notification
   Future<void> showDeleteConfirmationDialog(String notificationID, int index) async {
@@ -160,15 +169,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 child: ListTile(
                   title: Text(notification['message']),
-                  subtitle: Text('Received: ${notification['currentDateTime']}'),
+                  subtitle: Text('Received: ${_formatDate(notification['currentDateTime'])}'),
                   leading: const Icon(
                     Icons.notifications,
                     color: Colors.blueAccent,
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    // Handle notification click
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NotificationDetailScreen(notification: notification),
+                      ),
+                    );
                   },
+
                 ),
               ),
             );
@@ -177,4 +192,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
+  String _formatDate(String dateStr) {
+    try {
+      final dateTime = DateTime.parse(dateStr).toLocal();
+      return '${_monthName(dateTime.month)} ${dateTime.day}, ${dateTime.year} – '
+          '${_formatHour(dateTime.hour)}:${_formatMinute(dateTime.minute)} ${dateTime.hour >= 12 ? 'PM' : 'AM'}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  String _monthName(int month) {
+    const months = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return months[month];
+  }
+
+  String _formatHour(int hour) {
+    final h = hour % 12;
+    return (h == 0 ? 12 : h).toString().padLeft(2, '0');
+  }
+
+  String _formatMinute(int minute) {
+    return minute.toString().padLeft(2, '0');
+  }
+
 }

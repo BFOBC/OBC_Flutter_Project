@@ -59,6 +59,7 @@ dependencies:
   firebase_messaging: ^15.2.5
   lottie: ^2.6.0
   google_maps_cluster_manager: ^3.0.0
+  workmanager: ^0.5.1
 
     #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 
