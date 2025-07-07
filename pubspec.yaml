@@ -60,8 +60,9 @@ dependencies:
   lottie: ^2.6.0
   google_maps_cluster_manager: ^3.0.0
   workmanager: ^0.5.1
+  flutter_local_notifications: ^17.1.2
 
-    #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
+  #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
 
 
   # The following adds the Cupertino Icons font to your application.

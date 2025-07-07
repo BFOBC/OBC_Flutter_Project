@@ -6,6 +6,7 @@ import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:workmanager/workmanager.dart';
@@ -19,12 +20,7 @@ void main() async {
   );
   await FirebaseMessaging.instance.requestPermission(); // Important for iOS
 
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true); // For testing, set to false in prod
-  Workmanager().registerPeriodicTask(
-    "deleteExpiredRecordsTask",
-    "checkAndDeleteExpiredDocuments",
-    frequency: const Duration(minutes: 15), // Minimum allowed
-  );
+  initializeWorkManager();
 
   runApp(
     MultiProvider(
@@ -36,31 +32,93 @@ void main() async {
     ),
   );
 }
+void initializeWorkManager() {
+  // ✅ Initialize WorkManager
+  Workmanager().initialize(
+    callbackDispatcher, // use only one dispatcher
+    isInDebugMode: false, // 👈 Disable debug logging + notification
+  );
+  // ✅ Register periodic task here
+  Workmanager().registerPeriodicTask(
+    'deleteExpiredRecordsTask',
+    'checkAndDeleteExpiredDocuments',
+    frequency: Duration(hours: 24), // 🔁 Daily cleanup
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    ),
+    backoffPolicy: BackoffPolicy.linear,
+    backoffPolicyDelay: Duration(minutes: 5),
+    initialDelay: Duration(minutes: 1),
+  );
+}
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    await Firebase.initializeApp();
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+      await Firebase.initializeApp();
 
-    final now = DateTime.now().toUtc();
-    final firestore = FirebaseFirestore.instance;
+      // ✅ Set up local notifications
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
-    final snapshot = await firestore.collection('emptyLegs').get();
+      const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final toDateTimeStr = data['toDateTime'];
+      final InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+      );
 
-      if (toDateTimeStr != null) {
-        final toDateTime = DateTime.tryParse(toDateTimeStr);
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+      // ✅ Show persistent notification for foreground service
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+        'cleanup_foreground',
+        'Cleanup Foreground',
+        channelDescription: 'Runs background cleanup in foreground',
+        importance: Importance.low,
+        priority: Priority.low,
+        ongoing: true, // keeps notification visible
+        onlyAlertOnce: true,
+      );
+
+      const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      // 🔁 Show foreground-style notification
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'OBC App',
+        'Running cleanup task...',
+        platformChannelSpecifics,
+      );
+
+      // 🔥 Perform the cleanup
+      final firestore = FirebaseFirestore.instance;
+      final now = DateTime.now().toUtc();
+      final snapshot = await firestore.collection('emptyLegs').get();
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final toDateTimeStr = data['toDateTime'];
+        final toDateTime = DateTime.tryParse(toDateTimeStr ?? '');
         if (toDateTime != null && toDateTime.isBefore(now)) {
-          await firestore.collection('emptyLegs').doc(doc.id).delete();
-          print('🔥 Deleted expired document: ${doc.id}');
+          await doc.reference.delete();
         }
       }
-    }
 
-    return Future.value(true);
+      // ✅ Dismiss notification after work is done
+      await flutterLocalNotificationsPlugin.cancel(0);
+
+      return Future.value(true);
+    } catch (e, stack) {
+      print('❌ Error in background task: $e');
+      return Future.value(false);
+    }
   });
 }
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

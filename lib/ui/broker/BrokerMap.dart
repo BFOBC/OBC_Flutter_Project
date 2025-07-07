@@ -40,9 +40,14 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
   }
 
 
-  void animateCamera(LatLng targetLocation, double zoomLevel) {
+  Future<void> animateCamera(LatLng targetLocation, double zoomLevel) async {
     CameraPosition cameraPosition = CameraPosition(target: targetLocation, zoom: zoomLevel);
     _mapController.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+
+
+    // 🔄 Step 5: Add short delay (wait 500ms)
+   // await Future.delayed(Duration(milliseconds: 800));
+    //showCouriersBottomSheet(context, courierData);
   }
 
   Future<Map<String, dynamic>?> fetchAirportDetail(String code) async {
@@ -426,28 +431,48 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
 
         });
 
-        // 🛑 Optionally show a message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No couriers found at $searchCode')),
-        );
       }
-
-
-
       setState(() {
         _isAnimatingRadar = false;
       });
-
       if (courierData.isEmpty) {
         print('❌ No nearby couriers found.');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No Couriers found')));
+        // 🛑 Optionally show a message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No couriers found at $searchCode'),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
       } else {
         print('✅ Found ${courierData.length} couriers.');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${courierData.length} Courier(s) found at $searchCode')),
+          SnackBar(
+            content: Text('${courierData.length} Courier(s) found at $searchCode'),
+            action: SnackBarAction(
+              label: 'View',
+              textColor: Colors.white,
+              onPressed: () {
+                showCouriersBottomSheet(context, courierData); // 👈 open sheet on tap
+              },
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: Duration(seconds: 10),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: EdgeInsets.all(16),
+          ),
         );
 
-        showCouriersBottomSheet(context, courierData);
+
       }
     } catch (e, stackTrace) {
       print('❌ Exception in searchNearbyLocations: $e');
