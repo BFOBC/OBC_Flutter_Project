@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
+import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
@@ -119,7 +120,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
           break;
         case AppStrings.myMissions:
           if (roleProvider.role == UserRole.broker) {
-            _selectedWidget = CourierMissions();
+            _selectedWidget = BrokerMissions();
           } else if (roleProvider.role == UserRole.courier) {
             _selectedWidget = const CourierMissions();
           }

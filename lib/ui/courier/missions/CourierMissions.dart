@@ -17,7 +17,7 @@ class CourierMissions extends StatefulWidget {
 class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final List<bool> _selectedToggle = [true, false, false, false];
-  final List<String> _toggleText = ["In Progress", "Todo", "Pending", "Completed"];
+  final List<String> _toggleText = ["Pending", "Todo", "In Progress", "Completed"];
   final List<Color> _colorList = [
     Colors.orange, // In Progress
     Colors.red,    // Todo

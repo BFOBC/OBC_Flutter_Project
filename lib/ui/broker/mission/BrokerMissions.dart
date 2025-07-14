@@ -238,7 +238,6 @@ class _BrokerMissionsState extends State<BrokerMissions> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Broker ID: ${task.brokerId}'),
                                     Text('Departure: ${task.departureFrom}'),
                                     Text('Arrive: ${task.arriveAt}'),
                                   ],

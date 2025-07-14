@@ -67,14 +67,40 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
     });
   }
-
   void _removeMilestoneForm(int index) {
-    setState(() {
-      milestoneForms.removeAt(index);
-      milestoneNodeID.removeAt(index);
-      deleteMilestoneByID(milestoneNodeID[index]);
-    });
+    print("🚨 _removeMilestoneForm called with index: $index");
+
+    try {
+      print("📋 milestoneForms.length: ${milestoneForms.length}");
+      print("📋 milestoneNodeID.length: ${milestoneNodeID.length}");
+
+      if (index < 0 || index >= milestoneForms.length) {
+        print("❌ Invalid index: $index in milestoneForms");
+        return;
+      }
+
+      setState(() {
+        final nodeID = (index < milestoneNodeID.length) ? milestoneNodeID[index] : null;
+
+        milestoneForms.removeAt(index);
+
+        if (index < milestoneNodeID.length) {
+          milestoneNodeID.removeAt(index);
+          print("🧾 nodeID to delete: $nodeID");
+           deleteMilestoneByID(nodeID.toString());  // uncomment if needed
+          print("✅ deleteMilestoneByID($nodeID) called");
+        }
+
+        print("✅ Removed from UI");
+      });
+
+    } catch (e, stack) {
+      print("💥 Exception caught in _removeMilestoneForm:");
+      print("🔴 Error: $e");
+      print("📌 Stack trace:\n$stack");
+    }
   }
+
 
   void _saveMilestone(int index) {
     final form = milestoneForms[index];
@@ -374,45 +400,51 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               },
               child: Column(
                 key: ValueKey(milestoneForms.length),
-                // important for AnimatedSwitcher
-                children: List.generate(
-                  milestoneForms.length,
-                  (i) => Milestoneinputform(
-                    index: i + 1,
-                    titleController: milestoneForms[i].titleController,
-                    descriptionController:
-                        milestoneForms[i].descriptionController,
-                    startController: milestoneForms[i].startController,
-                    endController: milestoneForms[i].endController,
-                    onSave: () {
-                      final form = milestoneForms[i];
-                      if (form.titleController.text.isEmpty ||
-                          form.startController.text.isEmpty ||
-                          form.endController.text.isEmpty) {
+                children: milestoneForms.asMap().entries.map((entry) {
+                  int i = entry.key;
+                  final form = entry.value;
+
+                  return KeyedSubtree(
+                    key: ValueKey("milestone_$i"),
+                    child: Milestoneinputform(
+                      index: i + 1,
+                      titleController: form.titleController,
+                      descriptionController: form.descriptionController,
+                      startController: form.startController,
+                      endController: form.endController,
+                      onSave: () {
+                        print("🔍 onSave called for milestone index: $i");
+                        if (form.titleController.text.isEmpty ||
+                            form.startController.text.isEmpty ||
+                            form.endController.text.isEmpty) {
+                          Fluttertoast.showToast(
+                            msg: "Please complete all required fields for milestone #${i + 1}.",
+                            backgroundColor: Colors.red,
+                            textColor: Colors.white,
+                            gravity: ToastGravity.TOP,
+                          );
+                          return;
+                        }
+                        _saveMilestone(i);
                         Fluttertoast.showToast(
-                          msg:
-                              "Please complete all required fields for milestone #${i + 1}.",
-                          backgroundColor: Colors.red,
+                          msg: "Milestone #${i + 1} saved.",
+                          backgroundColor: Colors.green,
                           textColor: Colors.white,
-                          gravity:
-                              ToastGravity.TOP, // 👈 This moves it to the top
+                          gravity: ToastGravity.TOP,
                         );
-                        return;
-                      }
-                      _saveMilestone(i);
-                      Fluttertoast.showToast(
-                        msg: "Milestone #${i + 1} saved.",
-                        backgroundColor: Colors.green,
-                        textColor: Colors.white,
-                        gravity:
-                            ToastGravity.TOP, // 👈 This moves it to the top
-                      );
-                    },
-                    onDelete: () => _removeMilestoneForm(i),
-                  ),
-                ),
+                      },
+                      onDelete: () {
+                        print("🗑️ Delete tapped on index: $i");
+                        _removeMilestoneForm(i);
+
+                      },
+                    ),
+                  );
+                }).toList(),
               ),
             ),
+
+
           ],
         ),
       ),

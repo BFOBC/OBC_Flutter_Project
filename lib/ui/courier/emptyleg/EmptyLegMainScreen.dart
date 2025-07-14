@@ -1,3 +1,4 @@
+import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
 import 'package:flutter/material.dart';
 import '../../common/charts/BarChartWidget.dart';
 import '../../common/utils/CustomDialog.dart';
@@ -51,7 +52,9 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
             ),
             const SizedBox(height: 16),
             //if (flightDetailsList.isNotEmpty)
-              CardStackWidget(), // Custom widget
+              //CardStackWidget(), // Custom widget
+            const JobCardStackWidget(),
+
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {

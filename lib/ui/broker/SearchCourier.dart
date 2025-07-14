@@ -196,60 +196,51 @@ class _SearchCourierState extends State<SearchCourier> {
                 if (_showVisas)
                   Visas(visas: visas),
                 if (_showPieChart)
-                  CircularRating(
-                    dataMap: dataMap,
-                    colorList: colorList,
+                  SizedBox(
+                    child: Center(
+                      child: CircularRating(
+                        dataMap: dataMap,
+                        colorList: colorList,
+                        showLegendAtBottom: true, // 👈 Just set this where needed
+                      ),
+                    ),
                   ),
+
               ],
             ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: 200,
-                child: ElevatedButton(
-                  onPressed: () {
-/*                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ManageLegsAndMilestones(
-                            brokerKey:
-                            AuthUtils.getCurrentUserId2().toString(),
-                            courierKey: widget.courierKey),
+            child: SafeArea( // ✅ Prevents overlap with system UI
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubmissionScreen(
+                            brokerKey: AuthUtils.getCurrentUserId2().toString(),
+                            courierKey: widget.courierKey,
+                            onSave: (Task) {},
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Palette.secondaryColor,
+                      foregroundColor: Colors.white,
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
                       ),
-                    );*/
-              Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SubmissionScreen(
-                            brokerKey:
-                            AuthUtils.getCurrentUserId2().toString(),
-                            courierKey: widget.courierKey, onSave: (Task ) {  },),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.0),
                       ),
-                    );
-/*                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlaceNewJob(
-                            brokerKey:
-                            AuthUtils.getCurrentUserId2().toString(),
-                            courierKey: widget.courierKey, onSave: (Task ) {  },),
-                      ),
-                    );*/
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Palette.secondaryColor,
-                    foregroundColor: Colors.white,
-                    textStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                    ),
+                    child: const Text('Place the Job'),
                   ),
-                  child: const Text('Place the Job'),
                 ),
               ),
             ),

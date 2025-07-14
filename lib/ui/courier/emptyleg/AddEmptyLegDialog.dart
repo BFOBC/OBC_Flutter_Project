@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/UpperCaseTextFormatter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import '../../../data/DatabaseHelper.dart';
 import '../../common/utils/CustomDialog.dart';
@@ -60,7 +62,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       String fromDateTime=(convertToUTCFromCustomFormat(_fromDateTimeController.text.toString()));
       String toDateTime=(convertToUTCFromCustomFormat(_toDateTimeController.text.toString()));
       String courierID = getCurrentUserId();
-      await FirebaseFirestore.instance.collection('emptyLegs').add({
+      final docRef = await FirebaseFirestore.instance.collection('emptyLegs').add({
         'fromLocation': _fromLocationController.text,
         'toLocation': _toLocationController.text,
         'fromDateTime': fromDateTime,
@@ -70,6 +72,15 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
         'createdAt': DateTime.now().toIso8601String(),
         'courierID': courierID
       });
+
+// This is your Firestore Document ID (NodeID)
+      final String nodeId = docRef.id;
+
+// Optionally save it back to the same document
+      await FirebaseFirestore.instance.collection('emptyLegs').doc(nodeId).update({
+        'emptyLegNodeID': nodeId,
+      });
+
       // Close the dialog after saving
       Navigator.of(context).pop(); // This will close the dialog
       CustomDialog.showCustomDialog2(context, "Empty Leg Added Successfully");
@@ -129,7 +140,13 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     }
   }
 
-  Widget _buildTextField(TextEditingController controller, String labelText, {ValueChanged<String>? onChanged, ValueChanged<String>? onFieldSubmitted}) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String labelText, {
+        ValueChanged<String>? onChanged,
+        ValueChanged<String>? onFieldSubmitted,
+        List<TextInputFormatter>? inputFormatters, // ✅ Add this
+      }) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
@@ -138,6 +155,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       ),
       onChanged: onChanged,
       onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters, // ✅ Use it here
       validator: (value) {
         if (value == null || value.isEmpty) {
           return '$labelText is required';
@@ -147,176 +165,304 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     );
   }
 
- @override
-    Widget build(BuildContext context) {
-      return Dialog(
-        insetPadding: EdgeInsets.zero, // Removes padding around the dialog
-        backgroundColor: Colors.transparent, // Makes the dialog background transparent
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity, // Makes the dialog take full screen height
-              color: Colors.white, // Or any color you prefer for the background
-              padding: const EdgeInsets.all(16.0),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Your existing dialog content here (form, fields, buttons, etc.)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Add New Job', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          InkWell(
-                            onTap: () {
-                              Navigator.of(context).pop();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: EdgeInsets.zero,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
+        child: SafeArea(
+          child: Column(
+            children: [
+              /// Top AppBar-style Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 32), // Placeholder for alignment
+                  const Text(
+                    'Add New Job',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 70),
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.redAccent,
+                      ),
+                      child: const Icon(Icons.close, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              /// Body Form
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        _buildStyledField(
+                          child: _buildTextField(
+                            _fromLocationController,
+                            'From Location',
+                            onChanged: (value) {
+                              if (value.length == 3) _fetchFromAirportData(value);
                             },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blue),
-                              child: const Icon(Icons.close, color: Colors.white, size: 20),
-                            ),
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(3),
+                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')), // Allow both lowercase and uppercase
+                              UpperCaseTextFormatter(), // Convert to uppercase automatically
+                            ],
+
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _buildTextField(
-                        _fromLocationController,
-                        'From Location',
-                        onChanged: (value) => _fetchFromAirportData(value),
-                      ),
-                      // Show suggestions below 'From Location'
-                      if (fromAirportSuggestions.isNotEmpty)
-                        ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: fromAirportSuggestions.length,
-                          itemBuilder: (context, index) {
-                            final airport = fromAirportSuggestions[index];
-                            return ListTile(
-                              title: Text(airport.name ?? 'Unknown'),
-                              onTap: () {
-                                setState(() {
-                                  _fromLocationController.text = airport.name ?? '';
-                                  widget.selectedFromAirport = airport;
-                                  fromAirportSuggestions = [];
-                                });
-                              },
-                            );
-                          },
                         ),
-                      const SizedBox(height: 10),
-                      _buildTextField(
-                        _toLocationController,
-                        'To Location',
-                        onChanged: (value) => _fetchToAirportData(value),
-                      ),
-                      // Show suggestions below 'To Location'
-                      if (toAirportSuggestions.isNotEmpty)
-                        ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: toAirportSuggestions.length,
-                          itemBuilder: (context, index) {
-                            final airport = toAirportSuggestions[index];
-                            return ListTile(
-                              title: Text(airport.name ?? 'Unknown'),
-                              onTap: () {
-                                setState(() {
-                                  _toLocationController.text = airport.name ?? '';
-                                  widget.selectedToAirport = airport;
-                                  toAirportSuggestions = [];
-                                });
-                              },
-                            );
-                          },
+                        _buildSuggestionList(fromAirportSuggestions, _fromLocationController, isFrom: true),
+
+                        _buildStyledField(
+                          child: _buildTextField(
+                            _toLocationController,
+                            'To Location',
+                            onChanged: (value) {
+                              if (value.length == 3) _fetchToAirportData(value);
+                            },
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(3),
+                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')), // Allow both lowercase and uppercase
+                              UpperCaseTextFormatter(), // Convert to uppercase automatically
+                            ],
+                          ),
                         ),
-                      const SizedBox(height: 10),
-                      _buildDateTimeField(_fromDateTimeController, 'From Date & Time'),
-                      const SizedBox(height: 10),
-                      _buildDateTimeField(_toDateTimeController, 'To Date & Time'),
-                      const SizedBox(height: 10),
-                      _buildTextField(_flightNumberController, 'Flight Number'),
-                      const SizedBox(height: 10),
-                      _buildTextField(_capacityController, 'Capacity'),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          if (widget.isFromBottomSheet)
-                            ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  FlightDetails updatedDetails = FlightDetails(
-                                    fromLocation: _fromLocationController.text,
-                                    toLocation: _toLocationController.text,
-                                    fromDateTime: _fromDateTimeController.text,
-                                    toDateTime: _toDateTimeController.text,
-                                    flightNumber: _flightNumberController.text,
-                                    capacity: _capacityController.text,
-                                    userName: 'User',
-                                    rating: 5,
-                                  );
-                                  CustomDialog.showCustomDialog2(context, "Job Updated");
-                                  Future.delayed(const Duration(seconds: 2), () {
-                                    Navigator.of(context).pop({
-                                      'action': 'update',
-                                      'details': updatedDetails,
-                                      'index': widget.flightIndex
-                                    });
-                                  });
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
+                        _buildSuggestionList(toAirportSuggestions, _toLocationController, isFrom: false),
+
+                        _buildStyledField(child: _buildDateTimeField(_fromDateTimeController, 'From Date & Time')),
+                        _buildStyledField(child: _buildDateTimeField(_toDateTimeController, 'To Date & Time')),
+                        _buildStyledField(child: _buildTextField(_flightNumberController, 'Flight Number')),
+                        _buildStyledField(child: _buildTextField(_capacityController, 'Capacity')),
+
+                        const SizedBox(height: 20),
+
+                        /// Save / Update Button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.7, // 80% width of screen
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+                                    final fromText = _fromDateTimeController.text.trim();
+                                    final toText = _toDateTimeController.text.trim();
+
+                                    print("🔍 From Date Controller: $fromText");
+                                    print("🔍 To Date Controller:   $toText");
+
+                                    try {
+                                      final fromDate = dateFormat.parseStrict(fromText);
+                                      final toDate = dateFormat.parseStrict(toText);
+
+                                      print("✅ Parsed From Date: $fromDate");
+                                      print("✅ Parsed To Date:   $toDate");
+
+                                      if (!toDate.isAfter(fromDate)) {
+                                        Fluttertoast.showToast(
+                                          msg: "❌ To Date must be greater than From Date.",
+                                          backgroundColor: Colors.red,
+                                          textColor: Colors.white,
+                                          gravity: ToastGravity.BOTTOM,
+                                        );
+                                        return;
+                                      }
+
+                                      if (widget.isFromBottomSheet) {
+                                        FlightDetails updatedDetails = FlightDetails(
+                                          fromLocation: _fromLocationController.text,
+                                          toLocation: _toLocationController.text,
+                                          fromDateTime: _fromDateTimeController.text,
+                                          toDateTime: _toDateTimeController.text,
+                                          flightNumber: _flightNumberController.text,
+                                          capacity: _capacityController.text,
+                                          userName: 'User',
+                                          rating: 5,
+                                        );
+
+                                        CustomDialog.showCustomDialog2(context, "Job Updated");
+
+                                        Future.delayed(const Duration(seconds: 2), () {
+                                          Navigator.of(context).pop({
+                                            'action': 'update',
+                                            'details': updatedDetails,
+                                            'index': widget.flightIndex,
+                                          });
+                                        });
+                                      } else {
+                                        _saveToFirStore();
+                                      }
+                                    } catch (e) {
+                                      print("❗ Date parsing failed: $e");
+
+                                      Fluttertoast.showToast(
+                                        msg: "❌ Invalid date format. Please reselect the dates.",
+                                        backgroundColor: Colors.red,
+                                        textColor: Colors.white,
+                                        gravity: ToastGravity.TOP,
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                                child: Text(
+                                  widget.isFromBottomSheet ? 'Update' : 'Save',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                ),
                               ),
-                              child: const Text('Update'),
                             ),
-                          if (!widget.isFromBottomSheet)
-                            ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  _saveToFirStore();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Save'),
-                            ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+
+
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      );
+      ),
+    );
+  }
+  Widget _buildStyledField({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: child,
+    );
   }
 
+  Widget _buildSuggestionList(List<AirportModel> suggestions, TextEditingController controller, {required bool isFrom}) {
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        final airport = suggestions[index];
+        return ListTile(
+          title: Text(airport.name ?? 'Unknown'),
+          onTap: () {
+            setState(() {
+              controller.text = airport.name ?? '';
+              if (isFrom) {
+                widget.selectedFromAirport = airport;
+                fromAirportSuggestions = [];
+              } else {
+                widget.selectedToAirport = airport;
+                toAirportSuggestions = [];
+              }
+            });
+          },
+        );
+      },
+    );
+  }
+
+
   // Build date time field with date restrictions
-  Widget _buildDateTimeField(TextEditingController controller, String labelText) {
+  Widget _buildDateTimeField(TextEditingController controller, String label) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: labelText,
-        border: const OutlineInputBorder(),
-      ),
       readOnly: true,
-      onTap: () => selectDateTime(context, controller),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+        suffixIcon: Icon(Icons.calendar_today),
+      ),
+      onTap: () async {
+        final now = DateTime.now();
+
+        final DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: now,
+          firstDate: now, // ⛔ disables past dates
+          lastDate: DateTime(now.year + 5),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: Colors.blue,
+                  onPrimary: Colors.white,
+                  onSurface: Colors.black,
+                ),
+                textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+
+        if (pickedDate != null) {
+          final TimeOfDay? pickedTime = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.now(),
+          );
+
+          if (pickedTime != null) {
+            final fullDateTime = DateTime(
+              pickedDate.year,
+              pickedDate.month,
+              pickedDate.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            );
+
+            final formatted = DateFormat('yyyy-MM-dd HH:mm').format(fullDateTime);
+            controller.text = formatted;
+          }
+        }
+      },
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return '$labelText is required';
+          return '$label is required';
         }
         return null;
       },
     );
   }
+
 
   Future<void> selectDateTime(BuildContext context, TextEditingController controller) async {
     DateTime now = DateTime.now();
@@ -343,5 +489,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       }
     }
   }
+
 }
 

@@ -18,19 +18,28 @@ class BasicInfo extends StatelessWidget {
             'Basic Information',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-           SizedBox(height: 20),
-          _buildInfoCard('Name', courierProfileData.name.toString()),
-           SizedBox(height: 10),
-          _buildInfoCard('Email', courierProfileData.email.toString()),
-           SizedBox(height: 10),
-          _buildInfoCard('Phone', courierProfileData.phoneNumber.toString()),
-           SizedBox(height: 10),
-          _buildInfoCard('Address',courierProfileData.address.toString()),
-           SizedBox(height: 10),
+          const SizedBox(height: 20),
+          _buildInfoCard('Name', _safeValue(courierProfileData.name)),
+          const SizedBox(height: 10),
+          _buildInfoCard('Email', _safeValue(courierProfileData.email)),
+          const SizedBox(height: 10),
+          _buildInfoCard('Phone', _safeValue(courierProfileData.phoneNumber)),
+          const SizedBox(height: 10),
+          _buildInfoCard('Address', _safeValue(courierProfileData.address)),
+          const SizedBox(height: 10),
         ],
       ),
     );
   }
+
+// 👇 Helper method to handle null/empty values
+  String _safeValue(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'N/A';
+    }
+    return value;
+  }
+
 
   Widget _buildInfoCard(String label, String value) {
     return Container(

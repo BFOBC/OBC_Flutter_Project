@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
@@ -46,6 +47,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
   AirportModel? selectedFromAirport;
   AirportModel? selectedToAirport;
+  String? departureLocation;
+  String? arrivalLocation;
   @override
   void initState() {
     super.initState();
@@ -166,132 +169,157 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     }
     return (now.difference(start).inMinutes / end.difference(start).inMinutes);
   }
-
   void _showFlightDialog(BuildContext context, FlightData flight) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            bool isBooked = false;
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              bool isBooked = false;
 
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20), // Rounded corners
-              ),
-              titlePadding: EdgeInsets.zero,
-              contentPadding: const EdgeInsets.all(20), // Padding for content
-              title: Stack(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(25.0),
-                    child: Text(
-                      'Empty Leg Details',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                  ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+              return Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      /// Header with close button
+                      Stack(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 20, left: 8, right: 50, bottom: 10),
+                            child: Center(
+                              child: Text(
+                                '✈️ Empty Leg Details',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: InkWell(
+                              onTap: () => Navigator.of(context).pop(),
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.close, color: Colors.white, size: 16),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
+
+                      const SizedBox(height: 10),
+
+                      /// Main detail card with FAB at bottom-right
+                      Stack(
+                        children: [
+                          /// Info Card
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabelValue("Flight Number", flight.flightNumber),
+                                _buildLabelValue("Start Time", DateFormat('dd MMMM yyyy HH:mm:ss').format(flight.fromDateTime.toLocal())),
+                                _buildLabelValue("End Time", DateFormat('dd MMMM yyyy HH:mm:ss').format(flight.toDateTime.toLocal())),
+                                _buildLabelValue("Arrival", flight.toLocation),
+                                _buildLabelValue("Departure", flight.fromLocation),
+                                _buildLabelValue("Capacity", flight.capacity),
+                              ],
+                            ),
+                          ),
+
+                          /// FAB at bottom-right of the info card
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: FloatingActionButton(
+                              heroTag: 'chatBtn',
+                              mini: true,
+                              backgroundColor: Colors.blue,
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatDetailScreen(userID: courierID),
+                                  ),
+                                );
+                              },
+                              child: const Icon(Icons.chat, color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Flight Number:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
-                  Text('${flight.flightNumber}', style: TextStyle(fontSize: 16)), // Regular value
-                  const SizedBox(height: 8),
 
-                  Text('Start Time:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
-                  Text('${DateFormat('yyyy-MM-dd HH:mm').format(flight.fromDateTime.toLocal())}', style: TextStyle(fontSize: 16)), // Regular value
-                  const SizedBox(height: 8),
+                      const SizedBox(height: 20),
 
-                  Text('End Time:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
-                  Text('${DateFormat('yyyy-MM-dd HH:mm').format(flight.toDateTime.toLocal())}', style: TextStyle(fontSize: 16)), // Regular value
-                  const SizedBox(height: 8),
-
-                  Text('Departure:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
-                  Text('${flight.fromLocation}', style: TextStyle(fontSize: 16)), // Regular value
-                  const SizedBox(height: 8),
-
-                  Text('Arrival:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
-                  Text('${flight.toLocation}', style: TextStyle(fontSize: 16)), // Regular value
-                  const SizedBox(height: 8),
-
-                  Text('Capacity:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), // Bold label
-                  Text('${flight.capacity}', style: TextStyle(fontSize: 16)), // Regular value
-                  const SizedBox(height: 20),
-                  Center(
-                    child: isBooked
-                        ? const Icon(
-                      Icons.airplane_ticket,
-                      size: 50,
-                      color: Colors.green,
-                    )
-                        : ElevatedButton(
-                      onPressed: () {
-                        _sendBookRequest();
-                        setState(() {
-                          isBooked = true;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Green background
-                        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                      /// Book Button (centered)
+                      Center(
+                        child: isBooked
+                            ? const Icon(Icons.airplane_ticket, size: 40, color: Colors.green)
+                            : ElevatedButton.icon(
+                          onPressed: () {
+                            departureLocation = flight.fromLocation.toString();
+                            arrivalLocation = flight.toLocation.toString();
+                            _sendBookRequest();
+                            setState(() => isBooked = true);
+                          },
+                          icon: const Icon(Icons.check_circle, color: Colors.white, size: 14),
+                          label: const Text('Book'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 8),
+                            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(35),
+                            ),
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        'Book',
-                        style: TextStyle(fontSize: 14,color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close the dialog
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ChatDetailScreen(userID: courierID)),
-                      ); // Navigate to chat screen
-                    },
-                    backgroundColor: Colors.blue,
-                    mini: true, // Makes it smaller
-                    child: CircleAvatar(
-                      radius: 15, // Adjust size for a better fit
-                      backgroundColor: Colors.white, // Optional: Adds a contrast border
-                      child: Icon(Icons.chat, size: 20, color: Colors.blue),
-                    ),
+
+                      const SizedBox(height: 10),
+                    ],
                   ),
                 ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         );
       },
+    );
+  }
+
+
+  Widget _buildLabelValue(String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+          const SizedBox(height: 2),
+          Text(value != null && value.toString().isNotEmpty ? value.toString() : 'N/A',
+              style: const TextStyle(fontSize: 15, color: Colors.black54)),
+        ],
+      ),
     );
   }
 
@@ -308,7 +336,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(25.0),
-                border: Border.all(color: Colors.green, width: 1),
+                border: Border.all(color: Colors.blue, width: 1),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
@@ -321,19 +349,20 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       ? IconButton(
                     icon: const Icon(Icons.close, color: Colors.grey),
                     onPressed: () {
-                      _searchController2.clear(); // Clear text input
+                      _searchController2.clear();
                     },
                   )
-                      : null, // Don't show the icon if text is empty
+                      : null,
                 ),
                 onChanged: (String value) {
                   print("Arrival text changed: $value");
                   _fetchFromAirportData(value);
                 },
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Allows only letters and spaces
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),   // ✅ Letters + spaces only
                 ],
               ),
+
             ),
 
             // Show suggestions below 'From Location'
@@ -419,36 +448,36 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               children: [
                 SizedBox(
                   width: 120,
-                  height: 40,
+                  height: 35,
                   child: ElevatedButton(
                     onPressed: _filterFlights,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.0),
+                        borderRadius: BorderRadius.circular(40.0),
                       ),
                     ),
                     child: const Text(
                       'Search',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                      style: TextStyle(fontSize: 14, color: Colors.white),
                     ),
                   ),
                 ),
                 const SizedBox(height: 10), // بٹنوں کے درمیان فاصلہ
                 SizedBox(
                   width: 120, // برابر width
-                  height: 40, // برابر height
+                  height: 35, // برابر height
                   child: ElevatedButton(
                     onPressed: _resetFlights,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.0),
+                        borderRadius: BorderRadius.circular(40.0),
                       ),
                     ),
                     child: const Text(
-                      'All',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                      'Reset',
+                      style: TextStyle(fontSize: 14, color: Colors.white),
                     ),
                   ),
                 ),
@@ -556,20 +585,85 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       // Generate a custom nodeID (you can replace this with any unique value generator)
       String nodeID = FirebaseFirestore.instance.collection('emptyLegRequests').doc().id;
      String currentDateTime= DateTime.now().toString();
-    String UTCTime=  convertToUTCFromCustomFormat(currentDateTime.toString());
+    //String UTCTime=  convertToUTCFromCustomFormat(currentDateTime.toString());
+    String UTCTime=  convertToUTCFromStandardFormat(currentDateTime.toString());
       await FirebaseFirestore.instance.collection('emptyLegRequests').doc(nodeID).set({
         'emptyLegRequestID': nodeID, // Add nodeID explicitly
         'brokerID': brokerID,
         'status': "pending",
         'requestDateTime':UTCTime,
         'courierID': courierID,
+        'arrivalLocation':arrivalLocation,
+        'departureLocation':departureLocation
       });
 
-      CustomDialog.showCustomDialog2(context, "Request Successfully");
+      showCustomDialog2(context, "Request Successfully");
     } catch (e) {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }
+  }Future<void> showCustomDialog2(BuildContext context, String message) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true, // 👈 true = dialog closes on back press or tap outside
+      builder: (BuildContext dialogContext) {
+        return WillPopScope(
+          onWillPop: () async {
+            Navigator.of(dialogContext).pop(); // Close the dialog on back press
+            return false; // prevent pushing anything else
+          },
+          child: AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.green,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.check, color: Colors.white, size: 40),
+                ),
+                const SizedBox(height: 10),
+                Text(message),
+              ],
+            ),
+            actions: [
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  margin: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5.0),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop(); // Close dialog
+                      Navigator.pushReplacement( // ✅ replace so it doesn't go back
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BrokerMissions(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
+
 }
 
 

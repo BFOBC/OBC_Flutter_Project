@@ -6,6 +6,7 @@ import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RadarAnimation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart'; // Correct LatLng import
@@ -732,12 +733,24 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(3), // Limit to 3 characters
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z]')), // Allow only letters
+                    ],
                     decoration: const InputDecoration(
                       hintText: '3 Letter Airport Code',
                       border: InputBorder.none,
                     ),
-                    onSubmitted: searchNearbyLocations,
+                    onSubmitted: (value) {
+                      if (value.length == 3) {
+                        searchNearbyLocations(value.toUpperCase()); // Optional: force uppercase
+                      } else {
+                        // Optional: show error
+                        print('❌ Must be exactly 3 letters');
+                      }
+                    },
                   ),
+
                 ),
               ],
             ),
