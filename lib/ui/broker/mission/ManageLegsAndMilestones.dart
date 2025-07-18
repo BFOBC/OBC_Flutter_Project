@@ -335,7 +335,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.grey[700],
               ),
-              child: const Text("Cancel "),
+              child: const Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
