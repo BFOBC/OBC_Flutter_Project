@@ -198,50 +198,97 @@ class _DrawerScreenState extends State<DrawerScreen> {
       ),
     );
   }
-
   Future<bool> _showExitDialog(BuildContext context) async {
     return await showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text("Exit"),
-              content: const Text("Are you sure you want to exit the app?"),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(false); // Don't exit
-                  },
-                  child: const Text("No"),
+      context: context,
+      barrierDismissible: false, // User must choose Yes/No
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          title: Row(
+            children: const [
+              Icon(Icons.exit_to_app, color: Colors.red),
+              SizedBox(width: 10),
+              Text(
+                "Exit App",
+                style: TextStyle(fontWeight: FontWeight.normal),
+              ),
+            ],
+          ),
+          content: const Text(
+            "Are you sure you want to exit the app?",
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // Don't exit
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
+              child: const Text("No"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // Exit
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(true); // Exit
-                  },
-                  child: const Text("Yes"),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false; // Default to not exiting if dialog is dismissed
+              ),
+              child: const Text("Yes"),
+            ),
+          ],
+        );
+      },
+    ) ??
+        false;
   }
 
-  // Logout method to show confirmation dialog
   void _logout(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false, // Disable tap outside to dismiss
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to log out?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          title: Row(
+            children: const [
+              Icon(Icons.logout, color: Colors.red),
+              SizedBox(width: 10),
+              Text(
+                'Logout',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to log out?',
+            style: TextStyle(fontSize: 15),
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
               },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
               child: const Text('No'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 // 1. Sign out from Firebase
                 await FirebaseAuth.instance.signOut();
@@ -249,11 +296,19 @@ class _DrawerScreenState extends State<DrawerScreen> {
                 // 2. Clear SharedPreferences
                 await clearSavedLoginData();
 
+                // 3. Navigate to login
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginCard()),
-                  (Route<dynamic> route) => false,
+                      (Route<dynamic> route) => false,
                 );
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               child: const Text('Yes'),
             ),
           ],
@@ -261,6 +316,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
       },
     );
   }
+
 }
 Future<void> clearSavedLoginData() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();

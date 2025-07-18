@@ -305,32 +305,60 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
   Future<bool> showExitConfirmationDialog(BuildContext context) async {
     bool? result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Are you sure?"),
-          content: const Text("If you go back, your changes will be removed."),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          title: Row(
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              SizedBox(width: 10),
+              Text(
+                "Confirm Exit",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            "If you go back, your changes will be removed.",
+            style: TextStyle(fontSize: 15),
+          ),
           actions: <Widget>[
             TextButton(
-              child: const Text("Cancel"),
               onPressed: () {
                 Navigator.of(context).pop(false); // don't leave
               },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
+              child: const Text("Cancel"),
             ),
             ElevatedButton(
-              child: const Text("Yes"),
               onPressed: () {
-                // Clear milestone list from provider
                 Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
                 Provider.of<RoleProvider>(context, listen: false).clearTask();
                 Navigator.of(context).pop(true); // allow back
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text("Yes"),
             ),
           ],
         );
       },
     );
 
-    return result ?? false; // default to false if dialog dismissed
+    return result ?? false;
   }
+
 }
 

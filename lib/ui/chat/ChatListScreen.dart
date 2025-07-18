@@ -74,90 +74,109 @@ class ChatListScreen extends StatelessWidget {
 
           var chatDocs = snapshot.data!.docs;
 
-          return ListView.builder(
-            itemCount: chatDocs.length,
-            itemBuilder: (context, index) {
-              var chat = chatDocs[index];
-              String chatId = chat.id;
-              String lastMessage = chat['lastMessage'] ?? 'No message';
-              Timestamp timestamp = chat['lastMessageTimestamp'] ?? Timestamp.now();
-              DateTime date = timestamp.toDate();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                color: Colors.yellow[100],
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Text(
+                  '⚠️ Your chats will be deleted in 15 days.',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: chatDocs.length,
+                  itemBuilder: (context, index) {
+                    var chat = chatDocs[index];
+                    String chatId = chat.id;
+                    String lastMessage = chat['lastMessage'] ?? 'No message';
+                    Timestamp timestamp = chat['lastMessageTimestamp'] ?? Timestamp.now();
+                    DateTime date = timestamp.toDate();
 
-              List<String> users = List<String>.from(chat['users']);
-              users.remove(userId);
-              String otherUserId = users.isNotEmpty ? users.first : 'Unknown';
+                    List<String> users = List<String>.from(chat['users']);
+                    users.remove(userId);
+                    String otherUserId = users.isNotEmpty ? users.first : 'Unknown';
 
-              return FutureBuilder<Map<String, String>>(
-                future: _getUserDetails(otherUserId, context),
-                builder: (context, userSnapshot) {
-                  if (userSnapshot.connectionState == ConnectionState.waiting) {
-                    return Column(
-                      children: [
-                        ListTile(
-                          leading: CircleAvatar(child: Icon(Icons.person)),
-                          title: Text('Loading...'),
-                          subtitle: Text('Fetching user info...'),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Divider(color: Colors.grey),
-                        ),
-                      ],
-                    );
-                  }
-
-                  if (userSnapshot.hasError || !userSnapshot.hasData) {
-                    return Column(
-                      children: [
-                        ListTile(
-                          leading: CircleAvatar(child: Icon(Icons.error)),
-                          title: Text('Error loading user'),
-                          subtitle: Text('Could not retrieve user details'),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Divider(color: Colors.grey),
-                        ),
-                      ],
-                    );
-                  }
-
-                  String otherUserName = userSnapshot.data!['name']!;
-                  String otherUserUid = userSnapshot.data!['uid']!;
-
-                  return Column(
-                    children: [
-                      ListTile(
-                        leading: CircleAvatar(child: Text(otherUserName[0].toUpperCase())),
-                        title: Text(otherUserName),
-                        subtitle: Text(lastMessage),
-                        trailing: Text('${date.hour}:${date.minute}'),
-                        onTap: () {
-                          // Only navigate if valid user data is available
-                          if (otherUserUid != 'Unknown') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatDetailScreen(userID: otherUserUid),
+                    return FutureBuilder<Map<String, String>>(
+                      future: _getUserDetails(otherUserId, context),
+                      builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState == ConnectionState.waiting) {
+                          return Column(
+                            children: [
+                              ListTile(
+                                leading: CircleAvatar(child: Icon(Icons.person)),
+                                title: Text('Loading...'),
+                                subtitle: Text('Fetching user info...'),
                               ),
-                            );
-                          }
-                        },
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: Divider(color: Palette.firebaseGrey),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Divider(color: Colors.grey),
+                              ),
+                            ],
+                          );
+                        }
+
+                        if (userSnapshot.hasError || !userSnapshot.hasData) {
+                          return Column(
+                            children: [
+                              ListTile(
+                                leading: CircleAvatar(child: Icon(Icons.error)),
+                                title: Text('Error loading user'),
+                                subtitle: Text('Could not retrieve user details'),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Divider(color: Colors.grey),
+                              ),
+                            ],
+                          );
+                        }
+
+                        String otherUserName = userSnapshot.data!['name']!;
+                        String otherUserUid = userSnapshot.data!['uid']!;
+
+                        return Column(
+                          children: [
+                            ListTile(
+                              leading: CircleAvatar(child: Text(otherUserName[0].toUpperCase())),
+                              title: Text(otherUserName),
+                              subtitle: Text(lastMessage),
+                              trailing: Text('${date.hour}:${date.minute}'),
+                              onTap: () {
+                                if (otherUserUid != 'Unknown') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChatDetailScreen(userID: otherUserUid),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                              child: Divider(color: Palette.firebaseGrey),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
+
 }
 
 

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'models/CourierProfileData.dart';
 
 class CourierProfile extends StatefulWidget {
@@ -36,7 +37,8 @@ class _CourierProfileState extends State<CourierProfile> {
   bool _hasCar = false; // State for the switch
   bool _willingToDoFirstLastMile = false; // State for the switch
   bool _hasDrivingLicence = false; // State for the switch
-
+  final TextEditingController _phoneController = TextEditingController();
+  String _selectedPhoneNumber = "";
   bool _isLoading = true; // Add this flag to track the loading state
   late CourierProfileData _editableProfile;
 
@@ -67,10 +69,12 @@ class _CourierProfileState extends State<CourierProfile> {
         name=courierProfile.name.toString();
         visas = courierProfile.visas ?? [];
         passports = courierProfile.passports ?? [];
-        _nameController.text = courierProfile.name ?? '';
+        _nameController.text = courierProfile.name ?? 'N/A';
+        _phoneController.text = courierProfile.phoneNumber ?? 'N/A';
         _hasCar = courierProfile.hasCar ?? false;
         _hasDrivingLicence = courierProfile.hasDrivingLicence ?? false;
         _willingToDoFirstLastMile = courierProfile.willingToDoFirstLastMile ?? false;
+
         _isLoading = false; // Set loading state to false once model is fetched
       });
     }
@@ -97,6 +101,10 @@ class _CourierProfileState extends State<CourierProfile> {
       // Check if email is not null
       if (_currentUser.email != null && _currentUser.email!.isNotEmpty) {
         data['email'] = _currentUser.email;
+      }
+
+      if (_phoneController.text.isNotEmpty) {
+        data['phoneNumber'] = _phoneController.text.toString();
       }
 
       // Check if profile picture URL is not null
@@ -141,7 +149,39 @@ class _CourierProfileState extends State<CourierProfile> {
       );
     }
   }
-
+  Widget _buildPhoneNumberField(
+      TextEditingController controller, Function(String) onChanged) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: IntlPhoneField(
+        controller: controller,
+        decoration: const InputDecoration(
+          labelText: 'Phone Number',
+          labelStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          border: InputBorder.none,
+        ),
+        initialCountryCode: 'PK', // Default country
+        onChanged: (phone) {
+          onChanged(phone.completeNumber); // Callback to get full number
+        },
+      ),
+    );
+  }
 
   Future<void> _uploadProfilePicture() async {
     final picker = ImagePicker();
@@ -188,8 +228,34 @@ class _CourierProfileState extends State<CourierProfile> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(
-              visa != null || passport != null ? 'Edit $type' : 'Add $type'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
+          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
+
+          title: Row(
+            children: [
+              Icon(
+                visa != null || passport != null
+                    ? Icons.edit_note
+                    : Icons.add_circle_outline,
+                color: Colors.blueAccent,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  visa != null || passport != null ? 'Edit $type' : 'Add $type',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
           content: Form(
             key: _formKey,
             child: Column(
@@ -197,7 +263,14 @@ class _CourierProfileState extends State<CourierProfile> {
               children: [
                 TextFormField(
                   controller: countryController,
-                  decoration: const InputDecoration(hintText: 'Country'),
+                  decoration: InputDecoration(
+                    hintText: 'Country',
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Country is required';
@@ -205,9 +278,17 @@ class _CourierProfileState extends State<CourierProfile> {
                     return null;
                   },
                 ),
+                SizedBox(height: 12),
                 TextFormField(
                   controller: expiryController,
-                  decoration: const InputDecoration(hintText: 'Expiry Date'),
+                  decoration: InputDecoration(
+                    hintText: 'Expiry Date DD/MM/YYY',
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Expiry Date is required';
@@ -218,8 +299,23 @@ class _CourierProfileState extends State<CourierProfile> {
               ],
             ),
           ),
+
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               onPressed: () {
                 if (_formKey.currentState?.validate() ?? false) {
                   if (type == 'Visa') {
@@ -252,14 +348,11 @@ class _CourierProfileState extends State<CourierProfile> {
               },
               child: const Text('Save'),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
           ],
         );
       },
     );
+
   }
 
   void _showDeleteConfirmation({
@@ -271,26 +364,61 @@ class _CourierProfileState extends State<CourierProfile> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Delete $type'),
-          content: Text('Are you sure you want to delete this $type?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
+          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
+
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Delete $type',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          content: Text(
+            'Are you sure you want to delete this $type?',
+            style: TextStyle(fontSize: 16),
+          ),
+
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
               onPressed: () {
-                // Cancel the action and close the dialog
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Cancel the action
               },
               child: Text('Cancel'),
             ),
-            TextButton(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               onPressed: () {
                 setState(() {
                   if (type == 'Visa' && visa != null) {
-                    visas.remove(visa);  // Remove the visa from the list
+                    visas.remove(visa);
                   } else if (type == 'Passport' && passport != null) {
-                    passports.remove(passport);  // Remove the passport from the list
+                    passports.remove(passport);
                   }
                 });
-                Navigator.of(context).pop();  // Close the dialog after deletion
+                Navigator.of(context).pop(); // Close dialog
               },
               child: Text('Delete'),
             ),
@@ -299,6 +427,7 @@ class _CourierProfileState extends State<CourierProfile> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -339,6 +468,12 @@ class _CourierProfileState extends State<CourierProfile> {
               _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
               const SizedBox(height: 10),
               _buildEditableField('Name', _nameController),
+              const SizedBox(height: 10),
+              _buildPhoneNumberField(_phoneController, (phone) {
+                setState(() {
+                  _selectedPhoneNumber = phone;
+                });
+              }),
               const SizedBox(height: 10),
               _buildVisaList(),
               const SizedBox(height: 20),

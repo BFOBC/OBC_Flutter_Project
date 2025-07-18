@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String chatId = '';  // Variable to store chatId
 
+  DateTime? lastShownTime;
   @override
   void initState() {
     super.initState();
@@ -164,6 +166,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 }
                 final messages = snapshot.data!.docs;
 
+
                 return ListView.builder(
                   padding: const EdgeInsets.all(10),
                   reverse: true,
@@ -172,12 +175,28 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     final message = messages[index];
                     final text = message['messageText'] ?? '';
                     final isSender = message['senderId'] == FirebaseAuth.instance.currentUser?.uid;
+                    final timestamp = (message['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+                    // Compare minute-level timestamps to avoid repeating
+                    bool showTime = true;
+                    if (lastShownTime != null) {
+                      Duration diff = lastShownTime!.difference(timestamp).abs();
+                      if (diff.inMinutes < 1) {
+                        showTime = false;
+                      }
+                    }
+
+                    lastShownTime = timestamp;
+
                     return ChatBubble(
                       isSender: isSender,
                       text: text,
+                      timestamp: timestamp,
+                      showTimestamp: showTime,
                     );
                   },
                 );
+
               },
             ),
           ),
@@ -216,44 +235,67 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 }
 
-
-
-
-
 class ChatBubble extends StatelessWidget {
   final bool isSender;
   final String text;
+  final DateTime? timestamp; // now optional
+  final bool showTimestamp;  // control visibility
 
   const ChatBubble({
     super.key,
     required this.isSender,
     required this.text,
+    this.timestamp,
+    this.showTimestamp = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final formattedTimestamp = timestamp != null
+        ? DateFormat('MMMM d, y \'at\' h:mm a').format(timestamp!)
+        : '';
+
     return Align(
       alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSender ? Palette.primaryColor : Colors.grey[300],
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(15),
-            topRight: const Radius.circular(15),
-            bottomLeft: isSender ? const Radius.circular(15) : Radius.zero,
-            bottomRight: isSender ? Radius.zero : const Radius.circular(15),
+      child: Column(
+        crossAxisAlignment:
+        isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSender ? Palette.primaryColor : Colors.grey[300],
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(15),
+                topRight: const Radius.circular(15),
+                bottomLeft: isSender ? const Radius.circular(15) : Radius.zero,
+                bottomRight: isSender ? Radius.zero : const Radius.circular(15),
+              ),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(
+                color: isSender ? Colors.white : Colors.black,
+                fontSize: 16,
+              ),
+            ),
           ),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isSender ? Colors.white : Colors.black,
-            fontSize: 16,
-          ),
-        ),
+          if (showTimestamp && timestamp != null) // 👈 show only if required
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              child: Text(
+                formattedTimestamp,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
+
+

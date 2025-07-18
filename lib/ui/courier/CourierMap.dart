@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:math';
 
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
@@ -7,8 +8,10 @@ import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:card_stack_widget/card_stack_widget.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -27,13 +30,10 @@ class CourierMap extends StatefulWidget {
 
 class _CourierMapState extends State<CourierMap>
     with SingleTickerProviderStateMixin {
-  bool _showCardStack = false;
   List<Widget> _filteredUsers = [];
 
   bool _isSearching = false;
-  bool _isSearchBarVisible = true; // Visibility state for search bar
-  late AnimationController _radarController;
-  late Animation<double> _radarAnimation;
+  bool _isSearchBarVisible = false; // Visibility state for search bar
   bool _isBaseSelected = true;
   String _searchText = ""; // This holds the text in the search bar
   String brokerName = '';
@@ -45,7 +45,6 @@ class _CourierMapState extends State<CourierMap>
   // Add a MapController to control the map
   Completer<GoogleMapController> _mapController = Completer();
 
-  //Location location = Location(); // Create a Location instance
 
   LatLng _baseLocation =
       const LatLng(30.3753, 69.3451); // Example: New York City
@@ -60,20 +59,12 @@ class _CourierMapState extends State<CourierMap>
   late User _currentUser;
   bool _hasData = false;
 
-  late Future<List<Map<String, dynamic>>> _brokerDataFuture;
 
   List<String> _suggestedCountries = [];
 
   @override
   void initState() {
     super.initState();
-/*    _radarController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 2));
-    _radarAnimation =
-        Tween<double>(begin: 0, end: 300).animate(_radarController)
-          ..addListener(() {
-            setState(() {});
-          });*/
     _currentUser = FirebaseAuth.instance.currentUser!;
     getCurrentLocation(context);
     fetchEmptyLegRequests();
@@ -183,11 +174,78 @@ class _CourierMapState extends State<CourierMap>
     super.dispose();
   }
 
-  void _onMarkerTap() {
+  void _onMarkerTap(bool isShown) {
     setState(() {
-      _isSearchBarVisible = true; // Show the search bar when marker is tapped
+      _isSearchBarVisible = isShown; // Show the search bar when marker is tapped
     });
   }
+  void showChangeBaseLocationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Tap outside to dismiss = false
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
+          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
+
+          title: Row(
+            children: [
+              Icon(Icons.location_on, color: Colors.green),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Change Base Location",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          content: Text(
+            "Do you want to change your base location?",
+            style: TextStyle(fontSize: 14),
+          ),
+
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[700],
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _onMarkerTap(false);
+              },
+              child: Text("No"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green, // Background color
+                foregroundColor: Colors.white, // Text (and icon) color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                // Your onPressed code here
+                Navigator.of(context).pop();
+                _onMarkerTap(true);
+              },
+              child: Text("Yes"),
+            ),
+
+          ],
+        );
+      },
+    );
+  }
+
 
   void _onSearchAirport(String query) async {
     setState(() {
@@ -241,6 +299,62 @@ class _CourierMapState extends State<CourierMap>
     return 'marker_${DateTime.now().millisecondsSinceEpoch}_${random.nextInt(10000)}';
   }
 
+  void _onBaseLocationSelected(AirportModel airportItem) {
+    try {
+      // Extract lat and long
+      double lat = double.tryParse(airportItem.lat.toString()) ?? 0.0;
+      double long = double.tryParse(airportItem.long.toString()) ?? 0.0;
+      LatLng latLng = LatLng(lat, long);
+
+      // Create a unique markerId
+      String markerId = generateUniqueMarkerId();
+
+      // Update the markers set with a new marker
+      setState(() {
+        if (_isBaseSelected) {
+          country = airportItem.countryCode.toString();
+        }
+        _baseLocation = latLng; // Update the selected location
+        _markers = {
+          Marker(
+            markerId: MarkerId(markerId),
+            position: _baseLocation,
+            icon: BitmapDescriptor.defaultMarker,
+            onTap: () {
+              // Use Future.delayed to ensure Toast shows after UI updates
+            },
+          ),
+        };
+
+        // Animate the camera to the new location
+        animateCamera(_baseLocation, 10.0);
+        Future.delayed(Duration(milliseconds: 200), () {
+          Fluttertoast.showToast(
+            msg:
+            "You are available at (${airportItem.country}, ${airportItem.city})",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.TOP,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+            fontSize: 14.0,
+          );
+        });
+
+        // Reset other UI elements
+        _searchText = "";
+        _suggestedCountries = [];
+        airportList = [];
+      });
+
+      // Call Firebase to update the base location asynchronously
+      _updateBaseLocation(lat, long, true);
+    } catch (e, stackTrace) {
+      print("Error in _onBaseLocationSelected: $e");
+      print(stackTrace);
+    }
+  }
+
+
   void _onCountrySelected(AirportModel airportItem) {
     showDialog(
       context: context,
@@ -273,6 +387,7 @@ class _CourierMapState extends State<CourierMap>
                       // Use Future.delayed to ensure Snackbar is shown after UI updates
                       Future.delayed(Duration(milliseconds: 100), () {
                         print('Marker tapped!');
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -327,6 +442,9 @@ class _CourierMapState extends State<CourierMap>
         position: location,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
         infoWindow: InfoWindow(title: 'Base Location'),
+        onTap: () {
+          showChangeBaseLocationDialog(context);
+        },
       );
 
       circle = Circle(
@@ -595,108 +713,6 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
-  Widget _buildRadarAnimation() {
-    return Center(
-      child: CustomPaint(
-        painter: RadarPainter(_radarAnimation.value),
-        child: const SizedBox(
-          width: 300,
-          height: 300,
-        ),
-      ),
-    );
-  }
-
-  List<CardModel> _buildCardStacks(
-      BuildContext context, List<Map<String, dynamic>> brokerDataList) {
-    final double containerWidth = MediaQuery.of(context).size.width - 50;
-
-    var list = <CardModel>[];
-
-    for (var brokerData in brokerDataList) {
-      var brokerProfile = brokerData['broker'] ?? {};
-      String userName = brokerProfile['name']?.toString() ?? 'Unknown Broker';
-      String userImage = brokerProfile['profilePictureUrl']?.toString() ??
-          'https://via.placeholder.com/150';
-      String id = brokerProfile['brokerID']?.toString() ?? 'dfdf ID';
-
-      // Access nodeID directly from brokerData
-      String nodeID =
-          brokerData['emptyLegRequestID']?.toString() ?? 'nodeID Not Found';
-
-      double rating = Random().nextDouble() * 5; // Placeholder rating
-      print('emptyLegRequestID------------------------');
-      print(nodeID);
-
-      list.add(
-        CardModel(
-          backgroundColor: Colors.white,
-          shadowColor: Colors.black.withOpacity(0.2),
-          child: GestureDetector(
-            onTap: () {
-              // Ensure that the correct brokerID and nodeID are passed to the next screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SelectBroker(
-                    brokerID: id,
-                    // Passing the correct brokerID for the selected card
-                    emptyLegRequestID:
-                        nodeID, // Passing the correct nodeID for the selected card
-                  ),
-                ),
-              );
-            },
-            child: SizedBox(
-              height: 150,
-              width: containerWidth,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundImage: NetworkImage(userImage),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            userName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          RatingBarIndicator(
-                            rating: rating,
-                            itemBuilder: (context, index) => const Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                            ),
-                            itemCount: 5,
-                            itemSize: 25.0,
-                            direction: Axis.horizontal,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return list;
-  }
 
   List<Widget> _buildBottomSheetList(
       BuildContext context, List<Map<String, dynamic>> brokerDataList) {
@@ -709,7 +725,7 @@ class _CourierMapState extends State<CourierMap>
       String userName = brokerProfile['name']?.toString() ?? 'Unknown Broker';
       String userImage = brokerProfile['profilePictureUrl']?.toString() ??
           'https://via.placeholder.com/150';
-      String id = brokerProfile['brokerID']?.toString() ?? 'dfdf ID';
+      String id = brokerProfile['brokerID']?.toString() ?? 'N/A';
       String nodeID =
           brokerData['emptyLegRequestID']?.toString() ?? 'nodeID Not Found';
 
@@ -805,7 +821,7 @@ class _CourierMapState extends State<CourierMap>
               _mapController.complete(controller);
             },
             onTap: (LatLng latLng) {
-              print('Map tapped!');
+              print('Map Tap!');
             },
           ),
 
@@ -843,12 +859,17 @@ class _CourierMapState extends State<CourierMap>
                         const SizedBox(width: 10.0),
                         Expanded(
                           child: TextField(
+                            maxLength: 3, // Max 3 characters allowed
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')), // Only alphabets
+                              LengthLimitingTextInputFormatter(3), // Hard limit to 3 characters
+                            ],
                             onSubmitted: (value) {
-                              // Call your search method with the entered text
                               _onSearchAirport(value);
                             },
                             decoration: const InputDecoration(
-                              hintText: 'Search Location',
+                              hintText: 'Change Base Location',
+                              counterText: "", // Hide character counter
                               border: InputBorder.none,
                             ),
                           ),
@@ -868,7 +889,9 @@ class _CourierMapState extends State<CourierMap>
                               title: Text(airportList[index].name.toString()),
                               onTap: () {
                                 print("Clicked on: ${airportList[index].name}");
-                                _onCountrySelected(airportList[index]);
+                                //_onCountrySelected(airportList[index]);
+                                _onMarkerTap(false);
+                                _onBaseLocationSelected(airportList[index]);
                               },
                             );
                           },
@@ -921,22 +944,3 @@ class _CourierMapState extends State<CourierMap>
   }
 }
 
-class RadarPainter extends CustomPainter {
-  final double radius;
-
-  RadarPainter(this.radius);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
-  }
-}
