@@ -24,10 +24,12 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
   Future<void> _fetchJobs() async {
     try {
       final user = FirebaseAuth.instance.currentUser!;
+      print('📦 Courier ID (UID): ${user.uid}');
+
       final snapshot = await FirebaseFirestore.instance
           .collection('emptyLegs')
           .where('courierID', isEqualTo: user.uid)
-          .orderBy('fromDateTime', descending: true)
+         // .orderBy('fromDateTime', descending: true)
           .get();
 
       final jobList = snapshot.docs.map((doc) {
@@ -81,7 +83,7 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
         : SizedBox(
       height: MediaQuery.of(context).size.height * 0.3,
       child: ListView.builder(
-        scrollDirection: Axis.horizontal,
+        scrollDirection: Axis.vertical,
         itemCount: jobs.length,
         itemBuilder: (context, index) {
           return _buildJobCard(jobs[index], screenWidth);
@@ -94,7 +96,7 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
   Widget _buildJobCard(Map<String, dynamic> job, double screenWidth) {
     String formatDate(String utcString) {
       try {
-        final dateTime = DateTime.parse(utcString).toLocal(); // Convert from UTC to local time
+        final dateTime = DateTime.parse(utcString).toLocal(); // Convert from UTC to local
         return DateFormat('dd MMMM yyyy').format(dateTime);
       } catch (e) {
         return 'Invalid Date';
@@ -110,29 +112,99 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
       }
     }
 
-    return Card(
-      margin: const EdgeInsets.all(10),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: screenWidth * 0.75,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("✈️ Flight: ${job['flightNumber']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text("📍 From: ${job['fromLocation']}"),
-            Text("📍 To: ${job['toLocation']}"),
-            const SizedBox(height: 6),
-            Text("📅 From Date: ${formatDate(job['fromDateTime'])}"),
-            Text("🕒 From Time: ${formatTime(job['fromDateTime'])}"),
-            const SizedBox(height: 4),
-            Text("📅 To Date: ${formatDate(job['toDateTime'])}"),
-            Text("🕒 To Time: ${formatTime(job['toDateTime'])}"),
-            const SizedBox(height: 6),
-            Text("🚛 Capacity: ${job['capacity']}"),
-          ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView( // ✅ Allows card to be scrollable if needed
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Text(
+                      "✈️ Flight: ${job['flightNumber']}",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "📍 From: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: job['fromLocation'] ?? 'N/A'),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "📍 To: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: job['toLocation'] ?? 'N/A'),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "📅 From Date: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: formatDate(job['fromDateTime'])),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "🕒 From Time: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: formatTime(job['fromDateTime'])),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "📅 To Date: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: formatDate(job['toDateTime'])),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "🕒 To Time: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: formatTime(job['toDateTime'])),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
+                        children: [
+                          const TextSpan(text: "🚛 Capacity: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextSpan(text: job['capacity'] ?? 'N/A'),
+                        ],
+                      ),
+                    ),
+
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

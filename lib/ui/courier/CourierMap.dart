@@ -1,16 +1,13 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:math';
 
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
-import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:card_stack_widget/card_stack_widget.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -152,20 +149,36 @@ class _CourierMapState extends State<CourierMap>
       _isLoading = true;
     });
 
+    print("📡 fetchEmptyLegRequests: Started fetching...");
+
     FirestoreService firestoreService = FirestoreService(context);
-    List<Map<String, dynamic>> requests =
-    await firestoreService.getEmptyLegRequestsWithBrokers(_currentUser.uid);
+
+    List<Map<String, dynamic>> requests = [];
+
+    try {
+      requests = await firestoreService.getEmptyLegRequestsWithBrokers(_currentUser.uid);
+      print("✅ fetchEmptyLegRequests: Received ${requests.length} requests");
+
+      for (var i = 0; i < requests.length; i++) {
+        debugPrint("📦 Request[$i]: ${requests[i]}");
+      }
+    } catch (e) {
+      print("❌ Error fetching empty leg requests: $e");
+    }
 
     setState(() {
       _isLoading = false;
       if (requests.isNotEmpty) {
         _filteredUsers = _buildBottomSheetList(context, requests);
         _hasData = true; // ✅ data available
+        print("📋 _filteredUsers updated, showing bottom sheet");
       } else {
-        _hasData = false; // ❌ no data, so don’t show sheet
+        _hasData = false; // ❌ no data
+        print("🚫 No requests found, hiding bottom sheet");
       }
     });
   }
+
 
 
   @override
@@ -558,29 +571,45 @@ class _CourierMapState extends State<CourierMap>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      backgroundColor: Colors.white,
+      isScrollControlled: false,
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return Container(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Drag handle
+                  Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
                   // Title
                   const Center(
                     child: Text(
-                      'Available at',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      'Change Availability',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
 
                   // Divider
-                  const Divider(thickness: 1, color: Colors.grey),
+                  Divider(thickness: 1.2, color: Colors.grey.shade300),
                   const SizedBox(height: 20),
 
-                  // Toggle section
+                  // Toggle section (smaller buttons)
                   Row(
                     children: [
                       // Base option
@@ -588,31 +617,37 @@ class _CourierMapState extends State<CourierMap>
                         child: GestureDetector(
                           onTap: () {
                             setState(() {
-                              _isBaseSelected = true; // Select "Base"
+                              _isBaseSelected = true;
                             });
                           },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 10), // smaller
                             decoration: BoxDecoration(
-                              color: _isBaseSelected
-                                  ? Colors.blue
-                                  : Colors.transparent,
+                              color: _isBaseSelected ? Colors.blue : Colors.grey.shade100,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(10),
                                 bottomLeft: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color:
-                                    _isBaseSelected ? Colors.blue : Colors.grey,
+                                color: _isBaseSelected ? Colors.blue : Colors.grey.shade400,
                               ),
+                              boxShadow: _isBaseSelected
+                                  ? [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                                  : [],
                             ),
                             child: Center(
                               child: Text(
                                 'Base',
                                 style: TextStyle(
-                                  color: _isBaseSelected
-                                      ? Colors.white
-                                      : Colors.black,
+                                  fontSize: 14,
+                                  color: _isBaseSelected ? Colors.white : Colors.black87,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -626,32 +661,37 @@ class _CourierMapState extends State<CourierMap>
                         child: GestureDetector(
                           onTap: () {
                             setState(() {
-                              _isBaseSelected = false; // Select "Current"
+                              _isBaseSelected = false;
                             });
                           },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 10), // smaller
                             decoration: BoxDecoration(
-                              color: !_isBaseSelected
-                                  ? Colors.blue
-                                  : Colors.transparent,
+                              color: !_isBaseSelected ? Colors.blue : Colors.grey.shade100,
                               borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(10),
                                 bottomRight: Radius.circular(10),
                               ),
                               border: Border.all(
-                                color: !_isBaseSelected
-                                    ? Colors.blue
-                                    : Colors.grey,
+                                color: !_isBaseSelected ? Colors.blue : Colors.grey.shade400,
                               ),
+                              boxShadow: !_isBaseSelected
+                                  ? [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                                  : [],
                             ),
                             child: Center(
                               child: Text(
                                 'Current',
                                 style: TextStyle(
-                                  color: !_isBaseSelected
-                                      ? Colors.white
-                                      : Colors.black,
+                                  fontSize: 14,
+                                  color: !_isBaseSelected ? Colors.white : Colors.black87,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -664,23 +704,19 @@ class _CourierMapState extends State<CourierMap>
 
                   const SizedBox(height: 30),
 
-                  // Confirm button
-                  MaterialButton(
+                  // Confirm button (green with white text)
+                  ElevatedButton.icon(
                     onPressed: () async {
-                      // Determine the selected location
-                      _selectedLocation =
-                          _isBaseSelected ? _baseLocation : _currentLocation;
+                      _selectedLocation = _isBaseSelected ? _baseLocation : _currentLocation;
 
                       if (_isBaseSelected) {
                         animateCamera(_baseLocation, 10.0);
-                        _updateBaseLocation(_baseLocation.longitude,
-                            _baseLocation.longitude, false);
+                        _updateBaseLocation(_baseLocation.longitude, _baseLocation.longitude, false);
                       } else {
                         animateCamera(_currentLocation, 10.0);
-                        _updateCurrentLocation(_currentLocation.latitude,
-                            _currentLocation.longitude);
+                        _updateCurrentLocation(_currentLocation.latitude, _currentLocation.longitude);
                       }
-                      // Show Snackbar
+
                       String message = _isBaseSelected
                           ? "You are available at Base Location"
                           : "You are available at Current Location";
@@ -692,17 +728,25 @@ class _CourierMapState extends State<CourierMap>
                         ),
                       );
 
-                      // Close the bottom sheet
                       Navigator.of(context).pop();
                     },
-                    color: Colors.blue,
-                    textColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green, // Green background
+                      minimumSize: const Size(200, 45), // smaller size
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                      shadowColor: Colors.greenAccent,
                     ),
-                    child: const SizedBox(
-                      width: 250,
-                      child: Center(child: Text('Confirm')),
+                    icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                    label: const Text(
+                      'Confirm',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white, // White text
+                      ),
                     ),
                   ),
                 ],
@@ -713,6 +757,8 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
+
+
 
   List<Widget> _buildBottomSheetList(
       BuildContext context, List<Map<String, dynamic>> brokerDataList) {

@@ -152,8 +152,8 @@ class _CourierProfileState extends State<CourierProfile> {
   Widget _buildPhoneNumberField(
       TextEditingController controller, Function(String) onChanged) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -465,7 +465,7 @@ class _CourierProfileState extends State<CourierProfile> {
 /*              const SizedBox(height: 20),
               _buildProfileField('ID', courierProfile.id.toString()),*/
               const SizedBox(height: 10),
-              _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
+              _buildNonEditableField('Email:', _currentUser.email ?? 'N/A'),
               const SizedBox(height: 10),
               _buildEditableField('Name', _nameController),
               const SizedBox(height: 10),
@@ -594,8 +594,8 @@ class _CourierProfileState extends State<CourierProfile> {
   }
   Widget _buildEditableField(String label, TextEditingController controller) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -762,22 +762,23 @@ class _CourierProfileState extends State<CourierProfile> {
 
   Widget _buildNonEditableField(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white, // Light dark background
         borderRadius: BorderRadius.circular(10.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Label
           Text(
             label,
             style: const TextStyle(
@@ -786,15 +787,29 @@ class _CourierProfileState extends State<CourierProfile> {
               color: Colors.black54,
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-            ),
+
+          // Value + Lock icon
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.lock,
+                size: 16,
+                color: Colors.grey,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
 }

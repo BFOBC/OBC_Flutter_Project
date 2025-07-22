@@ -21,7 +21,7 @@ class JobDetails extends StatefulWidget {
 class _JobDetailsState extends State<JobDetails> {
   late Future<EmptyLegRequest> jobDetails;
   bool isLoading = true;
-
+  String? emptyLegTBLRequestNodeID=" ";
   @override
   void initState() {
     super.initState();
@@ -87,6 +87,7 @@ class _JobDetailsState extends State<JobDetails> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
+                            emptyLegTBLRequestNodeID=jobData.emptyLegTBLNodeID.toString();
                             _showRequestDialog(
                                 context, 'Do you want to accept Job?', widget.emptyLegRequestID, true);
                           },
@@ -190,23 +191,66 @@ class _JobDetailsState extends State<JobDetails> {
   void _showRequestDialog(BuildContext context, String message, String nodeID, bool acceptJob) {
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent dismiss by tapping outside
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirmation'),
-          content: Text(message),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Are you sure?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message,
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              const Divider(height: 1),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: [
-            TextButton(
+            ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
-              child: const Text('NO'),
+              icon: const Icon(Icons.close, color: Colors.white),
+              label: const Text('No'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 handleJobAction(context, nodeID, acceptJob, widget.brokerID, widget.emptyLegRequestID);
               },
-              child: const Text('YES'),
+              icon: const Icon(Icons.check_circle, color: Colors.white),
+              label: const Text('Yes'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ],
         );
@@ -221,6 +265,19 @@ class _JobDetailsState extends State<JobDetails> {
     final FirestoreService service = FirestoreService(context);
     final String jobStatus = acceptJob ? 'todo' : 'decline';
     service.updateJobStatus(nodeID, jobStatus);
+    print('🔄 Updating job status...');
+    print('📝 Node ID: $emptyLegTBLRequestNodeID');
+    print('📌 New Status: $jobStatus');
+
+    service.updateEmptyLegTableJobStatus(
+      emptyLegTBLRequestNodeID.toString(),
+      jobStatus,
+    ).then((_) {
+      print('✅ Job status updated successfully!');
+    }).catchError((error) {
+      print('❌ Failed to update job status: $error');
+    });
+
 
     final User currentUser = FirebaseAuth.instance.currentUser!;
     final String email = currentUser.email ?? 'Unknown User';

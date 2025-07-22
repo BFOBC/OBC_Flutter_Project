@@ -19,7 +19,7 @@ class EmptyLegRequest {
   final String? courierCapacity;
   final String? isBrokerRated;
   final String? isCourierRated;
-
+  final String? emptyLegTBLNodeID;
   // Constructor
   EmptyLegRequest({
     required this.brokerID,
@@ -36,6 +36,7 @@ class EmptyLegRequest {
     this.courierCapacity,
     this.isBrokerRated,
     this.isCourierRated,
+    this.emptyLegTBLNodeID
   });
 
   // Convert model to a map for Firestore
@@ -55,6 +56,7 @@ class EmptyLegRequest {
       'courierCapacity': courierCapacity,
       'isCourierRated': isCourierRated,
       'isBrokerRated': isBrokerRated,
+      'emptyLegTBLNodeID': emptyLegTBLNodeID,
     };
   }
 
@@ -75,6 +77,7 @@ class EmptyLegRequest {
       courierCapacity: map['courierCapacity'],
       isBrokerRated: map['isBrokerRated'],
       isCourierRated: map['isCourierRated'],
+      emptyLegTBLNodeID: map['emptyLegTBLNodeID'],
     );
   }
   // Getters for local time conversion

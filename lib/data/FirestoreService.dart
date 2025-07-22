@@ -494,7 +494,22 @@ class FirestoreService {
           'Error updating status: $e'); // Throwing an exception if error occurs
     }
   }
-
+  Future<void> updateEmptyLegTableJobStatus(String nodeID, String status) async {
+    try {
+      // Reference to the emptyLegRequests collection and specific document
+      DocumentReference docRef = _firestore.collection('emptyLegs').doc(
+          nodeID);
+      // Update the 'status' field
+      await docRef.update({
+        'status': status, // Field name 'status' and its new value
+      });
+      print('emptyLegs Status updated successfully');
+    } catch (e) {
+      print('Error updating status: $e');
+      throw Exception(
+          'Error updating status: $e'); // Throwing an exception if error occurs
+    }
+  }
   Future<void> updateMilestoneStatus(String nodeID, String status) async {
     try {
       // Reference to the emptyLegRequests collection and specific document

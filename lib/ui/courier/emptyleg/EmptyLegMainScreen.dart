@@ -55,13 +55,13 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
               //CardStackWidget(), // Custom widget
             const JobCardStackWidget(),
 
-            const SizedBox(height: 16),
+/*            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 _showBottomSheet(context); // View user-entered flight details
               },
               child: const Text('View Flight Details'),
-            ),
+            ),*/
           ],
         ),
       ),

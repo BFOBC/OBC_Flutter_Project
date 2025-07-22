@@ -48,7 +48,7 @@ String convertUTCToLocal(String utcTimeString) {
     final localTime = utcTime.toLocal();
     return DateFormat('dd MMM yyyy, hh:mm a').format(localTime);
   } catch (e) {
-    print("Error parsing date: $e");
+    print("Error convertUTCToLocal parsing date: $e");
     return "Invalid date";
   }
 }

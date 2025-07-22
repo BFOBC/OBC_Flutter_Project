@@ -1,5 +1,6 @@
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
+import 'package:broker_flutter_pp/ui/courier/missions/ViewCourierMission.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
@@ -18,14 +19,19 @@ class BrokerMissions extends StatefulWidget {
 class _BrokerMissionsState extends State<BrokerMissions> {
   int _selectedIndex = 0;
   final List<bool> _selectedToggle = [true, false, false, false];
-  final List<String> _toggleText = ["Pending", "Todo", "In Progress","Completed"];
+  final List<String> _toggleText = [
+    "Pending",
+    "Todo",
+    "In Progress",
+    "Completed"
+  ];
   bool isLoading = true; // Track loading state
   // Define the color list to match chart segments, tabs, and vertical bars
   final List<Color> _colorList = [
     Colors.orange, // In Progress
-    Colors.red,    // Todo
-    Colors.lightGreen,    // Pending
-    Colors.green,  // Completed
+    Colors.red, // Todo
+    Colors.lightGreen, // Pending
+    Colors.green, // Completed
   ];
 
   @override
@@ -95,7 +101,8 @@ class _BrokerMissionsState extends State<BrokerMissions> {
           departureFrom: job['departureLocation'] ?? 'Unknown',
           arriveAt: job['arrivalLocation'] ?? 'Unknown',
           status: job['status'] ?? 'Unknown',
-          rating: job['rating'] != null ? double.tryParse(job['rating'].toString()) ?? 0.0 : 0.0,
+          rating: job['rating'] != null ? double.tryParse(
+              job['rating'].toString()) ?? 0.0 : 0.0,
           startDateTime: job['startTimeDate'] ?? 'Unknown',
           endDateTime: job['endTimeDate'] ?? 'Unknown',
           bid: job['bid'] ?? 'N/A',
@@ -105,7 +112,8 @@ class _BrokerMissionsState extends State<BrokerMissions> {
           description: job['milestones'] != null && job['milestones'].isNotEmpty
               ? job['milestones'][0]['description'] ?? 'N/A'
               : 'N/A',
-          mileStoneStatus: job['milestones'] != null && job['milestones'].isNotEmpty
+          mileStoneStatus: job['milestones'] != null &&
+              job['milestones'].isNotEmpty
               ? job['milestones'][0]['status'] ?? 'N/A'
               : 'N/A',
           emptyLegRequestID: job['emptyLegRequestID'] ?? 'Unknown',
@@ -116,11 +124,13 @@ class _BrokerMissionsState extends State<BrokerMissions> {
             taskViewModel.addMilestone(Milestone(
               milestoneNodeID: milestone['milestoneNodeID'] ?? 'Unknown',
               brokerID: milestone['brokerID'] ?? 'Unknown',
-              milestoneEndDateTime: milestone['milestoneEndDateTime'] ?? 'Unknown',
+              milestoneEndDateTime: milestone['milestoneEndDateTime'] ??
+                  'Unknown',
               description: milestone['description'] ?? 'N/A',
               courierID: milestone['courierID'] ?? 'Unknown',
               title: milestone['title'] ?? 'N/A',
-              milestoneStartDateTime: milestone['milestoneStartDateTime'] ?? 'Unknown',
+              milestoneStartDateTime: milestone['milestoneStartDateTime'] ??
+                  'Unknown',
               milestoneStatus: milestone['milestoneStatus'] ?? 'Unknown',
               emptyLegRequestID: milestone['emptyLegRequestID'] ?? 'Unknown',
             ));
@@ -155,6 +165,7 @@ class _BrokerMissionsState extends State<BrokerMissions> {
       return [];
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final dataMap = <String, double>{
@@ -175,7 +186,7 @@ class _BrokerMissionsState extends State<BrokerMissions> {
               // Circular Rating at the top center
               CircularRating(
                 dataMap: dataMap,
-                colorList: _colorList,  // Use the color list for the chart
+                colorList: _colorList, // Use the color list for the chart
               ),
 
               const SizedBox(height: 20),
@@ -184,7 +195,8 @@ class _BrokerMissionsState extends State<BrokerMissions> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),  // Margin on both sides
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  // Margin on both sides
                   child: ToggleButtons(
                     isSelected: _selectedToggle,
                     onPressed: (int index) {
@@ -198,13 +210,17 @@ class _BrokerMissionsState extends State<BrokerMissions> {
                     borderRadius: BorderRadius.circular(10),
                     selectedBorderColor: Colors.grey,
                     selectedColor: Colors.white,
-                    fillColor: _colorList[_selectedIndex],  // Use matching color for the selected tab
+                    fillColor: _colorList[_selectedIndex],
+                    // Use matching color for the selected tab
                     color: Colors.black,
-                    constraints: const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
-                    children: _toggleText.map((text) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0), // Add padding to each button
-                      child: Text(text),
-                    )).toList(),
+                    constraints: const BoxConstraints(
+                        minHeight: 40.0, minWidth: 120.0),
+                    children: _toggleText.map((text) =>
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                          // Add padding to each button
+                          child: Text(text),
+                        )).toList(),
                   ),
                 ),
               ),
@@ -214,16 +230,19 @@ class _BrokerMissionsState extends State<BrokerMissions> {
               // Task List
               Consumer<TaskViewModel>(
                 builder: (context, taskViewModel, child) {
-                  List<Task> tasks = taskViewModel.getTasksByStatus(_getStatusForIndex(_selectedIndex));
+                  List<Task> tasks = taskViewModel.getTasksByStatus(
+                      _getStatusForIndex(_selectedIndex));
 
                   return ListView.builder(
                     shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(), // Prevent list from scrolling independently
+                    physics: const NeverScrollableScrollPhysics(),
+                    // Prevent list from scrolling independently
                     itemCount: tasks.length,
                     itemBuilder: (context, index) {
                       final task = tasks[index];
                       return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                        margin: const EdgeInsets.symmetric(vertical: 8.0,
+                            horizontal: 4.0),
                         child: Container(
                           padding: const EdgeInsets.all(8.0),
                           child: Row(
@@ -231,7 +250,7 @@ class _BrokerMissionsState extends State<BrokerMissions> {
                               Container(
                                 width: 12,
                                 height: 80,
-                                color: _colorList[_selectedIndex],  // Vertical bar color matches the tab and chart
+                                color: _colorList[_selectedIndex], // Vertical bar color matches the tab and chart
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -245,16 +264,21 @@ class _BrokerMissionsState extends State<BrokerMissions> {
                               ),
                               ElevatedButton(
                                 onPressed: () {
-                                  _navigateToLegsAndMilestones(task); // Navigate and pass task details
+                                  _navigateToLegsAndMilestones(
+                                      task); // Navigate and pass task details
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _colorList[_selectedIndex],  // Button color matches the selected tab
+                                  backgroundColor: _colorList[_selectedIndex],
+                                  // Button color matches the selected tab
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12.0),
                                   ),
                                   // Set minimum height and width
-                                  minimumSize: const Size(100, 40),  // Adjust this to reduce button size (width, height)
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),  // Control padding inside the button
+                                  minimumSize: const Size(100, 40),
+                                  // Adjust this to reduce button size (width, height)
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                      horizontal: 12.0), // Control padding inside the button
                                 ),
                                 child: const Text(
                                   'View Details',
@@ -292,11 +316,23 @@ class _BrokerMissionsState extends State<BrokerMissions> {
 
   void _navigateToLegsAndMilestones(Task task) {
 
-    Navigator.push(
+/*    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ManageLegsAndMilestones(brokerKey:  AuthUtils.getCurrentUserId2().toString(),courierKey: "",data: task),
       ),
     );
+  }*/
+    String selectedTab = _getStatusForIndex(_selectedIndex);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ViewCourierMission(task: task, selectedTab: selectedTab),
+      ),
+    ).then((_) {
+      // Reload data when coming back
+      _loadTasks();
+    });
   }
 }

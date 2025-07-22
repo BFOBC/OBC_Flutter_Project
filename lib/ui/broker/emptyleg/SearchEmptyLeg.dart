@@ -18,6 +18,7 @@ class FlightData {
   final String fromLocation;
   final String toLocation;
   final String flightNumber;
+  final String emptyLegTBLNodeID;
   final int capacity;
 
   FlightData({
@@ -26,12 +27,14 @@ class FlightData {
     required this.fromLocation,
     required this.toLocation,
     required this.flightNumber,
+    required this.emptyLegTBLNodeID,
     required this.capacity,
   });
 }
 
 class SearchEmptyLegScreen extends StatefulWidget {
   SearchEmptyLegScreen({super.key});
+
   @override
   _SearchEmptyLegScreenState createState() => _SearchEmptyLegScreenState();
 }
@@ -43,17 +46,23 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 
   List<FlightData> flights = [];
   List<FlightData> filteredFlights = [];
-  List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
+  List<AirportModel> fromAirportSuggestions =
+      []; // Suggestions for "From Location"
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
   AirportModel? selectedFromAirport;
   AirportModel? selectedToAirport;
   String? departureLocation;
   String? arrivalLocation;
+  String? endDateTime;
+  String? startDateTime;
+  String? emptyLegTBLNodeID;
+
   @override
   void initState() {
     super.initState();
     _fetchFlights(); // Fetch model from Firestore when screen initializes
   }
+
   // Fetch airports that match the query for From Location
   Future<void> _fetchFromAirportData(String query) async {
     if (query.isNotEmpty) {
@@ -63,7 +72,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
           fromAirportSuggestions = airports;
         });
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching airports: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error fetching airports: $e')));
       }
     } else {
       setState(() {
@@ -71,6 +81,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       });
     }
   }
+
   // Fetch airports that match the query for To Location
   Future<void> _fetchToAirportData(String query) async {
     if (query.isNotEmpty) {
@@ -80,7 +91,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
           toAirportSuggestions = airports;
         });
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching airports: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error fetching airports: $e')));
       }
     } else {
       setState(() {
@@ -88,16 +100,19 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       });
     }
   }
+
   Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
     final dbHelper = DatabaseOperation();
     try {
-      List<AirportModel> airports = await dbHelper.fetchAirportsFromDatabase(query);
+      List<AirportModel> airports =
+          await dbHelper.fetchAirportsFromDatabase(query);
       return airports;
     } catch (e) {
       print('Error _fetchAirports $e');
       return [];
     }
   }
+
   void _fetchFlights() {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -106,7 +121,11 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
         return;
       }
 
-      FirebaseFirestore.instance.collection('emptyLegs').snapshots().listen((snapshot) {
+      FirebaseFirestore.instance
+          .collection('emptyLegs')
+          .where('status', isEqualTo: 'new') // ✅ Filter only "new" status
+          .snapshots()
+          .listen((snapshot) {
         final List<FlightData> flightList = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
@@ -124,7 +143,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 
           final capacity = data['capacity'] is int
               ? data['capacity']
-              : int.tryParse(data['capacity']) ?? 0;
+              : int.tryParse(data['capacity'].toString()) ?? 0;
 
           return FlightData(
             fromDateTime: fromDateTime,
@@ -132,13 +151,14 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
             fromLocation: data['fromLocation'],
             toLocation: data['toLocation'],
             flightNumber: data['flightNumber'],
+            emptyLegTBLNodeID: data['emptyLegNodeID'],
             capacity: capacity,
           );
         }).toList();
 
         setState(() {
           flights = flightList;
-          filteredFlights = flightList; // Initially, show all flights
+          filteredFlights = flightList; // Initially, show all "new" flights
         });
       });
     } catch (e) {
@@ -152,8 +172,10 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 
     setState(() {
       filteredFlights = flights.where((flight) {
-        final matchesDeparture = flight.fromLocation.toLowerCase().contains(departureQuery);
-        final matchesArrival = flight.toLocation.toLowerCase().contains(arrivalQuery);
+        final matchesDeparture =
+            flight.fromLocation.toLowerCase().contains(departureQuery);
+        final matchesArrival =
+            flight.toLocation.toLowerCase().contains(arrivalQuery);
         return matchesDeparture && matchesArrival;
       }).toList();
     });
@@ -169,20 +191,23 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     }
     return (now.difference(start).inMinutes / end.difference(start).inMinutes);
   }
+
   void _showFlightDialog(BuildContext context, FlightData flight) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
           insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: StatefulBuilder(
             builder: (context, setState) {
               bool isBooked = false;
 
               return Container(
                 width: MediaQuery.of(context).size.width * 0.9,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -191,11 +216,13 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       Stack(
                         children: [
                           const Padding(
-                            padding: EdgeInsets.only(top: 20, left: 8, right: 50, bottom: 10),
+                            padding: EdgeInsets.only(
+                                top: 20, left: 8, right: 50, bottom: 10),
                             child: Center(
                               child: Text(
                                 '✈️ Empty Leg Details',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 18),
                               ),
                             ),
                           ),
@@ -211,7 +238,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                                   color: Colors.red,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                child: const Icon(Icons.close,
+                                    color: Colors.white, size: 16),
                               ),
                             ),
                           ),
@@ -234,11 +262,19 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildLabelValue("Flight Number", flight.flightNumber),
-                                _buildLabelValue("Start Time", DateFormat('dd MMMM yyyy HH:mm:ss').format(flight.fromDateTime.toLocal())),
-                                _buildLabelValue("End Time", DateFormat('dd MMMM yyyy HH:mm:ss').format(flight.toDateTime.toLocal())),
+                                _buildLabelValue(
+                                    "Flight Number", flight.flightNumber),
+                                _buildLabelValue(
+                                    "Start Time",
+                                    DateFormat('dd MMMM yyyy HH:mm:ss')
+                                        .format(flight.fromDateTime.toLocal())),
+                                _buildLabelValue(
+                                    "End Time",
+                                    DateFormat('dd MMMM yyyy HH:mm:ss')
+                                        .format(flight.toDateTime.toLocal())),
                                 _buildLabelValue("Arrival", flight.toLocation),
-                                _buildLabelValue("Departure", flight.fromLocation),
+                                _buildLabelValue(
+                                    "Departure", flight.fromLocation),
                                 _buildLabelValue("Capacity", flight.capacity),
                               ],
                             ),
@@ -257,11 +293,13 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ChatDetailScreen(userID: courierID),
+                                    builder: (context) =>
+                                        ChatDetailScreen(userID: courierID),
                                   ),
                                 );
                               },
-                              child: const Icon(Icons.chat, color: Colors.white, size: 18),
+                              child: const Icon(Icons.chat,
+                                  color: Colors.white, size: 18),
                             ),
                           ),
                         ],
@@ -272,26 +310,37 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       /// Book Button (centered)
                       Center(
                         child: isBooked
-                            ? const Icon(Icons.airplane_ticket, size: 40, color: Colors.green)
+                            ? const Icon(Icons.airplane_ticket,
+                                size: 40, color: Colors.green)
                             : ElevatedButton.icon(
-                          onPressed: () {
-                            departureLocation = flight.fromLocation.toString();
-                            arrivalLocation = flight.toLocation.toString();
-                            _sendBookRequest();
-                            setState(() => isBooked = true);
-                          },
-                          icon: const Icon(Icons.check_circle, color: Colors.white, size: 14),
-                          label: const Text('Book'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 8),
-                            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(35),
-                            ),
-                          ),
-                        ),
+                                onPressed: () {
+                                  departureLocation =
+                                      flight.fromLocation.toString();
+                                  arrivalLocation =
+                                      flight.toLocation.toString();
+                                  startDateTime =
+                                      flight.fromDateTime.toString();
+                                  endDateTime = flight.toDateTime.toString();
+                                  emptyLegTBLNodeID=flight.emptyLegTBLNodeID.toString();
+                                  _sendBookRequest();
+                                  setState(() => isBooked = true);
+                                },
+                                icon: const Icon(Icons.check_circle,
+                                    color: Colors.white, size: 14),
+                                label: const Text('Book'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 45, vertical: 8),
+                                  textStyle: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(35),
+                                  ),
+                                ),
+                              ),
                       ),
 
                       const SizedBox(height: 10),
@@ -306,7 +355,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     );
   }
 
-
   Widget _buildLabelValue(String label, dynamic value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -314,9 +362,15 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.black87)),
           const SizedBox(height: 2),
-          Text(value != null && value.toString().isNotEmpty ? value.toString() : 'N/A',
+          Text(
+              value != null && value.toString().isNotEmpty
+                  ? value.toString()
+                  : 'N/A',
               style: const TextStyle(fontSize: 15, color: Colors.black54)),
         ],
       ),
@@ -347,11 +401,11 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   icon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: _searchController2.text.isNotEmpty
                       ? IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () {
-                      _searchController2.clear();
-                    },
-                  )
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            _searchController2.clear();
+                          },
+                        )
                       : null,
                 ),
                 onChanged: (String value) {
@@ -359,10 +413,10 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   _fetchFromAirportData(value);
                 },
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),   // ✅ Letters + spaces only
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+                  // ✅ Letters + spaces only
                 ],
               ),
-
             ),
 
             // Show suggestions below 'From Location'
@@ -397,17 +451,17 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
                 controller: _searchController1,
-                decoration:  InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Departure',
                   border: InputBorder.none,
                   icon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: _searchController1.text.isNotEmpty
                       ? IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () {
-                      _searchController1.clear(); // Clear text input
-                    },
-                  )
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            _searchController1.clear(); // Clear text input
+                          },
+                        )
                       : null, // Don't show the icon if text is empty
                 ),
                 onChanged: (String value) {
@@ -417,7 +471,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                   _fetchToAirportData(value);
                 },
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Allows only letters and spaces
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+                  // Allows only letters and spaces
                 ],
               ),
             ),
@@ -444,7 +499,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
             const SizedBox(height: 15),
             // Search Button
             Column(
-              crossAxisAlignment: CrossAxisAlignment.end, // بٹن دائیں طرف رکھنے کے لیے
+              crossAxisAlignment: CrossAxisAlignment.end,
+              // بٹن دائیں طرف رکھنے کے لیے
               children: [
                 SizedBox(
                   width: 120,
@@ -484,7 +540,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               ],
             ),
 
-
             const SizedBox(height: 10),
 
             // Filtered Items List
@@ -492,68 +547,91 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
             Expanded(
               child: filteredFlights.isEmpty
                   ? Center(
-                child: Text(
-                  'No Data Found',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-              )
+                      child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.airplanemode_inactive,
+                            color: Colors.red, size: 50),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'No Empty Legs Available',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ))
                   : ListView.builder(
-                itemCount: filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = filteredFlights[index];
-                  double progress = _calculateProgress(flight.fromDateTime, flight.toDateTime);
+                      itemCount: filteredFlights.length,
+                      itemBuilder: (context, index) {
+                        final flight = filteredFlights[index];
+                        double progress = _calculateProgress(
+                            flight.fromDateTime, flight.toDateTime);
 
-                  return GestureDetector(
-                    onTap: () => _showFlightDialog(context, flight),
-                    child: Card(
-                      color: Colors.white,
-                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Blue Vertical Line on Left
-                            Container(
-                              width: 8,
-                              height: 120,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Flight Details
-                            Expanded(
-                              child: Column(
+                        return GestureDetector(
+                          onTap: () => _showFlightDialog(context, flight),
+                          child: Card(
+                            color: Colors.white,
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 16.0),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Arrival:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                  Text(flight.toLocation, style: const TextStyle(fontSize: 16)),
+                                  // Blue Vertical Line on Left
+                                  Container(
+                                    width: 8,
+                                    height: 120,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(width: 12),
 
-                                  const SizedBox(height: 8),
+                                  // Flight Details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Arrival:',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold)),
+                                        Text(flight.toLocation,
+                                            style:
+                                                const TextStyle(fontSize: 16)),
 
-                                  Text('Departure:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                  Text(flight.fromLocation, style: const TextStyle(fontSize: 16)),
+                                        const SizedBox(height: 8),
 
-                                  const SizedBox(height: 8),
+                                        Text('Departure:',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold)),
+                                        Text(flight.fromLocation,
+                                            style:
+                                                const TextStyle(fontSize: 16)),
 
-                                  // Progress Bar
-                                  LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor: Colors.grey[300],
-                                    color: Colors.blueAccent,
+                                        const SizedBox(height: 8),
+
+                                        // Progress Bar
+                                        LinearProgressIndicator(
+                                          value: progress,
+                                          backgroundColor: Colors.grey[300],
+                                          color: Colors.blueAccent,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
-
           ],
         ),
       ),
@@ -565,7 +643,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     setState(() {
       _searchController1.clear();
       _searchController2.clear();
-      filteredFlights = List.from(flights); // Reset the list to original flights
+      filteredFlights =
+          List.from(flights); // Reset the list to original flights
     });
   }
 
@@ -575,36 +654,49 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
     _searchController2.dispose();
     super.dispose();
   }
+
   String getCurrentUserId() {
     // Replace this with your actual logic to retrieve the user ID
     return FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
   }
+
   Future<void> _sendBookRequest() async {
     try {
       String brokerID = getCurrentUserId();
       // Generate a custom nodeID (you can replace this with any unique value generator)
-      String nodeID = FirebaseFirestore.instance.collection('emptyLegRequests').doc().id;
-     String currentDateTime= DateTime.now().toString();
-    //String UTCTime=  convertToUTCFromCustomFormat(currentDateTime.toString());
-    String UTCTime=  convertToUTCFromStandardFormat(currentDateTime.toString());
-      await FirebaseFirestore.instance.collection('emptyLegRequests').doc(nodeID).set({
+      String nodeID =
+          FirebaseFirestore.instance.collection('emptyLegRequests').doc().id;
+      String currentDateTime = DateTime.now().toString();
+      //String UTCTime=  convertToUTCFromCustomFormat(currentDateTime.toString());
+      String UTCTime =
+          convertToUTCFromStandardFormat(currentDateTime.toString());
+      await FirebaseFirestore.instance
+          .collection('emptyLegRequests')
+          .doc(nodeID)
+          .set({
         'emptyLegRequestID': nodeID, // Add nodeID explicitly
         'brokerID': brokerID,
         'status': "pending",
-        'requestDateTime':UTCTime,
+        'requestDateTime': UTCTime,
         'courierID': courierID,
-        'arrivalLocation':arrivalLocation,
-        'departureLocation':departureLocation
+        'arrivalLocation': arrivalLocation,
+        'departureLocation': departureLocation,
+        'endTimeDate': endDateTime.toString(),
+        'startTimeDate': startDateTime.toString(),
+        'emptyLegTBLNodeID':emptyLegTBLNodeID.toString()
       });
 
       showCustomDialog2(context, "Request Successfully");
     } catch (e) {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }
-  }Future<void> showCustomDialog2(BuildContext context, String message) {
+  }
+
+  Future<void> showCustomDialog2(BuildContext context, String message) {
     return showDialog<void>(
       context: context,
-      barrierDismissible: true, // 👈 true = dialog closes on back press or tap outside
+      barrierDismissible: true,
+      // 👈 true = dialog closes on back press or tap outside
       builder: (BuildContext dialogContext) {
         return WillPopScope(
           onWillPop: () async {
@@ -643,7 +735,8 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                     ),
                     onPressed: () {
                       Navigator.of(dialogContext).pop(); // Close dialog
-                      Navigator.pushReplacement( // ✅ replace so it doesn't go back
+                      Navigator.pushReplacement(
+                        // ✅ replace so it doesn't go back
                         context,
                         MaterialPageRoute(
                           builder: (context) => BrokerMissions(),
@@ -663,7 +756,4 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
       },
     );
   }
-
 }
-
-

@@ -125,46 +125,60 @@ class _CustomSwitchState extends State<CustomSwitch> {
     });
     widget.onChanged(_value);
   }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: _toggleSwitch,
-          child: Container(
-            width: 50.0,
-            height: 30.0,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15.0),
-              color: _value ? Colors.green : Colors.grey,
-            ),
-            child: Row(
-              mainAxisAlignment: _value ? MainAxisAlignment.end : MainAxisAlignment.start,
-              children: [
-                Container(
-                  width: 25.0,
-                  height: 25.0,
-                  margin: const EdgeInsets.all(2.5),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: SizedBox(
+        height: 50, // Height remains optimal
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Wider Switch
+            GestureDetector(
+              onTap: _toggleSwitch,
+              child: Container(
+                width: 100.0, // ⬅️ Increased from 60 → 70
+                height: 35.0,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  color: _value ? Colors.green : Colors.grey,
                 ),
-              ],
+                child: Stack(
+                  children: [
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 200),
+                      alignment:
+                      _value ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        width: 35.0,
+                        height: 35.0,
+                        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+
+            // Text
+            Text(
+              _value ? 'Online' : 'Offline',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold, // 💪 Fully bold
+                color: _value ? Colors.white : Colors.grey[700], // ✅ Status color
+              ),
+            ),
+
+
+          ],
         ),
-        const SizedBox(height: 4), // Space between the toggle and the text
-        Text(
-          _value ? 'Online' : 'Offline',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

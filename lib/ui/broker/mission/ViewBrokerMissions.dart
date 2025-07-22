@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/broker/mission/ViewMilestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
@@ -7,24 +8,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../res/custom_colors.dart';
-import '../ViewJob.dart';
-import 'CompleteMilestone.dart';
 
-class ViewCourierMission extends StatefulWidget {
+class ViewBrokerMissions extends StatefulWidget {
   final Task? task; // Replace YourDataType with the actual type of your model object
   final String selectedTab;
 
-  ViewCourierMission({Key? key, this.task, required this.selectedTab}) : super(key: key);
+ViewBrokerMissions({Key? key, this.task, required this.selectedTab}) : super(key: key);
 
   @override
-  _ViewCourierMissionState createState() => _ViewCourierMissionState();
+  _ViewBrokerMissionsState createState() => _ViewBrokerMissionsState();
 }
-class _ViewCourierMissionState extends State<ViewCourierMission> {
+class _ViewBrokerMissionsState extends State<ViewBrokerMissions> {
   int _selectedIndex = 0; // Selected toggle index (0 for Empty Leg, 1 for Milestone)
   final List<bool> _selectedToggle = [true, false]; // Default is Empty Leg selected
   final List<String> _toggleText = ["Submission", "Milestone"];
 
-  bool _dialogShown = false; // ڈائیلاگ شو ہونے کا ٹریکر
+  bool _dialogShown = false;
 
   void _onTogglePressed(int index) {
     setState(() {
@@ -193,9 +192,13 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
               const SizedBox(height: 20),
               Expanded(
                 child: _selectedIndex == 0
-                    ? TaskDetailScreen(task: widget.task!) // Pass Task data to PlaceNewJob
-                    : CompleteMilestone(selectedTab: widget.selectedTab, task: widget.task!), // Pass Task data to AddNewMilestone
+                    ? TaskDetailScreen(task: widget.task!)
+                    : () {
+                  print('🔁 Building ViewMilestone tab');
+                  return ViewMilestone(selectedTab: widget.selectedTab, task: widget.task!);
+                }(),
               ),
+
             ],
           ),
           // Show FloatingActionButton only if:

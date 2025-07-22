@@ -200,37 +200,41 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
+          backgroundColor: Colors.white,
           child: Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 25.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Milestone Details',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: const [
+                        Icon(Icons.flag, color: Colors.blue, size: 28),
+                        SizedBox(width: 10),
+                        Text(
+                          'Milestone Details',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
+                    const Divider(thickness: 1, height: 20),
                     const SizedBox(height: 10),
-                    Text('Title: ${milestone.title}'),
-                    const SizedBox(height: 10),
-                    Text('Description: ${milestone.description}'),
-                    const SizedBox(height: 10),
-                    Text('Start Time: ${milestone.localStartDateTime}'),
-                    const SizedBox(height: 10),
-                    Text('End Time: ${milestone.localEndDateTime}'),
-                    const SizedBox(height: 10),
-                    Text('Status: ${milestone.milestoneStatus}'),
-                    const SizedBox(height: 20),
+                    _buildInfoRow('📌 Title:', milestone.title),
+                    _buildInfoRow('📝 Description:', milestone.description),
+                    _buildInfoRow('⏰ Start Time:', milestone.localStartDateTime),
+                    _buildInfoRow('⏳ End Time:', milestone.localEndDateTime),
+                    _buildInfoRow('📍 Status:', milestone.milestoneStatus),
+                    const SizedBox(height: 15),
                     Center(
                       child: widget.selectedTab == "In Progress" &&
                           FirebaseAuth.instance.currentUser != null &&
                           roleProvider.role == UserRole.courier
-                          ? ElevatedButton(
+                          ? ElevatedButton.icon(
                         onPressed: milestone.milestoneStatus == "Completed"
                             ? null
                             : () async {
@@ -261,54 +265,52 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
 
                           Navigator.of(context).pop();
                         },
+                        icon: const Icon(Icons.check_circle, color: Colors.white),
+                        label: const Text('Mark as Done'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: const Text(
-                          'Mark as Done',
-                          style: TextStyle(color: Colors.white),
-                        ),
                       )
-                          : Container(),
+                          : const SizedBox.shrink(),
                     ),
-                    if (roleProvider.role != UserRole.courier)
+                    if (roleProvider.role != UserRole.courier) ...[
+                      const SizedBox(height: 15),
                       Align(
                         alignment: Alignment.center,
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          label: const Text('Close'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ),
-                          child: const Text(
-                            'Close',
-                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
               Positioned(
-                right: 8,
-                top: 8,
+                right: 10,
+                top: 5,
                 child: Container(
-                  width: 30,
-                  height: 30,
+                  width: 25,
+                  height: 25,
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: Colors.redAccent,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
                     padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                    icon: const Icon(Icons.close, color: Colors.white, size: 18),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
@@ -322,6 +324,23 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
     );
   }
 
+  Widget _buildInfoRow(String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: RichText(
+        text: TextSpan(
+          text: '$label ',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          children: [
+            TextSpan(
+              text: value.toString(),
+              style: const TextStyle(fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
 // Method to complete the job
   Future<void> completeJob(BuildContext context, String brokerID, String emptyLegRequestID) async {
@@ -330,7 +349,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
     try {
       // Mark the job as completed
       await service.updateJobStatus(emptyLegRequestID, 'Completed');
-
+      service.updateEmptyLegTableJobStatus(emptyLegRequestID, 'Completed');
       // Prepare notification message
       final User currentUser = FirebaseAuth.instance.currentUser!;
       final String email = currentUser.email ?? 'Unknown User';
