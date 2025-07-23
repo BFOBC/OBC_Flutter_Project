@@ -1,6 +1,10 @@
 
+import 'dart:convert';
+
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
+import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,8 +12,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
+import 'package:http/http.dart' as http;
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 
 class BrokerProfileScreen extends StatefulWidget {
@@ -34,13 +39,16 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   String _selectedPhoneNumber = "";
   List<TextEditingController> _licenseControllers = [];
   String? _profilePictureUrl;
-
+  File? _image;
+  String uploadedImageUrl = "";
+  bool _isUploading = false;
   @override
   void initState() {
     super.initState();
     _initializeProfile();
-  }
+    print("Broker Profile name URL: ${widget.brokerProfile.name}");
 
+  }
   Future<void> _initializeProfile() async {
     _currentUser = FirebaseAuth.instance.currentUser!;
     DocumentSnapshot profileSnapshot =
@@ -62,9 +70,10 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       _licenseControllers = [TextEditingController()];
     }
 
-    setState(() {});
-  }
+    setState(() {
 
+    });
+  }
   Future<void> _saveProfile() async {
     try {
       FirestoreService firestoreService = FirestoreService(context);
@@ -87,6 +96,77 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       );
     }
   }
+
+  Future<void> pickImageAndUpload() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) {
+      showCustomToast("User not logged in", isError: true);
+      return;
+    }
+
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      showCustomToast("Permission denied", isError: true);
+      return;
+    }
+
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() {
+      _image = File(pickedFile.path);
+      _isUploading = true;
+    });
+
+    try {
+      final url = Uri.parse("https://mopogotechnologies.com/uploadImages.php");
+      final request = http.MultipartRequest('POST', url);
+      request.fields['user_id'] = userId;
+      request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+
+      final response = await request.send();
+      final resBody = await response.stream.bytesToString();
+      final json = jsonDecode(resBody);
+
+      if (json['status'] == 'success') {
+        uploadedImageUrl = json['url'];
+
+        print("Picked Image: ${_image?.path}");
+        print("Upload URL: $uploadedImageUrl");
+        print("User ID: $userId");
+
+        try {
+          final firestore = FirebaseFirestore.instance;
+          await firestore.collection('broker').doc(userId).set(
+            {'profilePictureUrl': uploadedImageUrl},
+            SetOptions(merge: true),
+          );
+          print("Firestore update success");
+        } catch (e) {
+          print("Firestore error: $e");
+        }
+
+        setState(() {
+          _isUploading = false;
+        });
+
+        showCustomToast("Profile updated successfully!");
+      } else {
+        setState(() {
+          _isUploading = false;
+        });
+        showCustomToast(json['message'] ?? "Upload failed", isError: true);
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+
+      showCustomToast("An error occurred during upload", isError: true);
+    }
+  }
+
   Future<void> _uploadProfilePicture() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -143,26 +223,51 @@ void _addLicenseField() {
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundImage: _profilePictureUrl != null
-                              ? NetworkImage(_profilePictureUrl!)
+                          backgroundImage: (uploadedImageUrl?.isNotEmpty == true)
+                              ? CachedNetworkImageProvider(
+                            "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                          )
+                              : (_profilePictureUrl?.isNotEmpty == true)
+                              ? CachedNetworkImageProvider(
+                            "${_profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                          )
                               : const AssetImage('assets/avatar.png') as ImageProvider,
                         ),
+
                         Positioned(
                           bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _uploadProfilePicture,
-                            child: const CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.blue,
-                              child: Icon(
+                          right: 4,
+                          child: InkWell(
+                            onTap: pickImageAndUpload,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
                                 Icons.edit,
-                                size: 16,
                                 color: Colors.white,
+                                size: 18,
                               ),
                             ),
                           ),
                         ),
+                        if (_isUploading)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 15),

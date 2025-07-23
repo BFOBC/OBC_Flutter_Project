@@ -1,3 +1,4 @@
+/*
 import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
 import 'package:flutter/material.dart';
 import '../../common/charts/BarChartWidget.dart';
@@ -55,13 +56,15 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
               //CardStackWidget(), // Custom widget
             const JobCardStackWidget(),
 
+*/
 /*            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 _showBottomSheet(context); // View user-entered flight details
               },
               child: const Text('View Flight Details'),
-            ),*/
+            ),*//*
+
           ],
         ),
       ),
@@ -231,3 +234,4 @@ class FlightDetails {
     );
   }
 }
+*/

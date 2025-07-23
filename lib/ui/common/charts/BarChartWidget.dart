@@ -23,7 +23,7 @@ class BarChartWidget extends StatelessWidget {
           for (int i = 1; i <= numberOfBars; i++) // Generate bars dynamically
             BarChartGroupData(x: i, barRods: [
               BarChartRodData(
-                toY: (i * 2 + 10).toDouble(), // Example data
+                toY: (i).toDouble(), // Example data
                 gradient: const LinearGradient(
                   colors: [Colors.green, Colors.blue], // Gradient colors
                   begin: Alignment.bottomCenter,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/UpperCaseTextFormatter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,7 +17,8 @@ import 'EmptyLegMainScreen.dart';
 class FlightDetailsDialog extends StatefulWidget {
   final FlightDetails? flightDetails;
   final int? flightIndex;
-  final bool isFromBottomSheet;
+  final bool isUpdate;
+  final String? emptyLegID;
   List<Map<String, dynamic>> airportData = []; // To store airport items matching the query
   AirportModel? selectedFromAirport;
   AirportModel? selectedToAirport;
@@ -24,7 +26,8 @@ class FlightDetailsDialog extends StatefulWidget {
   FlightDetailsDialog({
     this.flightDetails,
     this.flightIndex,
-    required this.isFromBottomSheet,
+    required this.isUpdate,
+    required this.emptyLegID,
     super.key,
   });
 
@@ -87,6 +90,53 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     } catch (e) {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }
+  }
+  Future<void> _updateInFireStore(String documentId) async {
+    try {
+      String fromDateTime = convertToUTCFromCustomFormat(_fromDateTimeController.text.toString());
+      String toDateTime = convertToUTCFromCustomFormat(_toDateTimeController.text.toString());
+      String courierID = getCurrentUserId();
+
+      await FirebaseFirestore.instance.collection('emptyLegs').doc(documentId).update({
+        'fromLocation': _fromLocationController.text,
+        'toLocation': _toLocationController.text,
+        'fromDateTime': fromDateTime,
+        'toDateTime': toDateTime,
+        'flightNumber': _flightNumberController.text,
+        'capacity': _capacityController.text,
+        'courierID': courierID,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      Navigator.of(context).pop(); // Close the dialog
+      CustomDialog.showCustomDialog2(context, "Empty Leg Updated Successfully");
+    } catch (e) {
+      CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
+    }
+  }
+
+  Future<void> _updateFlightDetails() async {
+    FlightDetails updatedDetails = FlightDetails(
+      fromLocation: _fromLocationController.text,
+      toLocation: _toLocationController.text,
+      fromDateTime: _fromDateTimeController.text,
+      toDateTime: _toDateTimeController.text,
+      flightNumber: _flightNumberController.text,
+      capacity: _capacityController.text,
+      rating: 5, // Or from any control
+    );
+
+    CustomDialog.showCustomDialog2(context, "Job Updated");
+    // Return data back to caller
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pop({
+        'action': 'update',
+        'details': updatedDetails,
+        'index': widget.flightIndex,
+      });
+    });
+    await _updateInFireStore(widget.emptyLegID!);
+
   }
 
   String getCurrentUserId() {
@@ -253,7 +303,15 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                         _buildStyledField(child: _buildDateTimeField(_fromDateTimeController, 'From Date & Time')),
                         _buildStyledField(child: _buildDateTimeField(_toDateTimeController, 'To Date & Time')),
                         _buildStyledField(child: _buildTextField(_flightNumberController, 'Flight Number')),
-                        _buildStyledField(child: _buildTextField(_capacityController, 'Capacity')),
+                        _buildStyledField(child: TextField(
+                          controller: _capacityController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            labelText: 'Capacity',
+                            border: OutlineInputBorder(),
+                          ),
+                        )),
 
                         const SizedBox(height: 20),
 
@@ -289,28 +347,9 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                                         );
                                         return;
                                       }
+                                      if (widget.isUpdate) {
+                                        _updateFlightDetails(); // <-- separated method
 
-                                      if (widget.isFromBottomSheet) {
-                                        FlightDetails updatedDetails = FlightDetails(
-                                          fromLocation: _fromLocationController.text,
-                                          toLocation: _toLocationController.text,
-                                          fromDateTime: _fromDateTimeController.text,
-                                          toDateTime: _toDateTimeController.text,
-                                          flightNumber: _flightNumberController.text,
-                                          capacity: _capacityController.text,
-                                          userName: 'User',
-                                          rating: 5,
-                                        );
-
-                                        CustomDialog.showCustomDialog2(context, "Job Updated");
-
-                                        Future.delayed(const Duration(seconds: 2), () {
-                                          Navigator.of(context).pop({
-                                            'action': 'update',
-                                            'details': updatedDetails,
-                                            'index': widget.flightIndex,
-                                          });
-                                        });
                                       } else {
                                         _saveToFirStore();
                                       }
@@ -335,7 +374,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                                   ),
                                 ),
                                 child: Text(
-                                  widget.isFromBottomSheet ? 'Update' : 'Save',
+                                  widget.isUpdate ? 'Update' : 'Save',
                                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                                 ),
                               ),

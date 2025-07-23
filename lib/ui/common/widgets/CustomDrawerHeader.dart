@@ -1,6 +1,7 @@
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart'; // Import the BrokerProfileScreen
 import 'package:broker_flutter_pp/ui/courier/models/CourierProfileData.dart';
@@ -13,86 +14,188 @@ import '../utils/RoleProvider.dart';
 
 class CustomDrawerHeader extends StatelessWidget {
   CustomDrawerHeader({super.key});
+
   @override
   Widget build(BuildContext context) {
     final brokerProfile = Provider.of<RoleProvider>(context).brokerProfile;
     final courierProfile = Provider.of<RoleProvider>(context).courierProfile;
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+
     return DrawerHeader(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.green, Colors.blueAccent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-        ), // Update the color as needed
+        ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20.0, 0.0, 0.0, 0.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (roleProvider.role == UserRole.broker) {
-                      // Navigate to BrokerProfileScreen when the avatar is tapped
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>  BrokerProfileScreen(brokerProfile: brokerProfile,)),
-                      );
-                    } else if (roleProvider.role == UserRole.courier) {
-                      // Navigate to CourierProfile when the avatar is tapped
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>  CourierProfile()));
-                    }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 30),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              if (roleProvider.role == UserRole.broker) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BrokerProfileScreen(
+                                      brokerProfile: brokerProfile,
+                                    ),
+                                  ),
+                                );
+                              } else if (roleProvider.role == UserRole.courier) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CourierProfile(),
+                                  ),
+                                );
+                              }
+                            },
+                            child: FutureBuilder<String?>(
+                              future: _getProfileImageUrl(roleProvider.role),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const SizedBox(
+                                    height: 60,
+                                    width: 60,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  );
+                                }
 
-                  },
-                  child: const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 25,
-                    backgroundImage: AssetImage('assets/avatar.png'), // Replace with your image asset
-                  ),
+                                final imageUrl = snapshot.data;
+                                return CircleAvatar(
+                                  backgroundColor: Colors.white,
+                                  radius: 30,
+                                  backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                                      ? NetworkImage("$imageUrl?${DateTime.now().millisecondsSinceEpoch}")
+                                      : const AssetImage('assets/avatar.png') as ImageProvider,
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          FutureBuilder<String>(
+                            future: getUserName(roleProvider.role),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Text(
+                                  'Loading...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                );
+                              } else if (snapshot.hasError) {
+                                return const Text(
+                                  'Error loading name',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                );
+                              } else {
+                                return Text(
+                                  snapshot.data ?? 'N/A',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    FutureBuilder<String?>(
+                      future: AuthUtils.getCurrentUserId(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
+
+                        if (snapshot.hasError || !snapshot.hasData) {
+                          return Text('Error: ${snapshot.error ?? "No user ID found"}');
+                        }
+
+                        String? userId = snapshot.data;
+                        if (userId == null) {
+                          return const Text("No user logged in");
+                        }
+
+                        return Align(
+                          alignment: Alignment.bottomRight,
+                          child: SwitchWithOnlineStatus(userId: userId),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                const Text(
-                  'OBC001',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14, // Adjust font size to fit well
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: FutureBuilder<String?>(
-              future: AuthUtils.getCurrentUserId(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator(); // Loading while fetching user ID
-                }
-
-                if (snapshot.hasError || !snapshot.hasData) {
-                  return Text('Error: ${snapshot.error ?? "No user ID found"}');
-                }
-
-                String? userId = snapshot.data;
-                if (userId == null) {
-                  return Text("No user logged in");
-                }
-
-                return SwitchWithOnlineStatus(userId: userId);
-              },
-            ),
-          )
-        ],
+          );
+        },
       ),
     );
+  }
+
+  Future<String?> _getProfileImageUrl(UserRole role) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+
+    final firestore = FirebaseFirestore.instance;
+    try {
+      final doc = await firestore
+          .collection(role == UserRole.broker ? 'broker' : 'courier')
+          .doc(uid)
+          .get();
+
+      if (doc.exists) {
+        return doc.data()?['profilePictureUrl'] as String?;
+      }
+    } catch (e) {
+      print("Error fetching profile image: $e");
+    }
+
+    return null;
+  }
+}
+
+Future<String> getUserName(UserRole role) async {
+  final userId = await AuthUtils.getCurrentUserId();
+
+  if (userId == null) return 'Unknown';
+
+  final collection = (role == UserRole.courier) ? 'courier' : 'broker';
+
+  final docSnapshot =
+  await FirebaseFirestore.instance.collection(collection).doc(userId).get();
+
+  if (docSnapshot.exists) {
+    return docSnapshot.data()?['name'] ?? 'N/A';
+  } else {
+    return 'User Not Found';
   }
 }
 
@@ -139,7 +242,7 @@ class _CustomSwitchState extends State<CustomSwitch> {
               onTap: _toggleSwitch,
               child: Container(
                 width: 100.0, // ⬅️ Increased from 60 → 70
-                height: 35.0,
+                height: 30.0,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20.0),
                   color: _value ? Colors.green : Colors.grey,

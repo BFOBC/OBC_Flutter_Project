@@ -24,6 +24,7 @@ class RoleProvider with ChangeNotifier {
     license: ['XYZ-1234', 'ABC-5678', 'DEF-9012'],
     email: "broker@gmail.com",
     paymentTerms: "hehe",
+    profilePictureUrl: ""
   );
   CourierProfileData courierProfileData = CourierProfileData(
   id: "C12345",

@@ -3,6 +3,7 @@ import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
@@ -110,7 +111,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
             _selectedWidget = SearchEmptyLegScreen();
           } else if (roleProvider.role == UserRole.courier) {
             // _showSnackBar("I am Courier");
-            _selectedWidget = const EmptyLegMainScreen();
+            //_selectedWidget = const EmptyLegMainScreen();
+            _selectedWidget = const JobCardStackWidget();
           }
           break;
         case AppStrings.chat:

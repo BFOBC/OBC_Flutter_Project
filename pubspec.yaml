@@ -62,6 +62,8 @@ dependencies:
   workmanager: ^0.5.1
   flutter_local_notifications: ^17.1.2
   intl: ^0.18.1
+  cached_network_image: ^3.3.1
+
 
 
   #  jitsi_meet: ^4.0.0 # Make sure to use the latest version

@@ -40,15 +40,20 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     super.initState();
   }
 
-
+  double getCircleRadiusFromZoom(double zoom) {
+    // You can tweak these values depending on visual testing
+    if (zoom >= 18) return 100;     // very zoomed in
+    if (zoom >= 16) return 300;
+    if (zoom >= 14) return 500;
+    if (zoom >= 12) return 800;
+    if (zoom >= 10) return 1500;
+    if (zoom >= 8) return 3000;      // your current zoom level
+    if (zoom >= 6) return 5000;
+    return 8000;                     // very zoomed out
+  }
   Future<void> animateCamera(LatLng targetLocation, double zoomLevel) async {
     CameraPosition cameraPosition = CameraPosition(target: targetLocation, zoom: zoomLevel);
     _mapController.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
-
-
-    // 🔄 Step 5: Add short delay (wait 500ms)
-   // await Future.delayed(Duration(milliseconds: 800));
-    //showCouriersBottomSheet(context, courierData);
   }
 
   Future<Map<String, dynamic>?> fetchAirportDetail(String code) async {
@@ -128,171 +133,6 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
     return degree * pi / 180;
   }
 
-
-  Set<String> _usedLocations = {}; // keep track of used lat+lng keys
-/*  Future<void> searchNearbyLocations(String searchCode) async {
-    print('🔍 Starting search for: $searchCode');
-
-    if (searchCode.isEmpty) {
-      print('⚠️ Search code is empty. Exiting search.');
-      return;
-    }
-
-    setState(() {
-      _isAnimatingRadar = true;
-    });
-
-    try {
-      var searchedLocation = await _fetchAirports(searchCode);
-      print('📡 Fetched airports: ${searchedLocation.length}');
-
-      if (searchedLocation.isEmpty) {
-        print('❌ No airport found for code: $searchCode');
-        setState(() => _isAnimatingRadar = false);
-        _markers.clear();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No location found')));
-        return;
-      }
-
-      final double searchedLat = double.tryParse(searchedLocation[0].lat.toString()) ?? 0.0;
-      final double searchedLong = double.tryParse(searchedLocation[0].long.toString()) ?? 0.0;
-      final LatLng searchLocation = LatLng(searchedLat, searchedLong);
-      final String countryCode = searchedLocation[0].countryCode!;
-
-      print('📍 Searched LatLng: $searchedLat, $searchedLong, Country: $countryCode');
-
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('courier')
-          .where('country', isEqualTo: countryCode)
-          .where('isOnline', isEqualTo: true)
-          .get();
-
-      print('🧾 Firebase docs fetched: ${snapshot.docs.length}');
-
-      List<DocumentSnapshot> nearbyLocations = [];
-      List<Marker> newMarkers = [];
-      _usedLocations.clear();
-
-      for (var doc in snapshot.docs) {
-        try {
-          bool isAtBase = doc['base'] ?? false;
-          bool isAtCurrent = doc['current'] ?? false;
-
-          double? docLat;
-          double? docLong;
-
-          if (isAtBase) {
-            docLat = double.tryParse(doc['baseLocationLat']?.toString() ?? '');
-            docLong = double.tryParse(doc['baseLocationLong']?.toString() ?? '');
-          }
-
-          if ((docLat == null || docLong == null) && isAtCurrent) {
-            docLat = double.tryParse(doc['currentLocationLat']?.toString() ?? '');
-            docLong = double.tryParse(doc['currentLocationLong']?.toString() ?? '');
-          }
-
-          // ✅ Skip if still invalid
-          if (docLat == null || docLong == null) {
-            print('⚠️ Skipping ${doc.id}: no valid base/current location.');
-            continue;
-          }
-
-          // Avoid duplicates
-// ✅ Avoid duplicate LatLng by applying small offset if needed
-          final double validLat = docLat!;
-          final double validLong = docLong!;
-          String key = '${validLat.toStringAsFixed(6)}|${validLong.toStringAsFixed(6)}';
-          int attempts = 0;
-
-          double adjustedLat = validLat;
-          double adjustedLong = validLong;
-
-          int duplicateCount = 0;
-          String baseKey = '${validLat.toStringAsFixed(6)}|${validLong.toStringAsFixed(6)}';
-
-          while (_usedLocations.contains(baseKey) && duplicateCount < 10) {
-            double angle = (duplicateCount + 1) * 30; // 30, 60, 90 degrees etc.
-            double offset = 0.0001;
-
-            double offsetLat = offset * Math.sin(angle * Math.pi / 180);
-            double offsetLng = offset * Math.cos(angle * Math.pi / 180);
-
-            adjustedLat = validLat + offsetLat;
-            adjustedLong = validLong + offsetLng;
-
-            baseKey = '${adjustedLat.toStringAsFixed(6)}|${adjustedLong.toStringAsFixed(6)}';
-            duplicateCount++;
-          }
-
-
-// Update docLat/docLong with adjusted values
-          docLat = adjustedLat;
-          docLong = adjustedLong;
-
-
-
-          double distance = calculateDistance(searchedLat, searchedLong, docLat!, docLong!);
-          print('📏 Distance to searched for ${doc.id}: $distance');
-
-          BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
-            ImageConfiguration(size: Size(24, 24)),
-            'assets/map_icon.png',
-          );
-          final markerKey = '${doc.id}_${docLat}_$docLong';
-
-          LatLng location = LatLng(docLat, docLong);
-          newMarkers.add(Marker(
-            markerId: MarkerId(markerKey),
-            position: location,
-            icon: customIcon,
-            onTap: () => _onMarkerTapped(doc.id),
-          ));
-          nearbyLocations.add(doc);
-        } catch (e) {
-          print('❌ Error processing courier ${doc.id}: $e');
-        }
-      }
-
-      setState(() {
-        _isAnimatingRadar = false;
-        _markers.clear();
-        _markers.addAll(newMarkers);
-        _showMarkers = nearbyLocations.isNotEmpty;
-      });
-
-      if (nearbyLocations.isEmpty) {
-        print('❌ No nearby couriers found.');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No Couriers found')));
-      } else {
-        print('✅ Found ${nearbyLocations.length} couriers.');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${nearbyLocations.length} Courier(s) found at $searchCode')),
-        );
-      }
-
-      Circle circle = Circle(
-        circleId: CircleId('current_circle'),
-        center: searchLocation,
-        radius: 1000,
-        fillColor: Colors.green.withOpacity(0.15),
-        strokeColor: Colors.green.withOpacity(0.5),
-        strokeWidth: 2,
-      );
-
-      setState(() {
-        _circles.clear();
-        _circles.add(circle);
-      });
-
-      animateCamera(searchLocation, 12.0);
-    } catch (e, stackTrace) {
-      print('❌ Exception in searchNearbyLocations: $e');
-      print(stackTrace);
-
-      setState(() => _isAnimatingRadar = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('An error occurred during search.')));
-    }
-  }*/
   Future<void> searchNearbyLocations(String searchCode) async {
     print('🔍 Starting search for: $searchCode');
     courierData.clear();
@@ -326,7 +166,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
 
 
       // Animate map to searched location
-      animateCamera(searchLocation, 12.0);
+      animateCamera(searchLocation, 8.0);
 
       // Firestore fetch
       QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -376,7 +216,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
         }
       }
 
-      animateCamera(searchLocation, 14.0);
+      animateCamera(searchLocation, 5.0);
 // Add marker for searched location
       BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
         ImageConfiguration(size: Size(24, 24)),
@@ -408,7 +248,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
             Circle(
               circleId: CircleId('searched_circle'),
               center: searchLocation,
-              radius: 1000,
+              radius: 200000,
               fillColor: Colors.green.withOpacity(0.1),
               strokeColor: Colors.green.shade700.withOpacity(0.6),
               strokeWidth: 4,
@@ -423,7 +263,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
             Circle(
               circleId: CircleId('no_courier_circle'),
               center: searchLocation,
-              radius: 1000,
+              radius: 200000,
               fillColor: Colors.red.withOpacity(0.1), // subtle glow
               strokeColor: Colors.red.withOpacity(0.6),
               strokeWidth: 4, // thicker border
@@ -699,8 +539,8 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
       children: [
         GoogleMap(
           initialCameraPosition: CameraPosition(
-            target: LatLng(30.3753, 69.3451),
-            zoom: 5.0,
+            target: LatLng(51.1657, 10.4515),
+            zoom: 2.0,
           ),
           onMapCreated: (GoogleMapController controller) {
             _mapController = controller; // Initialize GoogleMapController
@@ -767,34 +607,6 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
             child: Center(child: CircularProgressIndicator()),
           ),
       ],
-    );
-  }
-
-  void _onMarkerTapped(String courierKey) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SearchCourier(courierKey: courierKey),
-      ),
-    );
-  }
-  void animateToFitAllMarkers(Set<Marker> markers) {
-    if (markers.isEmpty) return;
-
-    LatLngBounds bounds = _createBounds(markers.map((m) => m.position).toList());
-
-    _mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
-  }
-
-  LatLngBounds _createBounds(List<LatLng> positions) {
-    final southwestLat = positions.map((p) => p.latitude).reduce((a, b) => a < b ? a : b);
-    final southwestLng = positions.map((p) => p.longitude).reduce((a, b) => a < b ? a : b);
-    final northeastLat = positions.map((p) => p.latitude).reduce((a, b) => a > b ? a : b);
-    final northeastLng = positions.map((p) => p.longitude).reduce((a, b) => a > b ? a : b);
-
-    return LatLngBounds(
-      southwest: LatLng(southwestLat, southwestLng),
-      northeast: LatLng(northeastLat, northeastLng),
     );
   }
 

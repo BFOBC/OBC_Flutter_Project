@@ -1,16 +1,22 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
+import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'models/CourierProfileData.dart';
+import 'package:http/http.dart' as http;
 
 class CourierProfile extends StatefulWidget {
- // CourierProfileData courierProfile;
+  // CourierProfileData courierProfile;
 
   CourierProfile({
     Key? key,
@@ -43,19 +49,93 @@ class _CourierProfileState extends State<CourierProfile> {
   late CourierProfileData _editableProfile;
 
   late CourierProfileData courierProfile = CourierProfileData();
+  File? _image;
+  String uploadedImageUrl = "";
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
     _getProfile();
   }
+  Future<void> pickImageAndUpload() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) {
+      showCustomToast("User not logged in", isError: true);
+      return;
+    }
+
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      showCustomToast("Permission denied", isError: true);
+      return;
+    }
+
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() {
+      _image = File(pickedFile.path);
+      _isUploading = true;
+    });
+
+    try {
+      final url = Uri.parse("https://mopogotechnologies.com/uploadImages.php");
+      final request = http.MultipartRequest('POST', url);
+      request.fields['user_id'] = userId;
+      request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+
+      final response = await request.send();
+      final resBody = await response.stream.bytesToString();
+      final json = jsonDecode(resBody);
+
+      if (json['status'] == 'success') {
+        uploadedImageUrl = json['url'];
+
+        print("Picked Image: ${_image?.path}");
+        print("Upload URL: $uploadedImageUrl");
+        print("User ID: $userId");
+
+        try {
+          final firestore = FirebaseFirestore.instance;
+          await firestore.collection('courier').doc(userId).set(
+            {'profilePictureUrl': uploadedImageUrl},
+            SetOptions(merge: true),
+          );
+          print("Firestore update success");
+        } catch (e) {
+          print("Firestore error: $e");
+        }
+
+        setState(() {
+          _isUploading = false;
+        });
+
+        showCustomToast("Profile updated successfully!");
+      } else {
+        setState(() {
+          _isUploading = false;
+        });
+        showCustomToast(json['message'] ?? "Upload failed", isError: true);
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+
+      showCustomToast("An error occurred during upload", isError: true);
+    }
+  }
 
   Future<void> _getProfile() async {
     _currentUser = FirebaseAuth.instance.currentUser!;
-    final doc = await _firestore.collection('courier').doc(_currentUser.uid).get();
+    final doc =
+        await _firestore.collection('courier').doc(_currentUser.uid).get();
 
     setState(() {
-      _isLoading = true; // Set loading state to true when model is being fetched
+      _isLoading =
+          true; // Set loading state to true when model is being fetched
     });
 
     if (doc.exists) {
@@ -66,25 +146,25 @@ class _CourierProfileState extends State<CourierProfile> {
       setState(() {
         courierProfile = CourierProfileData.fromMap(data);
         // Now courierProfile is assigned safely
-        name=courierProfile.name.toString();
+        name = courierProfile.name.toString();
         visas = courierProfile.visas ?? [];
         passports = courierProfile.passports ?? [];
         _nameController.text = courierProfile.name ?? 'N/A';
         _phoneController.text = courierProfile.phoneNumber ?? 'N/A';
         _hasCar = courierProfile.hasCar ?? false;
         _hasDrivingLicence = courierProfile.hasDrivingLicence ?? false;
-        _willingToDoFirstLastMile = courierProfile.willingToDoFirstLastMile ?? false;
+        _willingToDoFirstLastMile =
+            courierProfile.willingToDoFirstLastMile ?? false;
 
         _isLoading = false; // Set loading state to false once model is fetched
       });
     }
   }
 
-
   Future<void> _updateFireStore() async {
     try {
       setState(() {
-        _isLoading=false;
+        _isLoading = false;
       });
       Map<String, dynamic> data = {}; // Dynamic map to add non-null values
 
@@ -119,26 +199,30 @@ class _CourierProfileState extends State<CourierProfile> {
 
       // Check if passports list is not null or empty
       if (passports.isNotEmpty) {
-        data['passports'] = passports.map((passport) => passport.toMap()).toList();
+        data['passports'] =
+            passports.map((passport) => passport.toMap()).toList();
       }
 
       // Update Firestore only if there is valid model
       if (data.isNotEmpty) {
         // Using set with merge: true to replace or add model if it doesn't exist
-        await _firestore.collection('courier').doc(_currentUser.uid).set(data, SetOptions(merge: true));
+        await _firestore
+            .collection('courier')
+            .doc(_currentUser.uid)
+            .set(data, SetOptions(merge: true));
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile saved successfully!')),
         );
         setState(() {
-          _isLoading=false;
+          _isLoading = false;
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No valid model to save!')),
         );
         setState(() {
-          _isLoading=false;
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -149,6 +233,7 @@ class _CourierProfileState extends State<CourierProfile> {
       );
     }
   }
+
   Widget _buildPhoneNumberField(
       TextEditingController controller, Function(String) onChanged) {
     return Container(
@@ -209,6 +294,7 @@ class _CourierProfileState extends State<CourierProfile> {
       }
     }
   }
+
   void _showEditDialog({
     required String type,
     Visa? visa,
@@ -234,7 +320,6 @@ class _CourierProfileState extends State<CourierProfile> {
           titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
           contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
-
           title: Row(
             children: [
               Icon(
@@ -255,7 +340,6 @@ class _CourierProfileState extends State<CourierProfile> {
               ),
             ],
           ),
-
           content: Form(
             key: _formKey,
             child: Column(
@@ -299,7 +383,6 @@ class _CourierProfileState extends State<CourierProfile> {
               ],
             ),
           ),
-
           actions: [
             TextButton(
               style: TextButton.styleFrom(
@@ -352,7 +435,6 @@ class _CourierProfileState extends State<CourierProfile> {
         );
       },
     );
-
   }
 
   void _showDeleteConfirmation({
@@ -370,7 +452,6 @@ class _CourierProfileState extends State<CourierProfile> {
           titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
           contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
-
           title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
@@ -386,12 +467,10 @@ class _CourierProfileState extends State<CourierProfile> {
               ),
             ],
           ),
-
           content: Text(
             'Are you sure you want to delete this $type?',
             style: TextStyle(fontSize: 16),
           ),
-
           actions: [
             TextButton(
               style: TextButton.styleFrom(
@@ -439,139 +518,182 @@ class _CourierProfileState extends State<CourierProfile> {
         padding: const EdgeInsets.all(20.0),
         child: _isLoading // Show ProgressIndicator while loading
             ? Center(
-          child: CircularProgressIndicator(), // Circular progress bar
-        )
+                child: CircularProgressIndicator(), // Circular progress bar
+              )
             : SingleChildScrollView(
-          child: Column(
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: courierProfile.profilePictureUrl?.isNotEmpty == true
-                    ? NetworkImage(courierProfile.profilePictureUrl!)
-                    : AssetImage('assets/avatar.png') as ImageProvider,
-                child: Align(
-                  alignment: Alignment.bottomRight,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.edit,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    onPressed: _uploadProfilePicture,
-                  ),
-                ),
-              ),
-/*              const SizedBox(height: 20),
-              _buildProfileField('ID', courierProfile.id.toString()),*/
-              const SizedBox(height: 10),
-              _buildNonEditableField('Email:', _currentUser.email ?? 'N/A'),
-              const SizedBox(height: 10),
-              _buildEditableField('Name', _nameController),
-              const SizedBox(height: 10),
-              _buildPhoneNumberField(_phoneController, (phone) {
-                setState(() {
-                  _selectedPhoneNumber = phone;
-                });
-              }),
-              const SizedBox(height: 10),
-              _buildVisaList(),
-              const SizedBox(height: 20),
-              _buildPassportList(),
-              const SizedBox(height: 20),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+// UI
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: (uploadedImageUrl?.isNotEmpty == true)
+                              ? CachedNetworkImageProvider(
+                            "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                          )
+                              : (courierProfile.profilePictureUrl?.isNotEmpty == true)
+                              ? CachedNetworkImageProvider(
+                            "${courierProfile.profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                          )
+                              : const AssetImage('assets/avatar.png') as ImageProvider,
+                        ),
+
+                        Positioned(
+                          bottom: 0,
+                          right: 4,
+                          child: InkWell(
+                            onTap: pickImageAndUpload,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_isUploading)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+
+/*              const SizedBox(height: 20),
+              _buildProfileField('ID', courierProfile.id.toString()),*/
+                    const SizedBox(height: 10),
+                    _buildNonEditableField(
+                        'Email:', _currentUser.email ?? 'N/A'),
+                    const SizedBox(height: 10),
+                    _buildEditableField('Name', _nameController),
+                    const SizedBox(height: 10),
+                    _buildPhoneNumberField(_phoneController, (phone) {
+                      setState(() {
+                        _selectedPhoneNumber = phone;
+                      });
+                    }),
+                    const SizedBox(height: 10),
+                    _buildVisaList(),
+                    const SizedBox(height: 20),
+                    _buildPassportList(),
+                    const SizedBox(height: 20),
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
                         children: [
-                          const Text('Own Car?', style: TextStyle(fontSize: 16)),
-                          Switch(
-                            value: _hasCar,
-                            onChanged: (value) {
-                              setState(() {
-                                _hasCar = value;
-                              });
-                            },
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Own Car?',
+                                    style: TextStyle(fontSize: 16)),
+                                Switch(
+                                  value: _hasCar,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _hasCar = value;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          Divider(),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Driving Licence?',
+                                    style: TextStyle(fontSize: 16)),
+                                Switch(
+                                  value: _hasDrivingLicence,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _hasDrivingLicence = value;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          Divider(),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Willing to do mile?',
+                                    style: TextStyle(fontSize: 16)),
+                                Switch(
+                                  value: _willingToDoFirstLastMile,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _willingToDoFirstLastMile = value;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Driving Licence?', style: TextStyle(fontSize: 16)),
-                          Switch(
-                            value: _hasDrivingLicence,
-                            onChanged: (value) {
-                              setState(() {
-                                _hasDrivingLicence = value;
-                              });
-                            },
+                    const SizedBox(height: 30), // Add spacing before the button
+                    // Save Button at the bottom
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        width: double.infinity,
+                        height: 50, // Height of the button
+                        decoration: BoxDecoration(
+                          color: Colors.blue, // Blue background
+                          borderRadius:
+                              BorderRadius.circular(8), // Rounded corners
+                        ),
+                        child: TextButton(
+                          onPressed:
+                              _updateFireStore, // Add your save profile method
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
-                    Divider(),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Willing to do mile?', style: TextStyle(fontSize: 16)),
-                          Switch(
-                            value: _willingToDoFirstLastMile,
-                            onChanged: (value) {
-                              setState(() {
-                                _willingToDoFirstLastMile = value;
-                              });
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 30), // Add spacing before the button
-              // Save Button at the bottom
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  width: double.infinity,
-                  height: 50, // Height of the button
-                  decoration: BoxDecoration(
-                    color: Colors.blue, // Blue background
-                    borderRadius: BorderRadius.circular(8), // Rounded corners
-                  ),
-                  child: TextButton(
-                    onPressed: _updateFireStore, // Add your save profile method
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
-
 
   // Build a field for displaying a profile entry (e.g., Name, ID, etc.)
   Widget _buildProfileField(String title, String value) {
@@ -592,6 +714,7 @@ class _CourierProfileState extends State<CourierProfile> {
       ),
     );
   }
+
   Widget _buildEditableField(String label, TextEditingController controller) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5),
@@ -620,6 +743,7 @@ class _CourierProfileState extends State<CourierProfile> {
       ),
     );
   }
+
   Widget _buildVisaList() {
     return Column(
       children: [
@@ -642,7 +766,8 @@ class _CourierProfileState extends State<CourierProfile> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete),
-                    onPressed: () => _showDeleteConfirmation(type: 'Visa', visa: visa),
+                    onPressed: () =>
+                        _showDeleteConfirmation(type: 'Visa', visa: visa),
                   ),
                 ],
               ),
@@ -657,20 +782,22 @@ class _CourierProfileState extends State<CourierProfile> {
           ),
           label: const Text(
             'Add Visa',
-            style: TextStyle(color: Colors.white), // Set the text color to white
+            style:
+                TextStyle(color: Colors.white), // Set the text color to white
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue, // Set the background color to blue
             minimumSize: const Size(150, 40), // Set fixed width and height
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10), // Set rounded corners with a radius
+              borderRadius: BorderRadius.circular(
+                  10), // Set rounded corners with a radius
             ),
           ),
         ),
-
       ],
     );
   }
+
 // Builds the list of passports and displays the expiry date with a date picker
   Widget _buildPassportList() {
     return Column(
@@ -689,11 +816,13 @@ class _CourierProfileState extends State<CourierProfile> {
               subtitle: GestureDetector(
                 onTap: () async {
                   // Open DatePicker when the expiry date is tapped
-                  DateTime? selectedDate = await _selectExpiryDate(
-                      context, passport.expiryDate);
+                  DateTime? selectedDate =
+                      await _selectExpiryDate(context, passport.expiryDate);
                   if (selectedDate != null) {
                     setState(() {
-                      passport.expiryDate = selectedDate.toString().split(' ')[0]; // Update expiry date
+                      passport.expiryDate = selectedDate
+                          .toString()
+                          .split(' ')[0]; // Update expiry date
                     });
                   }
                 },
@@ -704,8 +833,8 @@ class _CourierProfileState extends State<CourierProfile> {
                 children: [
                   IconButton(
                     icon: Icon(Icons.edit),
-                    onPressed: () => _showEditDialog(
-                        type: 'Passport', passport: passport),
+                    onPressed: () =>
+                        _showEditDialog(type: 'Passport', passport: passport),
                   ),
                   IconButton(
                     icon: Icon(Icons.delete),
@@ -725,29 +854,31 @@ class _CourierProfileState extends State<CourierProfile> {
           ),
           label: const Text(
             'Add Passport',
-            style: TextStyle(color: Colors.white), // Set the text color to white
+            style:
+                TextStyle(color: Colors.white), // Set the text color to white
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue, // Set the background color to blue
             minimumSize: const Size(60, 40), // Set fixed width and height
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10), // Set rounded corners with a radius
+              borderRadius: BorderRadius.circular(
+                  10), // Set rounded corners with a radius
             ),
           ),
         ),
-
       ],
     );
   }
 
 // Function to show the date picker and disable previous dates
-  Future<DateTime?> _selectExpiryDate(BuildContext context, String currentExpiryDate) async {
+  Future<DateTime?> _selectExpiryDate(
+      BuildContext context, String currentExpiryDate) async {
     DateTime initialDate = currentExpiryDate.isNotEmpty
         ? DateTime.parse(currentExpiryDate)
-        : DateTime.now();  // Default to current date if no expiry date
+        : DateTime.now(); // Default to current date if no expiry date
 
     DateTime firstDate = DateTime.now(); // Disable dates before today
-    DateTime lastDate = DateTime(2101);  // Allow dates up to the year 2101
+    DateTime lastDate = DateTime(2101); // Allow dates up to the year 2101
 
     // Show the date picker dialog
     DateTime? pickedDate = await showDatePicker(
@@ -811,5 +942,4 @@ class _CourierProfileState extends State<CourierProfile> {
       ),
     );
   }
-
 }
