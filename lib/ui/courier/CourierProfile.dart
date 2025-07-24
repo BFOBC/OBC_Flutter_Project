@@ -52,6 +52,8 @@ class _CourierProfileState extends State<CourierProfile> {
   File? _image;
   String uploadedImageUrl = "";
   bool _isUploading = false;
+  String countryCode = '';
+  String phoneNumber = '';
 
   @override
   void initState() {
@@ -160,79 +162,100 @@ class _CourierProfileState extends State<CourierProfile> {
       });
     }
   }
-
   Future<void> _updateFireStore() async {
+    // ✅ Validate Name
+    if (_nameController.text.trim().isEmpty) {
+      Fluttertoast.showToast(
+        msg: "🙋‍♂️ Name cannot be empty!",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.black,
+        fontSize: 16.0,
+      );
+
+      return;
+    }
+
+    // ✅ Validate Phone
+    if (_phoneController.text.trim().isEmpty || countryCode.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "📱 Phone number is required!",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+
+      return;
+    }
+
     try {
       setState(() {
-        _isLoading = false;
+        _isLoading = true; // ✅ Should be true here
       });
-      Map<String, dynamic> data = {}; // Dynamic map to add non-null values
+
+      Map<String, dynamic> data = {};
 
       data['id'] = _currentUser.uid;
       data['car'] = _hasCar;
       data['drivingLicence'] = _hasDrivingLicence;
       data['firstLastMile'] = _willingToDoFirstLastMile;
+      data['name'] = _nameController.text.trim();
 
-      // Check if name is not null or empty
-      if (_nameController.text.isNotEmpty) {
-        data['name'] = _nameController.text;
-      }
-
-      // Check if email is not null
       if (_currentUser.email != null && _currentUser.email!.isNotEmpty) {
         data['email'] = _currentUser.email;
       }
 
-      if (_phoneController.text.isNotEmpty) {
-        data['phoneNumber'] = _phoneController.text.toString();
-      }
+      final phone = _phoneController.text.trim();
+      final formattedPhone = '$countryCode$phone';
+      data['phoneNumber'] = formattedPhone;
 
-      // Check if profile picture URL is not null
       if (_profilePictureUrl != null && _profilePictureUrl!.isNotEmpty) {
         data['profilePictureUrl'] = _profilePictureUrl;
       }
 
-      // Check if visas list is not null or empty
       if (visas.isNotEmpty) {
         data['visas'] = visas.map((visa) => visa.toMap()).toList();
       }
 
-      // Check if passports list is not null or empty
       if (passports.isNotEmpty) {
-        data['passports'] =
-            passports.map((passport) => passport.toMap()).toList();
+        data['passports'] = passports.map((passport) => passport.toMap()).toList();
       }
 
-      // Update Firestore only if there is valid model
       if (data.isNotEmpty) {
-        // Using set with merge: true to replace or add model if it doesn't exist
         await _firestore
             .collection('courier')
             .doc(_currentUser.uid)
             .set(data, SetOptions(merge: true));
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile saved successfully!')),
+        Fluttertoast.showToast(
+          msg: "✅ Profile saved successfully!",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
         );
-        setState(() {
-          _isLoading = false;
-        });
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No valid model to save!')),
         );
-        setState(() {
-          _isLoading = false;
-        });
       }
     } catch (e) {
-      print('Error saving profile');
-      print(e);
+      print('Error saving profile: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving profile: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+
 
   Widget _buildPhoneNumberField(
       TextEditingController controller, Function(String) onChanged) {
@@ -263,36 +286,11 @@ class _CourierProfileState extends State<CourierProfile> {
         initialCountryCode: 'PK', // Default country
         onChanged: (phone) {
           onChanged(phone.completeNumber); // Callback to get full number
+          countryCode=phone.countryCode;
+          print('countryCoddddde$countryCode');
         },
       ),
     );
-  }
-
-  Future<void> _uploadProfilePicture() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      File file = File(pickedFile.path);
-      String fileName = 'profile_pictures/${_currentUser.uid}.jpg';
-      try {
-        TaskSnapshot uploadTask = await _storage.ref(fileName).putFile(file);
-        String downloadUrl = await uploadTask.ref.getDownloadURL();
-
-        setState(() {
-          _profilePictureUrl = downloadUrl;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Profile picture uploaded successfully!')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading picture: $e')),
-        );
-      }
-    }
   }
 
   void _showEditDialog({
@@ -584,11 +582,18 @@ class _CourierProfileState extends State<CourierProfile> {
                     const SizedBox(height: 10),
                     _buildEditableField('Name', _nameController),
                     const SizedBox(height: 10),
-                    _buildPhoneNumberField(_phoneController, (phone) {
+                    _buildPhoneNumberField(_phoneController, (fullPhone) {
                       setState(() {
-                        _selectedPhoneNumber = phone;
+                        _selectedPhoneNumber = fullPhone;
+                        countryCode = fullPhone.substring(0, fullPhone.length - _phoneController.text.length);
+                        phoneNumber = _phoneController.text;
                       });
+
+                      print('✅ countryCode: $countryCode');
+                      print('✅ phoneNumber: $phoneNumber');
+                      print('✅ full: $fullPhone');
                     }),
+
                     const SizedBox(height: 10),
                     _buildVisaList(),
                     const SizedBox(height: 20),

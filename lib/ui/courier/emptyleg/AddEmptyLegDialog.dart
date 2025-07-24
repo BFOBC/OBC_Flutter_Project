@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/NoLeadingZeroFormatter.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/UpperCaseTextFormatter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -48,18 +49,35 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
 
   List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
-
+  final DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ");
+  final DateFormat outputFormat = DateFormat("yyyy-MM-dd HH:mm");
   @override
   void initState() {
     super.initState();
     _fromLocationController = TextEditingController(text: widget.flightDetails?.fromLocation ?? '');
     _toLocationController = TextEditingController(text: widget.flightDetails?.toLocation ?? '');
-    _fromDateTimeController = TextEditingController(text: widget.flightDetails?.fromDateTime ?? '');
-    _toDateTimeController = TextEditingController(text: widget.flightDetails?.toDateTime ?? '');
+    //_fromDateTimeController = TextEditingController(text: widget.flightDetails?.fromDateTime ?? '');
+    //_toDateTimeController = TextEditingController(text: widget.flightDetails?.toDateTime ?? '');
     _flightNumberController = TextEditingController(text: widget.flightDetails?.flightNumber ?? '');
     _capacityController = TextEditingController(text: widget.flightDetails?.capacity ?? '');
-  }
+    // Inside initState or where you're assigning:
+    _fromDateTimeController = TextEditingController(
+      text: formatDate(widget.flightDetails?.fromDateTime),
+    );
 
+    _toDateTimeController = TextEditingController(
+      text: formatDate(widget.flightDetails?.toDateTime),
+    );
+  }
+  String formatDate(String? utcString) {
+    if (utcString == null || utcString.isEmpty) return '';
+    try {
+      final dateTime = DateTime.parse(utcString).toLocal(); // Convert to local
+      return outputFormat.format(dateTime);
+    } catch (e) {
+      return '';
+    }
+  }
   Future<void> _saveToFirStore() async {
     try {
       String fromDateTime=(convertToUTCFromCustomFormat(_fromDateTimeController.text.toString()));
@@ -109,7 +127,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       });
 
       Navigator.of(context).pop(); // Close the dialog
-      CustomDialog.showCustomDialog2(context, "Empty Leg Updated Successfully");
     } catch (e) {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }
@@ -190,7 +207,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     }
   }
 
-  Widget _buildTextField(
+/*  Widget _buildTextField(
       TextEditingController controller,
       String labelText, {
         ValueChanged<String>? onChanged,
@@ -206,6 +223,32 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       onChanged: onChanged,
       onFieldSubmitted: onFieldSubmitted,
       inputFormatters: inputFormatters, // ✅ Use it here
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return '$labelText is required';
+        }
+        return null;
+      },
+    );
+  }*/
+  Widget _buildTextField(
+      TextEditingController controller,
+      String labelText, {
+        ValueChanged<String>? onChanged,
+        ValueChanged<String>? onFieldSubmitted,
+        List<TextInputFormatter>? inputFormatters,
+        TextInputType keyboardType = TextInputType.text, // ✅ Default to text
+      }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType, // ✅ Use it here
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters,
       validator: (value) {
         if (value == null || value.isEmpty) {
           return '$labelText is required';
@@ -237,12 +280,9 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const SizedBox(width: 32), // Placeholder for alignment
-                  const Text(
-                    'Add New Job',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                   Text(
+                    widget.isUpdate ? 'Update Job' : 'Add New Job',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 70),
                   InkWell(
@@ -303,15 +343,17 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                         _buildStyledField(child: _buildDateTimeField(_fromDateTimeController, 'From Date & Time')),
                         _buildStyledField(child: _buildDateTimeField(_toDateTimeController, 'To Date & Time')),
                         _buildStyledField(child: _buildTextField(_flightNumberController, 'Flight Number')),
-                        _buildStyledField(child: TextField(
-                          controller: _capacityController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: InputDecoration(
-                            labelText: 'Capacity',
-                            border: OutlineInputBorder(),
-                          ),
-                        )),
+                        _buildStyledField(child: _buildTextField(
+                          _capacityController,
+                          'Capacity',
+                          keyboardType: TextInputType.number, // ✅ Set numeric keyboard
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            NoLeadingZeroFormatter(),
+                          ],
+                        ),
+
+                        ),
 
                         const SizedBox(height: 20),
 

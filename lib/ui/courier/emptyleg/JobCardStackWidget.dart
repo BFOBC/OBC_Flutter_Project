@@ -2,6 +2,7 @@ import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/AddEmptyLegDialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
@@ -73,48 +74,201 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return SizedBox.expand(
-      // ⬅️ Makes the Stack take full screen
       child: Stack(
         children: [
-          // ✅ Job list or loading indicator
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : jobs.isEmpty
-                  ? const Center(child: Text("No jobs found"))
-                  : ListView.builder(
-                      itemCount: jobs.length,
-                      itemBuilder: (context, index) {
-                        final job = jobs[index];
+              ? Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 20,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_off_rounded, size: 60, color: Colors.redAccent),
 
-                        return GestureDetector(
-                          onTap: () {
-                            // 👉 Step 1: FlightDetails object banayein list item se
-                            FlightDetails flightDetails = FlightDetails(
-                              fromLocation: job['fromLocation'] ?? '',
-                              toLocation: job['toLocation'] ?? '',
-                              fromDateTime: job['fromDateTime'] ?? '',
-                              toDateTime: job['toDateTime'] ?? '',
-                              flightNumber: job['flightNumber'] ?? '',
-                              capacity: job['capacity']?.toString() ?? '',
-                              userName: job['userName'] ?? '',
-                              rating: int.tryParse(
-                                      job['rating']?.toString() ?? '0') ??
-                                  0,
-                            );
-                            emptyLegNodeID=job['emptyLegNodeID'] ?? 'N/A';
-
-                            // 👉 Step 2: Dialog show karein
-                            _showFlightDetailsDialog(
-                                context, flightDetails, index, true,emptyLegNodeID.toString());
-                          },
-                          child: _buildJobCard(job, screenWidth),
-                        );
-                      },
+                  Text(
+                    'No Empty Legs Available',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade800,
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Check back later or Add New',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          )
 
-// ✅ Floating Button fixed at bottom center, above gesture/nav bar
+              : ListView.builder(
+            itemCount: jobs.length,
+            itemBuilder: (context, index) {
+              final job = jobs[index];
+
+              return Dismissible(
+                key: Key(job['emptyLegNodeID'] ?? UniqueKey().toString()),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+
+                // ⛔ Confirm Dismiss before actually deleting
+                confirmDismiss: (direction) async {
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        backgroundColor: Colors.white,
+                        elevation: 10,
+                        titlePadding: const EdgeInsets.only(top: 24, left: 24, right: 24),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        actionsPadding: const EdgeInsets.only(right: 16, bottom: 12),
+                        title: Row(
+                          children: const [
+                            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                            SizedBox(width: 10),
+                            Text(
+                              'Confirm Deletion',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        content: const Text(
+                          'Are you sure you want to delete this job? This action cannot be undone.',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey[700],
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(fontSize: 15),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            ),
+                            child: const Text(
+                              'Delete',
+                              style: TextStyle(fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                },
+
+                // ✅ Dismiss only if confirmDismiss returned true
+                onDismissed: (direction) {
+                  String nodeId = job['emptyLegNodeID'] ?? '';
+
+                  // 🔥 Firebase se delete karo
+                  deleteEmptyLegFromFirebase(nodeId);
+
+                  // 🧹 Local list se delete karo
+                  setState(() {
+                    jobs.removeAt(index);
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: const [
+                          Icon(Icons.delete_forever, color: Colors.white),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Empty Leg Deleted')),
+                        ],
+                      ),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 3),
+                      action: SnackBarAction(
+                        label: 'Deleted',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          // 🔄 Undo logic here
+                        },
+                      ),
+                    ),
+                  );
+
+                },
+
+                child: GestureDetector(
+                  onTap: () {
+                    FlightDetails flightDetails = FlightDetails(
+                      fromLocation: job['fromLocation'] ?? '',
+                      toLocation: job['toLocation'] ?? '',
+                      fromDateTime: job['fromDateTime'] ?? '',
+                      toDateTime: job['toDateTime'] ?? '',
+                      flightNumber: job['flightNumber'] ?? '',
+                      capacity: job['capacity']?.toString() ?? '',
+                      userName: job['userName'] ?? '',
+                      rating: int.tryParse(job['rating']?.toString() ?? '0') ?? 0,
+                    );
+
+                    emptyLegNodeID = job['emptyLegNodeID'] ?? 'N/A';
+
+                    _showFlightDetailsDialog(
+                      context,
+                      flightDetails,
+                      index,
+                      true,
+                      emptyLegNodeID.toString(),
+                    );
+                  },
+                  child: _buildJobCard(job, screenWidth),
+                ),
+              );
+
+            },
+          ),
+
+          // ✅ Floating Button
           Positioned(
-            bottom: 0, // ⬅️ This is the missing piece!
+            bottom: 0,
             left: 0,
             right: 0,
             child: SafeArea(
@@ -125,18 +279,20 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       FlightDetails flightDetails = FlightDetails.empty();
-                      if (flightDetails != null) {
-                        _showFlightDetailsDialog(
-                            context, flightDetails, -1, false,emptyLegNodeID.toString());
-                      }
+                      _showFlightDetailsDialog(
+                        context,
+                        flightDetails,
+                        -1,
+                        false,
+                        emptyLegNodeID.toString(),
+                      );
                     },
                     icon: const Icon(Icons.add),
                     label: const Text("Add Empty Leg"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -151,6 +307,22 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
       ),
     );
   }
+
+  Future<void> deleteEmptyLegFromFirebase(String nodeId) async {
+    try {
+      print('Attempting to delete from Firestore: $nodeId');
+
+      await FirebaseFirestore.instance
+          .collection("emptyLegs")
+          .doc(nodeId)
+          .delete();
+
+      print('✅ Successfully deleted from Firestore: $nodeId');
+    } catch (e) {
+      print('❌ Error deleting from Firestore: $e');
+    }
+  }
+
 
   // Function to show a dialog for flight details (add/update)
   void _showFlightDetailsDialog(
@@ -177,6 +349,9 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
         _fetchJobs(); // Or your data fetching logic
       });
     }
+    setState(() {
+      _fetchJobs(); // Or your data fetching logic
+    });
   }
 
   Widget _buildJobCard(Map<String, dynamic> job, double screenWidth) {
@@ -200,123 +375,63 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Slightly more symmetric
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16), // Softer corners
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            // ✅ Allows card to be scrollable if needed
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Text(
-                      "✈️ Flight: ${job['flightNumber']}",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "📍 From: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: job['fromLocation'] ?? 'N/A'),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "📍 To: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: job['toLocation'] ?? 'N/A'),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "📅 From Date: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: formatDate(job['fromDateTime'])),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "🕒 From Time: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: formatTime(job['fromDateTime'])),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "📅 To Date: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: formatDate(job['toDateTime'])),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "🕒 To Time: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: formatTime(job['toDateTime'])),
-                        ],
-                      ),
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            const TextStyle(color: Colors.black, fontSize: 14),
-                        children: [
-                          const TextSpan(
-                              text: "🚛 Capacity: ",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          TextSpan(text: job['capacity'] ?? 'N/A'),
-                        ],
-                      ),
-                    ),
-                  ],
+          padding: const EdgeInsets.all(16), // Internal padding
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "✈️ Flight: ${job['flightNumber'] ?? 'N/A'}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blueAccent,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Divider(color: Colors.grey.shade300, thickness: 1),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                children: [
+                  _buildInfo("📍 From", job['fromLocation']),
+                  _buildInfo("📍 To", job['toLocation']),
+                  _buildInfo("📅 From Date", formatDate(job['fromDateTime'])),
+                  _buildInfo("🕒 From Time", formatTime(job['fromDateTime'])),
+                  _buildInfo("📅 To Date", formatDate(job['toDateTime'])),
+                  _buildInfo("🕒 To Time", formatTime(job['toDateTime'])),
+                  _buildInfo("🚛 Capacity", job['capacity']),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
+
   }
+  Widget _buildInfo(String label, String? value) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.black87, fontSize: 14),
+        children: [
+          TextSpan(
+            text: "$label: ",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(text: value ?? 'N/A'),
+        ],
+      ),
+    );
+  }
+
 }
 
 class FlightDetails {

@@ -5,6 +5,7 @@ import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/UserAvatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
@@ -112,7 +113,7 @@ class _SearchCourierState extends State<SearchCourier> {
           // Handle possible null values by setting default values (e.g., 'N/A' or an empty string)
           courierProfile = CourierProfileData.fromMap(data);
           userName = data['name'] ?? 'Courier';  // Use 'Courier' if 'name' is null
-          userImage = data['userImage'] ?? 'N/A';  // Use 'N/A' if 'userImage' is null
+          userImage = data['profilePictureUrl'] ?? 'N/A';  // Use 'N/A' if 'userImage' is null
           rating = data['rating']?.toDouble() ?? 5.0;  // Default rating to 5 if null
           passports = (data['passports'] as List?)?.map((passport) => Passport.fromMap(passport)).toList() ?? [];
           visas = (data['visas'] as List?)?.map((visa) => Visa.fromMap(visa)).toList() ?? [];
@@ -148,10 +149,8 @@ class _SearchCourierState extends State<SearchCourier> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundImage: NetworkImage(userImage),
-                ),
+                UserAvatar(imageUrl: userImage),
+
                 const SizedBox(height: 10),
                 Center(
                   child: RatingBarIndicator(

@@ -4,6 +4,7 @@ import 'package:broker_flutter_pp/ui/broker/SearchCourier.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RadarAnimation.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/UserAvatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -210,6 +211,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
             'number': data.containsKey('number') ? data['number'] ?? 'N/A' : 'N/A',
             'distance': distance,
             'searchCode': searchCode,
+            'profilePictureUrl': data.containsKey('profilePictureUrl') ? data['profilePictureUrl'] ?? 'N/A' : 'N/A',
           });
         } catch (e) {
           print('❌ Error processing courier ${doc.id}: $e');
@@ -220,7 +222,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
 // Add marker for searched location
       BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
         ImageConfiguration(size: Size(24, 24)),
-        'assets/map_icon.png',
+        'assets/place_holder_man.png',
       );
 
 
@@ -426,92 +428,109 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
                       Expanded(
                         child: ListView.separated(
                           controller: scrollController,
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           itemCount: couriers.length,
-                          separatorBuilder: (_, __) => SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final courier = couriers[index];
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final courier = couriers[index];
+                              final profilePictureUrl = courier['profilePictureUrl']?.toString().trim();
+                              final hasProfileImage = profilePictureUrl != null && profilePictureUrl.isNotEmpty;
 
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                final courierKey = courier['key'];
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SearchCourier(courierKey: courierKey),
+                              // Log the profile picture URL
+                              print("Courier [${courier['name'] ?? 'No Name'}] - Profile URL: $profilePictureUrl");
+
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  final courierKey = courier['key'];
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SearchCourier(courierKey: courierKey),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.withOpacity(0.15),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.15),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    // Avatar or Icon
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: Colors.blue.shade100,
-                                      child: Icon(Icons.local_shipping, color: Colors.blue, size: 18),
-                                    ),
-                                    SizedBox(width: 16),
-
-                                    // Info Section
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                  child: Row(
+                                    children: [
+                                      // Profile Picture or Icon
+                                      Stack(
+                                        alignment: Alignment.center,
                                         children: [
-                                          Text(
-                                            courier['name'] ?? 'N/A',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
+                                          // Blue circular background
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.shade100,
+                                              shape: BoxShape.circle,
                                             ),
                                           ),
-                                          SizedBox(height: 6),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                                              SizedBox(width: 6),
-                                              Text(
-                                                courier['number'] ?? 'N/A',
-                                                style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.place, size: 16, color: Colors.grey[600]),
-                                              SizedBox(width: 6),
-                                              Text(
-                                                '${courier['distance'].toStringAsFixed(2)} km away',
-                                                style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                                              ),
-                                            ],
-                                          ),
+                                          UserAvatar(imageUrl: courier['profilePictureUrl']),
                                         ],
                                       ),
-                                    ),
 
-                                    // Arrow icon
-                                    Icon(Icons.chevron_right, color: Colors.grey),
-                                  ],
+
+                                      const SizedBox(width: 8),
+
+                                      // Info Section
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              courier['name'] ?? 'N/A',
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.phone, size: 16, color: Colors.grey),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  courier['number'] ?? 'N/A',
+                                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.place, size: 16, color: Colors.grey),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '${courier['distance']?.toStringAsFixed(2) ?? '0.00'} km away',
+                                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const Icon(Icons.chevron_right, color: Colors.grey),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+
                         ),
                       ),
 

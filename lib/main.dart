@@ -21,6 +21,7 @@ void main() async {
   await FirebaseMessaging.instance.requestPermission(); // Important for iOS
 
   initializeWorkManager();
+  WidgetsFlutterBinding.ensureInitialized(); // <-- VERY IMPORTANT
 
   runApp(
     MultiProvider(
