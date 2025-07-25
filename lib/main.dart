@@ -1,5 +1,6 @@
 
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
+import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -28,6 +29,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => RoleProvider()), // Initialize RoleProvider
         ChangeNotifierProvider(create: (context) => TaskViewModel()), // Initialize TaskViewModel
+        ChangeNotifierProvider(create: (_) => OnlineStatusProvider()),
       ],
       child: const MyApp(),
     ),

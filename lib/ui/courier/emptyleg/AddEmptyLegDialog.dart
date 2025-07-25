@@ -20,7 +20,8 @@ class FlightDetailsDialog extends StatefulWidget {
   final int? flightIndex;
   final bool isUpdate;
   final String? emptyLegID;
-  List<Map<String, dynamic>> airportData = []; // To store airport items matching the query
+  List<Map<String, dynamic>> airportData =
+      []; // To store airport items matching the query
   AirportModel? selectedFromAirport;
   AirportModel? selectedToAirport;
 
@@ -45,21 +46,28 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   late TextEditingController _capacityController;
 
   final _formKey = GlobalKey<FormState>();
-  final CollectionReference emptyLegCollection = FirebaseFirestore.instance.collection('emptyLegs');
+  final CollectionReference emptyLegCollection =
+      FirebaseFirestore.instance.collection('emptyLegs');
 
-  List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
+  List<AirportModel> fromAirportSuggestions =
+      []; // Suggestions for "From Location"
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
   final DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ");
   final DateFormat outputFormat = DateFormat("yyyy-MM-dd HH:mm");
+
   @override
   void initState() {
     super.initState();
-    _fromLocationController = TextEditingController(text: widget.flightDetails?.fromLocation ?? '');
-    _toLocationController = TextEditingController(text: widget.flightDetails?.toLocation ?? '');
+    _fromLocationController =
+        TextEditingController(text: widget.flightDetails?.fromLocation ?? '');
+    _toLocationController =
+        TextEditingController(text: widget.flightDetails?.toLocation ?? '');
     //_fromDateTimeController = TextEditingController(text: widget.flightDetails?.fromDateTime ?? '');
     //_toDateTimeController = TextEditingController(text: widget.flightDetails?.toDateTime ?? '');
-    _flightNumberController = TextEditingController(text: widget.flightDetails?.flightNumber ?? '');
-    _capacityController = TextEditingController(text: widget.flightDetails?.capacity ?? '');
+    _flightNumberController =
+        TextEditingController(text: widget.flightDetails?.flightNumber ?? '');
+    _capacityController =
+        TextEditingController(text: widget.flightDetails?.capacity ?? '');
     // Inside initState or where you're assigning:
     _fromDateTimeController = TextEditingController(
       text: formatDate(widget.flightDetails?.fromDateTime),
@@ -69,6 +77,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       text: formatDate(widget.flightDetails?.toDateTime),
     );
   }
+
   String formatDate(String? utcString) {
     if (utcString == null || utcString.isEmpty) return '';
     try {
@@ -78,12 +87,16 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       return '';
     }
   }
+
   Future<void> _saveToFirStore() async {
     try {
-      String fromDateTime=(convertToUTCFromCustomFormat(_fromDateTimeController.text.toString()));
-      String toDateTime=(convertToUTCFromCustomFormat(_toDateTimeController.text.toString()));
+      String fromDateTime = (convertToUTCFromCustomFormat(
+          _fromDateTimeController.text.toString()));
+      String toDateTime =
+          (convertToUTCFromCustomFormat(_toDateTimeController.text.toString()));
       String courierID = getCurrentUserId();
-      final docRef = await FirebaseFirestore.instance.collection('emptyLegs').add({
+      final docRef =
+          await FirebaseFirestore.instance.collection('emptyLegs').add({
         'fromLocation': _fromLocationController.text,
         'toLocation': _toLocationController.text,
         'fromDateTime': fromDateTime,
@@ -91,14 +104,18 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
         'flightNumber': _flightNumberController.text,
         'capacity': _capacityController.text,
         'createdAt': DateTime.now().toIso8601String(),
-        'courierID': courierID
+        'courierID': courierID,
+        'status': 'new'
       });
 
 // This is your Firestore Document ID (NodeID)
       final String nodeId = docRef.id;
 
 // Optionally save it back to the same document
-      await FirebaseFirestore.instance.collection('emptyLegs').doc(nodeId).update({
+      await FirebaseFirestore.instance
+          .collection('emptyLegs')
+          .doc(nodeId)
+          .update({
         'emptyLegNodeID': nodeId,
       });
 
@@ -109,13 +126,19 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }
   }
+
   Future<void> _updateInFireStore(String documentId) async {
     try {
-      String fromDateTime = convertToUTCFromCustomFormat(_fromDateTimeController.text.toString());
-      String toDateTime = convertToUTCFromCustomFormat(_toDateTimeController.text.toString());
+      String fromDateTime =
+          convertToUTCFromCustomFormat(_fromDateTimeController.text.toString());
+      String toDateTime =
+          convertToUTCFromCustomFormat(_toDateTimeController.text.toString());
       String courierID = getCurrentUserId();
 
-      await FirebaseFirestore.instance.collection('emptyLegs').doc(documentId).update({
+      await FirebaseFirestore.instance
+          .collection('emptyLegs')
+          .doc(documentId)
+          .update({
         'fromLocation': _fromLocationController.text,
         'toLocation': _toLocationController.text,
         'fromDateTime': fromDateTime,
@@ -124,6 +147,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
         'capacity': _capacityController.text,
         'courierID': courierID,
         'updatedAt': DateTime.now().toIso8601String(),
+        'status': 'new'
       });
 
       Navigator.of(context).pop(); // Close the dialog
@@ -153,7 +177,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       });
     });
     await _updateInFireStore(widget.emptyLegID!);
-
   }
 
   String getCurrentUserId() {
@@ -169,7 +192,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
           fromAirportSuggestions = airports;
         });
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching airports: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error fetching airports: $e')));
       }
     } else {
       setState(() {
@@ -187,7 +211,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
           toAirportSuggestions = airports;
         });
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching airports: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error fetching airports: $e')));
       }
     } else {
       setState(() {
@@ -199,7 +224,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
     final dbHelper = DatabaseOperation();
     try {
-      List<AirportModel> airports = await dbHelper.fetchAirportsFromDatabase(query);
+      List<AirportModel> airports =
+          await dbHelper.fetchAirportsFromDatabase(query);
       return airports;
     } catch (e) {
       print('Error _fetchAirports $e');
@@ -232,16 +258,17 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     );
   }*/
   Widget _buildTextField(
-      TextEditingController controller,
-      String labelText, {
-        ValueChanged<String>? onChanged,
-        ValueChanged<String>? onFieldSubmitted,
-        List<TextInputFormatter>? inputFormatters,
-        TextInputType keyboardType = TextInputType.text, // ✅ Default to text
-      }) {
+    TextEditingController controller,
+    String labelText, {
+    ValueChanged<String>? onChanged,
+    ValueChanged<String>? onFieldSubmitted,
+    List<TextInputFormatter>? inputFormatters,
+    TextInputType keyboardType = TextInputType.text, // ✅ Default to text
+  }) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType, // ✅ Use it here
+      keyboardType: keyboardType,
+      // ✅ Use it here
       decoration: InputDecoration(
         labelText: labelText,
         border: const OutlineInputBorder(),
@@ -257,7 +284,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -280,9 +306,10 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const SizedBox(width: 32), // Placeholder for alignment
-                   Text(
+                  Text(
                     widget.isUpdate ? 'Update Job' : 'Add New Job',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 70),
                   InkWell(
@@ -293,7 +320,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                         shape: BoxShape.circle,
                         color: Colors.redAccent,
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 20),
+                      child: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -312,17 +340,22 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                             _fromLocationController,
                             'From Location',
                             onChanged: (value) {
-                              if (value.length == 3) _fetchFromAirportData(value);
+                              if (value.length == 3)
+                                _fetchFromAirportData(value);
                             },
                             inputFormatters: [
                               LengthLimitingTextInputFormatter(3),
-                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')), // Allow both lowercase and uppercase
-                              UpperCaseTextFormatter(), // Convert to uppercase automatically
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z]')),
+                              // Allow both lowercase and uppercase
+                              UpperCaseTextFormatter(),
+                              // Convert to uppercase automatically
                             ],
-
                           ),
                         ),
-                        _buildSuggestionList(fromAirportSuggestions, _fromLocationController, isFrom: true),
+                        _buildSuggestionList(
+                            fromAirportSuggestions, _fromLocationController,
+                            isFrom: true),
 
                         _buildStyledField(
                           child: _buildTextField(
@@ -333,26 +366,38 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                             },
                             inputFormatters: [
                               LengthLimitingTextInputFormatter(3),
-                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')), // Allow both lowercase and uppercase
-                              UpperCaseTextFormatter(), // Convert to uppercase automatically
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z]')),
+                              // Allow both lowercase and uppercase
+                              UpperCaseTextFormatter(),
+                              // Convert to uppercase automatically
                             ],
                           ),
                         ),
-                        _buildSuggestionList(toAirportSuggestions, _toLocationController, isFrom: false),
+                        _buildSuggestionList(
+                            toAirportSuggestions, _toLocationController,
+                            isFrom: false),
 
-                        _buildStyledField(child: _buildDateTimeField(_fromDateTimeController, 'From Date & Time')),
-                        _buildStyledField(child: _buildDateTimeField(_toDateTimeController, 'To Date & Time')),
-                        _buildStyledField(child: _buildTextField(_flightNumberController, 'Flight Number')),
-                        _buildStyledField(child: _buildTextField(
-                          _capacityController,
-                          'Capacity',
-                          keyboardType: TextInputType.number, // ✅ Set numeric keyboard
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            NoLeadingZeroFormatter(),
-                          ],
-                        ),
-
+                        _buildStyledField(
+                            child: _buildDateTimeField(
+                                _fromDateTimeController, 'From Date & Time')),
+                        _buildStyledField(
+                            child: _buildDateTimeField(
+                                _toDateTimeController, 'To Date & Time')),
+                        _buildStyledField(
+                            child: _buildTextField(
+                                _flightNumberController, 'Flight Number')),
+                        _buildStyledField(
+                          child: _buildTextField(
+                            _capacityController,
+                            'Capacity',
+                            keyboardType: TextInputType.number,
+                            // ✅ Set numeric keyboard
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              NoLeadingZeroFormatter(),
+                            ],
+                          ),
                         ),
 
                         const SizedBox(height: 20),
@@ -362,27 +407,34 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.7, // 80% width of screen
+                              width: MediaQuery.of(context).size.width *
+                                  0.7, // 80% width of screen
                               child: ElevatedButton(
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
-                                    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-                                    final fromText = _fromDateTimeController.text.trim();
-                                    final toText = _toDateTimeController.text.trim();
+                                    final dateFormat =
+                                        DateFormat('yyyy-MM-dd HH:mm');
+                                    final fromText =
+                                        _fromDateTimeController.text.trim();
+                                    final toText =
+                                        _toDateTimeController.text.trim();
 
                                     print("🔍 From Date Controller: $fromText");
                                     print("🔍 To Date Controller:   $toText");
 
                                     try {
-                                      final fromDate = dateFormat.parseStrict(fromText);
-                                      final toDate = dateFormat.parseStrict(toText);
+                                      final fromDate =
+                                          dateFormat.parseStrict(fromText);
+                                      final toDate =
+                                          dateFormat.parseStrict(toText);
 
                                       print("✅ Parsed From Date: $fromDate");
                                       print("✅ Parsed To Date:   $toDate");
 
                                       if (!toDate.isAfter(fromDate)) {
                                         Fluttertoast.showToast(
-                                          msg: "❌ To Date must be greater than From Date.",
+                                          msg:
+                                              "❌ To Date must be greater than From Date.",
                                           backgroundColor: Colors.red,
                                           textColor: Colors.white,
                                           gravity: ToastGravity.BOTTOM,
@@ -391,7 +443,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                                       }
                                       if (widget.isUpdate) {
                                         _updateFlightDetails(); // <-- separated method
-
                                       } else {
                                         _saveToFirStore();
                                       }
@@ -399,7 +450,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                                       print("❗ Date parsing failed: $e");
 
                                       Fluttertoast.showToast(
-                                        msg: "❌ Invalid date format. Please reselect the dates.",
+                                        msg:
+                                            "❌ Invalid date format. Please reselect the dates.",
                                         backgroundColor: Colors.red,
                                         textColor: Colors.white,
                                         gravity: ToastGravity.TOP,
@@ -410,21 +462,22 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 5),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 5),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                 ),
                                 child: Text(
                                   widget.isUpdate ? 'Update' : 'Save',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
                           ],
                         ),
-
-
                       ],
                     ),
                   ),
@@ -436,6 +489,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       ),
     );
   }
+
   Widget _buildStyledField({required Widget child}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -443,14 +497,19 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: Offset(0, 2)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: Offset(0, 2)),
         ],
       ),
       child: child,
     );
   }
 
-  Widget _buildSuggestionList(List<AirportModel> suggestions, TextEditingController controller, {required bool isFrom}) {
+  Widget _buildSuggestionList(
+      List<AirportModel> suggestions, TextEditingController controller,
+      {required bool isFrom}) {
     if (suggestions.isEmpty) return const SizedBox.shrink();
     return ListView.builder(
       shrinkWrap: true,
@@ -477,7 +536,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     );
   }
 
-
   // Build date time field with date restrictions
   Widget _buildDateTimeField(TextEditingController controller, String label) {
     return TextFormField(
@@ -494,7 +552,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
         final DateTime? pickedDate = await showDatePicker(
           context: context,
           initialDate: now,
-          firstDate: now, // ⛔ disables past dates
+          firstDate: now,
+          // ⛔ disables past dates
           lastDate: DateTime(now.year + 5),
           builder: (context, child) {
             return Theme(
@@ -530,7 +589,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
               pickedTime.minute,
             );
 
-            final formatted = DateFormat('yyyy-MM-dd HH:mm').format(fullDateTime);
+            final formatted =
+                DateFormat('yyyy-MM-dd HH:mm').format(fullDateTime);
             controller.text = formatted;
           }
         }
@@ -544,8 +604,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
     );
   }
 
-
-  Future<void> selectDateTime(BuildContext context, TextEditingController controller) async {
+  Future<void> selectDateTime(
+      BuildContext context, TextEditingController controller) async {
     DateTime now = DateTime.now();
     DateTime selectedDate = DateTime.now();
     final DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm');
@@ -557,7 +617,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       lastDate: DateTime(2101),
     );
     if (pickedDate != null) {
-      TimeOfDay? pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+      TimeOfDay? pickedTime =
+          await showTimePicker(context: context, initialTime: TimeOfDay.now());
       if (pickedTime != null) {
         selectedDate = DateTime(
           pickedDate.year,
@@ -570,6 +631,4 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       }
     }
   }
-
 }
-

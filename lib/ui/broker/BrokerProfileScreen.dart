@@ -75,6 +75,20 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     });
   }
   Future<void> _saveProfile() async {
+    // ✅ Validation before proceeding
+    if (_nameController.text.trim().isEmpty ||
+        _websiteController.text.trim().isEmpty ||
+        _companyNameController.text.trim().isEmpty ||
+        _countryController.text.trim().isEmpty ||
+        _selectedPhoneNumber.trim().isEmpty ||
+        _paymentTermsController.text.trim().isEmpty ||
+        _licenseControllers.any((c) => c.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+
     try {
       FirestoreService firestoreService = FirestoreService(context);
 
@@ -96,6 +110,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       );
     }
   }
+
 
   Future<void> pickImageAndUpload() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -120,7 +135,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     });
 
     try {
-      final url = Uri.parse("https://mopogotechnologies.com/uploadImages.php");
+      final url = Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
       final request = http.MultipartRequest('POST', url);
       request.fields['user_id'] = userId;
       request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
@@ -231,7 +246,7 @@ void _addLicenseField() {
                               ? CachedNetworkImageProvider(
                             "${_profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
                           )
-                              : const AssetImage('assets/avatar.png') as ImageProvider,
+                              : const AssetImage('assets/place_holder_man.png') as ImageProvider,
                         ),
 
                         Positioned(

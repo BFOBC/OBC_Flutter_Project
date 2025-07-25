@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
+import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
@@ -83,73 +87,129 @@ class _DrawerScreenState extends State<DrawerScreen> {
         : const CourierMap(title: AppStrings.map);
   }
 
-  void _onItemSelected(String title) {
+  Future<void> _onItemSelected(String title) async {
+    final onlineStatus = Provider.of<OnlineStatusProvider>(context, listen: false);
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-    if (roleProvider.role == UserRole.broker) {
-      _selectedWidget = const BrokerMap(title: AppStrings.map);
-    } else if (roleProvider.role == UserRole.courier) {
-      _selectedWidget = const CourierMap(title: AppStrings.map);
+
+    String? message;
+    IconData? icon;
+    Color? backgroundColor;
+
+    // ✅ Internet not available
+    if (!await isInternetAvailable()) {
+      message = 'No Internet Connection, Try again';
+      icon = Icons.wifi_off;
+      backgroundColor = Colors.redAccent;
+
+      // Set default screen
+      setState(() {
+        if (roleProvider.role == UserRole.broker) {
+          _selectedWidget = const BrokerMap(title: AppStrings.map);
+        } else if (roleProvider.role == UserRole.courier) {
+          _selectedWidget = const CourierMap(title: AppStrings.map);
+        }
+      });
+
+      // ✅ User is offline and trying to go online
+    } else if (!onlineStatus.isOnline) {
+      message = 'You are currently offline';
+      icon = Icons.cancel;
+      backgroundColor = Colors.orange;
     }
+
+    // ✅ If any of the above checks failed
+    if (message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(icon, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(message),
+            ],
+          ),
+          backgroundColor: backgroundColor,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+
+      Navigator.pop(context);
+      return;
+    }
+
+    // ✅ Proceed only if internet is available and user if online
     setState(() {
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+
       switch (title) {
         case AppStrings.map:
           _initializeSelectedWidget();
-/*          _showSnackBar(
-              'Logged in as ${Provider.of<RoleProvider>(context, listen: false).role == UserRole.broker ? 'Broker' : 'Courier'}');*/
           break;
+
         case AppStrings.notifications:
           _selectedWidget = const NotificationsScreen();
-/*          if (roleProvider.role == UserRole.broker) {
-            _selectedWidget = BrokerNotificationsScreen();
-          } else if (roleProvider.role == UserRole.courier) {
-            _selectedWidget = const BrokerNotificationsScreen();
-          }*/
           break;
+
         case AppStrings.availabilityUpdates:
           if (roleProvider.role == UserRole.broker) {
-            // _showSnackBar("I am Broker");
             _selectedWidget = SearchEmptyLegScreen();
-          } else if (roleProvider.role == UserRole.courier) {
-            // _showSnackBar("I am Courier");
-            //_selectedWidget = const EmptyLegMainScreen();
+          } else {
             _selectedWidget = const JobCardStackWidget();
           }
           break;
-        case AppStrings.chat:
-          User? user = FirebaseAuth.instance.currentUser; // Get current user
 
+        case AppStrings.chat:
+          User? user = FirebaseAuth.instance.currentUser;
           _selectedWidget = ChatListScreen(userId: user!.uid.toString());
           break;
+
         case AppStrings.myMissions:
           if (roleProvider.role == UserRole.broker) {
             _selectedWidget = BrokerMissions();
-          } else if (roleProvider.role == UserRole.courier) {
+          } else {
             _selectedWidget = const CourierMissions();
           }
           break;
+
         case AppStrings.history:
         case AppStrings.inviteFriends:
         case AppStrings.faq:
-        case AppStrings.logout:{
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _logout(context);
-            });
-            break;
-          }
+        case AppStrings.logout:
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _logout(context);
+          });
+          break;
+
         case AppStrings.settings:
           _selectedWidget = const SettingScreen();
+          break;
+
         default:
           _selectedWidget = const CourierMap(title: AppStrings.map);
           break;
       }
     });
-    Navigator.pop(context);
+
+    Navigator.pop(context); // close drawer after selection
   }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+  Future<bool> isInternetAvailable() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override

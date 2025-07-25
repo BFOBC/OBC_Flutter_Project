@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:broker_flutter_pp/res/custom_colors.dart';
@@ -23,26 +24,35 @@ class ChatListScreen extends StatelessWidget {
 
   ChatListScreen({required this.userId});
 
-  Future<Map<String, String>> _getUserDetails(String userId, BuildContext context) async {
+  Future<Map<String, String>> _getUserDetails(
+      String userId, BuildContext context) async {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
     try {
       if (roleProvider.role == UserRole.broker) {
-        var courierDoc = await FirebaseFirestore.instance.collection('courier').doc(userId).get();
+        var courierDoc = await FirebaseFirestore.instance
+            .collection('courier')
+            .doc(userId)
+            .get();
         if (courierDoc.exists && courierDoc.data() != null) {
           return {
             'uid': courierDoc.id,
             'name': courierDoc['name'] ?? 'Unknown Courier',
-            'phoneNumber': courierDoc['phoneNumber'] ?? ''
+            'phoneNumber': courierDoc['phoneNumber'] ?? '',
+            'profilePictureUrl': courierDoc['profilePictureUrl'] ?? ''
           };
         }
       } else if (roleProvider.role == UserRole.courier) {
-        var brokerDoc = await FirebaseFirestore.instance.collection('broker').doc(userId).get();
+        var brokerDoc = await FirebaseFirestore.instance
+            .collection('broker')
+            .doc(userId)
+            .get();
         if (brokerDoc.exists && brokerDoc.data() != null) {
           return {
             'uid': brokerDoc.id,
             'name': brokerDoc['name'] ?? 'Unknown Broker',
-            'phoneNumber': brokerDoc['phoneNumber'] ?? ''
+            'phoneNumber': brokerDoc['phoneNumber'] ?? '',
+            'profilePictureUrl': brokerDoc['profilePictureUrl'] ?? ''
           };
         }
       }
@@ -102,7 +112,6 @@ class ChatListScreen extends StatelessWidget {
                 ],
               ),
             );
-
           }
 
           var chatDocs = snapshot.data!.docs;
@@ -113,7 +122,8 @@ class ChatListScreen extends StatelessWidget {
               Container(
                 width: double.infinity,
                 color: Colors.yellow[100],
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Text(
                   '⚠️ Your chats will be deleted in 15 days.',
                   style: TextStyle(
@@ -129,17 +139,22 @@ class ChatListScreen extends StatelessWidget {
                     var chat = chatDocs[index];
                     String chatId = chat.id;
                     String lastMessage = chat['lastMessage'] ?? 'No message';
-                    Timestamp timestamp = chat['lastMessageTimestamp'] ?? Timestamp.now();
+                    Timestamp timestamp =
+                        chat['lastMessageTimestamp'] ?? Timestamp.now();
                     DateTime date = timestamp.toDate();
+                    String formattedDate =
+                        DateFormat('MMMM d, y \'at\' h:mm a').format(date);
 
                     List<String> users = List<String>.from(chat['users']);
                     users.remove(userId);
-                    String otherUserId = users.isNotEmpty ? users.first : 'Unknown';
+                    String otherUserId =
+                        users.isNotEmpty ? users.first : 'Unknown';
 
                     return FutureBuilder<Map<String, String>>(
                       future: _getUserDetails(otherUserId, context),
                       builder: (context, userSnapshot) {
-                        if (userSnapshot.connectionState == ConnectionState.waiting) {
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return _buildLoadingTile();
                         }
 
@@ -147,143 +162,213 @@ class ChatListScreen extends StatelessWidget {
                           return _buildErrorTile();
                         }
 
-                        String otherUserName = userSnapshot.data!['name'] ?? 'Unknown';
+                        String otherUserName =
+                            userSnapshot.data!['name'] ?? 'Unknown';
                         String otherUserUid = userSnapshot.data!['uid'] ?? '';
                         String? phoneNumber = userSnapshot.data!['phoneNumber'];
-
+                        String? profilePictureUrl =
+                            userSnapshot.data!['profilePictureUrl'];
+                        String displayLetter =
+                            (otherUserName != null && otherUserName.isNotEmpty)
+                                ? otherUserName[0].toUpperCase()
+                                : '?';
                         return Column(
                           children: [
-                            ListTile(
-                              leading: CircleAvatar(child: Text(otherUserName[0].toUpperCase())),
-                              title: Text(otherUserName),
-                              subtitle: Text(lastMessage),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('${date.hour}:${date.minute.toString().padLeft(2, '0')}'),
-                                  if (phoneNumber != null && phoneNumber.isNotEmpty) ...[
-                                    const SizedBox(width: 10),
-                                    IconButton(
-                                      icon: Icon(Icons.phone, color: Colors.green),
-                                      onPressed: () async {
-                                        final Uri uri = Uri(scheme: 'tel', path: phoneNumber);
-                                        try {
-                                          bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                          if (!launched) {
-                                            Fluttertoast.showToast(msg: "Could not launch dialer");
-                                          }
-                                        } catch (e) {
-                                          Fluttertoast.showToast(msg: "Error: $e");
-                                        }
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.add, color: Colors.teal),
-                                      onPressed: () async {
-                                        final Uri waUri = Uri.parse("https://wa.me/$phoneNumber");
-                                        if (await canLaunchUrl(waUri)) {
-                                          await launchUrl(waUri, mode: LaunchMode.externalApplication);
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Could not launch WhatsApp')),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              onTap: () {
-                                if (otherUserUid.isNotEmpty) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ChatDetailScreen(userID: otherUserUid),
-                                    ),
-                                  );
-                                }
-                              },
-                                onLongPress: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return Dialog(
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.warning_amber_rounded, size: 50, color: Colors.redAccent),
-                                              const SizedBox(height: 15),
-                                              Text(
-                                                "Delete Chat",
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 10),
-                                              Text(
-                                                "Are you sure you want to delete this chat?",
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(fontSize: 14, color: Colors.black54),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                children: [
-                                                  // Cancel Button
-                                                  ElevatedButton(
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.green,
-                                                      foregroundColor: Colors.white,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(10),
-                                                      ),
-                                                    ),
-                                                    onPressed: () => Navigator.of(context).pop(),
-                                                    child: Text("Cancel"),
-                                                  ),
+                            Stack(
+                              children: [
+                                ListTile(
+                                  contentPadding:
+                                      EdgeInsets.only(right: 90, left: 16),
+                                  // space for timestamp
 
-                                                  // Delete Button
-                                                  ElevatedButton(
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.redAccent,
-                                                      foregroundColor: Colors.white,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(10),
-                                                      ),
-                                                    ),
-                                                    onPressed: () async {
-                                                      Navigator.of(context).pop(); // Close dialog first
-                                                      await _deleteChatFromFirebase(chatId);
-
-                                                      Fluttertoast.showToast(
-                                                        msg: "✅Chat deleted successfully!",
-                                                        toastLength: Toast.LENGTH_SHORT,
-                                                        gravity: ToastGravity.BOTTOM,
-                                                        backgroundColor: Colors.green,
-                                                        textColor: Colors.white,
-                                                        fontSize: 16.0,
-                                                      );
-
-                                                    },
-                                                    child: Text("Delete"),
-                                                  ),
-                                                ],
+                                  leading: GestureDetector(
+                                    onTap: () {
+                                      if (profilePictureUrl != null && profilePictureUrl.isNotEmpty) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            contentPadding: EdgeInsets.zero,
+                                            backgroundColor: Colors.transparent,
+                                            content: ClipRRect(
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Image.network(
+                                                profilePictureUrl!,
+                                                width: 200,
+                                                height: 200,
+                                                fit: BoxFit.cover,
                                               ),
-                                            ],
+                                            ),
                                           ),
+                                        );
+                                      }
+                                    },
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.blue[200],
+                                      backgroundImage:
+                                      (profilePictureUrl != null && profilePictureUrl.isNotEmpty)
+                                          ? NetworkImage(profilePictureUrl)
+                                          : null,
+                                      child: (profilePictureUrl == null || profilePictureUrl.isEmpty)
+                                          ? Text(
+                                        displayLetter,
+                                        style: TextStyle(color: Colors.white),
+                                      )
+                                          : null,
+                                    ),
+                                  ),
+
+                                  title: Text(otherUserName),
+                                  subtitle: Text(lastMessage),
+                                  onTap: () {
+                                    if (otherUserUid.isNotEmpty) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ChatDetailScreen(
+                                                  userID: otherUserUid),
                                         ),
                                       );
-                                    },
-                                  );
-                                }
+                                    }
+                                  },
+                                  onLongPress: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return Dialog(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20)),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(20.0),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                    Icons.warning_amber_rounded,
+                                                    size: 50,
+                                                    color: Colors.redAccent),
+                                                const SizedBox(height: 15),
+                                                Text("Delete Chat",
+                                                    style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                    "Are you sure you want to delete this chat?",
+                                                    textAlign:
+                                                        TextAlign.center),
+                                                const SizedBox(height: 20),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceEvenly,
+                                                  children: [
+                                                    ElevatedButton(
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                              backgroundColor:
+                                                                  Colors.green),
+                                                      onPressed: () =>
+                                                          Navigator.of(context)
+                                                              .pop(),
+                                                      child: Text("Cancel"),
+                                                    ),
+                                                    ElevatedButton(
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                              backgroundColor:
+                                                                  Colors
+                                                                      .redAccent),
+                                                      onPressed: () async {
+                                                        Navigator.of(context)
+                                                            .pop();
+                                                        await _deleteChatFromFirebase(
+                                                            chatId);
+                                                        Fluttertoast.showToast(
+                                                            msg:
+                                                                "✅Chat deleted successfully!");
+                                                      },
+                                                      child: Text("Delete"),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                                Positioned(
+                                  bottom: 1,
+                                  right: 16,
+                                  child: Text(
+                                    formattedDate,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                ),
+                                if (phoneNumber != null &&
+                                    phoneNumber.isNotEmpty)
+                                  Positioned(
+                                    top: 10,
+                                    right: 16,
+                                    child: Row(
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Icons.phone,
+                                              color: Colors.green, size: 20),
+                                          onPressed: () async {
+                                            print('phoneNumber$phoneNumber');
+                                            final Uri uri = Uri(
+                                                scheme: 'tel',
+                                                path: phoneNumber);
+                                            try {
+                                              bool launched = await launchUrl(
+                                                  uri,
+                                                  mode: LaunchMode
+                                                      .externalApplication);
+                                              if (!launched)
+                                                Fluttertoast.showToast(
+                                                    msg:
+                                                        "Could not launch dialer");
+                                            } catch (e) {
+                                              Fluttertoast.showToast(
+                                                  msg: "Error: $e");
+                                            }
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.add,
+                                              color: Colors.teal, size: 20),
+                                          onPressed: () async {
+                                            final Uri waUri = Uri.parse(
+                                                "https://wa.me/$phoneNumber");
+                                            if (await canLaunchUrl(waUri)) {
+                                              await launchUrl(waUri,
+                                                  mode: LaunchMode
+                                                      .externalApplication);
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                    content: Text(
+                                                        'Could not launch WhatsApp')),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 30.0),
                               child: Divider(color: Palette.firebaseGrey),
                             ),
                           ],
@@ -293,18 +378,13 @@ class ChatListScreen extends StatelessWidget {
                   },
                 ),
               ),
-
             ],
           );
         },
       ),
     );
   }
-  Future<void> _deleteChatFromLocalDb(String chatId) async {
-    // Yahan apni local DB logic lagayein
-    // Example: await LocalDatabase.instance.deleteChat(chatId);
-    print("Deleted from local DB: $chatId");
-  }
+
   Widget _buildLoadingTile() {
     return Column(
       children: [
@@ -368,8 +448,4 @@ class ChatListScreen extends StatelessWidget {
       );
     }
   }
-
-
 }
-
-

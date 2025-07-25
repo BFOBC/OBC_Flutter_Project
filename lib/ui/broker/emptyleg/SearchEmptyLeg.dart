@@ -1,8 +1,9 @@
 import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/ui/broker/emptyleg/AddNewMilestoneEmptLeg.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
-import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
+import 'package:broker_flutter_pp/ui/common/models/FlightData.dart';
 import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,25 +13,7 @@ import 'package:intl/intl.dart';
 
 import '../../common/utils/CustomDialog.dart';
 
-class FlightData {
-  final DateTime fromDateTime; // Change to DateTime
-  final DateTime toDateTime; // Change to DateTime
-  final String fromLocation;
-  final String toLocation;
-  final String flightNumber;
-  final String emptyLegTBLNodeID;
-  final int capacity;
 
-  FlightData({
-    required this.fromDateTime,
-    required this.toDateTime,
-    required this.fromLocation,
-    required this.toLocation,
-    required this.flightNumber,
-    required this.emptyLegTBLNodeID,
-    required this.capacity,
-  });
-}
 
 class SearchEmptyLegScreen extends StatefulWidget {
   SearchEmptyLegScreen({super.key});
@@ -322,12 +305,13 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                                       flight.fromDateTime.toString();
                                   endDateTime = flight.toDateTime.toString();
                                   emptyLegTBLNodeID=flight.emptyLegTBLNodeID.toString();
-                                  _sendBookRequest();
+                                  //_sendBookRequest();
+                                  navigateToMileStone(flight);
                                   setState(() => isBooked = true);
                                 },
                                 icon: const Icon(Icons.check_circle,
                                     color: Colors.white, size: 14),
-                                label: const Text('Book'),
+                                label: const Text('Add Mile Stones'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
@@ -754,6 +738,13 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
           ),
         );
       },
+    );
+  }
+
+  void navigateToMileStone(FlightData flight) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddNewMilestoneEmptyLeg(courierID: courierID,flightData: flight)),
     );
   }
 }

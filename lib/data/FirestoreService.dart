@@ -106,39 +106,20 @@ class FirestoreService {
     try {
       final updatedLicenses = licenseControllers.map((c) => c.text).toList();
 
-      // Reference to the user document
       DocumentReference userDoc = _firestore.collection('broker').doc(userId);
 
-      // Get the current data in Firestore
-      DocumentSnapshot snapshot = await userDoc.get();
-
-      // Prepare the new data
       Map<String, dynamic> newData = {
         'name': nameController.text.isEmpty ? 'N/A' : nameController.text,
-        'website': websiteController.text.isEmpty ? 'N/A' : websiteController
-            .text,
-        'company': websiteController.text.isEmpty ? 'N/A' : companyNameController
-            .text,
+        'website': websiteController.text.isEmpty ? 'N/A' : websiteController.text,
+        'company': companyNameController.text.isEmpty ? 'N/A' : companyNameController.text,
         'country': countryController.text.isEmpty ? 'N/A' : countryController.text,
-        'phoneNumber': phoneNumberController.isEmpty ? 'N/A' : phoneNumberController.toString().trim(),
-
-        'paymentTerms': paymentTermsController.text.isEmpty
-            ? 'N/A'
-            : paymentTermsController.text,
+        'phoneNumber': phoneNumberController.isEmpty ? 'N/A' : phoneNumberController.trim(),
+        'paymentTerms': paymentTermsController.text.isEmpty ? 'N/A' : paymentTermsController.text,
         'license': updatedLicenses,
         'email': email,
         'profilePictureUrl': profilePictureUrl,
       };
 
-      // Merge the new data with existing data
-      if (snapshot.exists) {
-        Map<String, dynamic>? existingData = snapshot.data() as Map<
-            String,
-            dynamic>?;
-        newData.addAll(existingData ?? {});
-      }
-
-      // Save the merged data
       await userDoc.set(newData, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(

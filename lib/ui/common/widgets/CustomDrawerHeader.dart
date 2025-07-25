@@ -1,16 +1,15 @@
-import 'package:broker_flutter_pp/res/custom_colors.dart';
-import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
+import 'dart:io';
+
+import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart'; // Import the BrokerProfileScreen
-import 'package:broker_flutter_pp/ui/courier/models/CourierProfileData.dart';
 import 'package:path/path.dart';
 import 'package:provider/provider.dart';
-
 import '../../courier/CourierProfile.dart';
 import '../utils/AuthUtils.dart';
-import '../utils/RoleProvider.dart';
 
 class CustomDrawerHeader extends StatelessWidget {
   CustomDrawerHeader({super.key});
@@ -46,29 +45,33 @@ class CustomDrawerHeader extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           GestureDetector(
-                            onTap: () {
-                              if (roleProvider.role == UserRole.broker) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BrokerProfileScreen(
-                                      brokerProfile: brokerProfile,
+                            onTap: () async {
+                              if (await _handleOfflineOrNoInternet(context)) {
+                                if (roleProvider.role == UserRole.broker) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BrokerProfileScreen(
+                                        brokerProfile: brokerProfile,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              } else if (roleProvider.role == UserRole.courier) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CourierProfile(),
-                                  ),
-                                );
+                                  );
+                                } else if (roleProvider.role ==
+                                    UserRole.courier) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CourierProfile(),
+                                    ),
+                                  );
+                                }
                               }
                             },
                             child: FutureBuilder<String?>(
                               future: _getProfileImageUrl(roleProvider.role),
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
                                   return const SizedBox(
                                     height: 60,
                                     width: 60,
@@ -82,10 +85,14 @@ class CustomDrawerHeader extends StatelessWidget {
                                 final imageUrl = snapshot.data;
                                 return CircleAvatar(
                                   backgroundColor: Colors.white,
-                                  radius: 30,
-                                  backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
-                                      ? NetworkImage("$imageUrl?${DateTime.now().millisecondsSinceEpoch}")
-                                      : const AssetImage('assets/avatar.png') as ImageProvider,
+                                  radius: 35,
+                                  backgroundImage: (imageUrl != null &&
+                                          imageUrl.isNotEmpty)
+                                      ? NetworkImage(
+                                          "$imageUrl?${DateTime.now().millisecondsSinceEpoch}")
+                                      : const AssetImage(
+                                              'assets/place_holder_man.png')
+                                          as ImageProvider,
                                 );
                               },
                             ),
@@ -94,12 +101,13 @@ class CustomDrawerHeader extends StatelessWidget {
                           FutureBuilder<String>(
                             future: getUserName(roleProvider.role),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
                                 return const Text(
                                   'Loading...',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
+                                    fontSize: 10,
                                   ),
                                   textAlign: TextAlign.center,
                                 );
@@ -108,7 +116,7 @@ class CustomDrawerHeader extends StatelessWidget {
                                   'Error loading name',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
+                                    fontSize: 10,
                                   ),
                                   textAlign: TextAlign.center,
                                 );
@@ -117,7 +125,7 @@ class CustomDrawerHeader extends StatelessWidget {
                                   snapshot.data ?? 'N/A',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
                                   textAlign: TextAlign.center,
@@ -131,12 +139,14 @@ class CustomDrawerHeader extends StatelessWidget {
                     FutureBuilder<String?>(
                       future: AuthUtils.getCurrentUserId(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const CircularProgressIndicator();
                         }
 
                         if (snapshot.hasError || !snapshot.hasData) {
-                          return Text('Error: ${snapshot.error ?? "No user ID found"}');
+                          return Text(
+                              'Error: ${snapshot.error ?? "No user ID found"}');
                         }
 
                         String? userId = snapshot.data;
@@ -158,6 +168,60 @@ class CustomDrawerHeader extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<bool> _handleOfflineOrNoInternet(BuildContext context) async {
+    final onlineStatus =
+        Provider.of<OnlineStatusProvider>(context, listen: false);
+
+    String? message;
+    IconData? icon;
+    Color? backgroundColor;
+
+    if (!await isInternetAvailable()) {
+      message = 'No Internet Connection, Try again';
+      icon = Icons.wifi_off;
+      backgroundColor = Colors.redAccent;
+    } else if (!onlineStatus.isOnline) {
+      message = 'You are currently offline';
+      icon = Icons.cancel;
+      backgroundColor = Colors.orange;
+    }
+
+    if (message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(icon, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(message),
+            ],
+          ),
+          backgroundColor: backgroundColor,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+
+      Navigator.pop(context);
+      return false;
+    }
+
+    return true; // ✅ Continue only if everything is okay
+  }
+
+  Future<bool> isInternetAvailable() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<String?> _getProfileImageUrl(UserRole role) async {
@@ -190,7 +254,7 @@ Future<String> getUserName(UserRole role) async {
   final collection = (role == UserRole.courier) ? 'courier' : 'broker';
 
   final docSnapshot =
-  await FirebaseFirestore.instance.collection(collection).doc(userId).get();
+      await FirebaseFirestore.instance.collection(collection).doc(userId).get();
 
   if (docSnapshot.exists) {
     return docSnapshot.data()?['name'] ?? 'N/A';
@@ -222,12 +286,16 @@ class _CustomSwitchState extends State<CustomSwitch> {
     _value = widget.value;
   }
 
-  void _toggleSwitch() {
+  void _toggleSwitch(BuildContext context) {
     setState(() {
       _value = !_value;
     });
+    final BuildContext ctx = context; // ⬅️ Force cast to BuildContext
+    final onlineStatus = Provider.of<OnlineStatusProvider>(ctx, listen: false);
+    onlineStatus.setOnline(_value);
     widget.onChanged(_value);
   }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -239,10 +307,10 @@ class _CustomSwitchState extends State<CustomSwitch> {
           children: [
             // Wider Switch
             GestureDetector(
-              onTap: _toggleSwitch,
+              onTap: () => _toggleSwitch(context),
               child: Container(
                 width: 100.0, // ⬅️ Increased from 60 → 70
-                height: 30.0,
+                height: 28.0,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20.0),
                   color: _value ? Colors.green : Colors.grey,
@@ -252,11 +320,12 @@ class _CustomSwitchState extends State<CustomSwitch> {
                     AnimatedAlign(
                       duration: const Duration(milliseconds: 200),
                       alignment:
-                      _value ? Alignment.centerRight : Alignment.centerLeft,
+                          _value ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
                         width: 35.0,
                         height: 35.0,
-                        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 2, horizontal: 2),
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
@@ -274,11 +343,10 @@ class _CustomSwitchState extends State<CustomSwitch> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold, // 💪 Fully bold
-                color: _value ? Colors.white : Colors.grey[700], // ✅ Status color
+                color:
+                    _value ? Colors.white : Colors.grey[700], // ✅ Status color
               ),
             ),
-
-
           ],
         ),
       ),
@@ -315,7 +383,8 @@ class _SwitchWithOnlineStatusState extends State<SwitchWithOnlineStatus> {
 
       if (userDoc.exists) {
         // Assuming 'isOnline' is a boolean field in Firestore
-        return userDoc['isOnline'] ?? false; // Default to false if 'isOnline' is not found
+        return userDoc['isOnline'] ??
+            false; // Default to false if 'isOnline' is not found
       } else {
         return false; // Default to false if user doesn't exist
       }
