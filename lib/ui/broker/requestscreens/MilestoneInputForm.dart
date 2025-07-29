@@ -98,25 +98,6 @@ class Milestoneinputform extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                /// Save Button
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: onSave,
-                    icon: const Icon(Icons.save),
-                    label: const Text("Save Milestone"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.lightGreen,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 15, vertical: 10),
-                      textStyle: const TextStyle(fontSize: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(15), // rounded corners
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

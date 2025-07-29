@@ -38,8 +38,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   final ScrollController _scrollController = ScrollController();
   List<MilestoneFormData> milestoneForms = [];
-  String emptyLegRequestID="";
-  late List<String> milestoneNodeID= [];
+  String emptyLegRequestID = "";
+  late List<String> milestoneNodeID = [];
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +68,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
     });
   }
+
   void _removeMilestoneForm(int index) {
     print("🚨 _removeMilestoneForm called with index: $index");
 
@@ -80,81 +82,26 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       }
 
       setState(() {
-        final nodeID = (index < milestoneNodeID.length) ? milestoneNodeID[index] : null;
+        final nodeID = (index < milestoneNodeID.length)
+            ? milestoneNodeID[index]
+            : null;
 
         milestoneForms.removeAt(index);
 
         if (index < milestoneNodeID.length) {
           milestoneNodeID.removeAt(index);
           print("🧾 nodeID to delete: $nodeID");
-           deleteMilestoneByID(nodeID.toString());  // uncomment if needed
+          deleteMilestoneByID(nodeID.toString()); // uncomment if needed
           print("✅ deleteMilestoneByID($nodeID) called");
         }
 
         print("✅ Removed from UI");
       });
-
     } catch (e, stack) {
       print("💥 Exception caught in _removeMilestoneForm:");
       print("🔴 Error: $e");
       print("📌 Stack trace:\n$stack");
     }
-  }
-
-
-  void _saveMilestone(int index) {
-    final form = milestoneForms[index];
-
-    // Empty field check
-    if (form.titleController.text.isEmpty ||
-        form.startController.text.isEmpty ||
-        form.endController.text.isEmpty) {
-      Fluttertoast.showToast(
-        msg: "Please complete all required fields for milestone #${index + 1}.",
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        gravity: ToastGravity.TOP, // 👈 This moves it to the top
-      );
-      return;
-    }
-
-    // Date validation
-    try {
-      final start = DateTime.parse(form.startController.text);
-      final end = DateTime.parse(form.endController.text);
-
-      if (!start.isBefore(end)) {
-        Fluttertoast.showToast(
-          msg: "Start date must be before end date in milestone #${index + 1}.",
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          gravity: ToastGravity.TOP, // 👈 This moves it to the top
-        );
-        return;
-      }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Invalid date format in milestone #${index + 1}.",
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        gravity: ToastGravity.TOP, // 👈 This moves it to the top
-      );
-      return;
-    }
-
-    // If everything is valid
-    print('Milestone #${index + 1} Saved:');
-    print('Title: ${form.titleController.text}');
-    print('Description: ${form.descriptionController.text}');
-    print('Start: ${form.startController.text}');
-    print('End: ${form.endController.text}');
-
-    Fluttertoast.showToast(
-      msg: "Milestone #${index + 1} saved.",
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
-      gravity: ToastGravity.TOP, // 👈 This moves it to the top
-    );
   }
 
   bool validate() {
@@ -273,9 +220,15 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Request New Job"),
+        title: const Text(
+          "Request New Job",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.lightGreen,
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white, // Ensures status bar icons/text are white
       ),
+
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -284,21 +237,83 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               if (!validate()) return;
 
               bool allMilestonesValid = true;
-              for (int i = 0; i < milestoneForms.length; i++) {
-                final form = milestoneForms[i];
-                if (form.titleController.text.isEmpty ||
-                    form.startController.text.isEmpty ||
-                    form.endController.text.isEmpty) {
-                  allMilestonesValid = false;
+
+              DateTime? submissionStart;
+              DateTime? submissionEnd;
+
+              try {
+                submissionStart = DateTime.parse(_submissionStartDateController.text);
+                submissionEnd = DateTime.parse(_submissionEndDateController.text);
+
+                if (submissionStart.isAfter(submissionEnd)) {
                   Fluttertoast.showToast(
-                    msg: "Please complete all milestone #${i + 1} fields.",
+                    msg: "Submission start date must be before or equal to end date.",
                     backgroundColor: Colors.red,
                     textColor: Colors.white,
-                    gravity: ToastGravity.TOP, // 👈 This moves it to the top
+                    gravity: ToastGravity.TOP,
                   );
-                  break;
+                  allMilestonesValid = false;
+                }
+              } catch (e) {
+                Fluttertoast.showToast(
+                  msg: "Invalid submission date format.",
+                  backgroundColor: Colors.red,
+                  textColor: Colors.white,
+                  gravity: ToastGravity.TOP,
+                );
+                allMilestonesValid = false;
+              }
+
+              if (allMilestonesValid) {
+                for (int i = 0; i < milestoneForms.length; i++) {
+                  final form = milestoneForms[i];
+
+                  final title = form.titleController.text.trim();
+
+                  // Check for empty fields
+                  if (title.isEmpty ||
+                      form.startController.text.isEmpty ||
+                      form.endController.text.isEmpty) {
+                    allMilestonesValid = false;
+                    Fluttertoast.showToast(
+                      msg: "Please complete all milestone #${i + 1} fields.",
+                      backgroundColor: Colors.red,
+                      textColor: Colors.white,
+                      gravity: ToastGravity.TOP,
+                    );
+                    break;
+                  }
+
+                  // Validate milestone dates
+                  try {
+                    final milestoneStart = DateTime.parse(form.startController.text);
+                    final milestoneEnd = DateTime.parse(form.endController.text);
+
+                    if (milestoneStart.isBefore(submissionStart!) ||
+                        milestoneEnd.isAfter(submissionEnd!)) {
+                      allMilestonesValid = false;
+                      Fluttertoast.showToast(
+                        msg:
+                        "Milestone #${i + 1} (${title}) dates must be within submission date range.",
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        gravity: ToastGravity.TOP,
+                      );
+                      break;
+                    }
+                  } catch (e) {
+                    allMilestonesValid = false;
+                    Fluttertoast.showToast(
+                      msg: "Invalid date format in milestone #${i + 1}.",
+                      backgroundColor: Colors.red,
+                      textColor: Colors.white,
+                      gravity: ToastGravity.TOP,
+                    );
+                    break;
+                  }
                 }
               }
+
 
               if (allMilestonesValid) {
                 Task task = Task(
@@ -425,7 +440,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                           );
                           return;
                         }
-                        _saveMilestone(i);
                         Fluttertoast.showToast(
                           msg: "Milestone #${i + 1} saved.",
                           backgroundColor: Colors.green,

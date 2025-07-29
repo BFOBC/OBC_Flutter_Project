@@ -37,11 +37,6 @@ class AddNewMilestoneEmptyLegScreenState extends State<AddNewMilestoneEmptyLeg> 
 
   final CollectionReference milestonesCollection =
   FirebaseFirestore.instance.collection('milestones');
-  Future<void> _saveMilestone(Map<String, dynamic> data) async {
-    DocumentReference docRef = await FirebaseFirestore.instance.collection('milestones').add(data);
-    milestoneIds.add(docRef.id); // ✅ ID list mein add karo
-    _fetchMilestones();
-  }
 
   Future<void> _saveMilestoneToFireStore(Milestone milestone) async {
     try {
@@ -80,7 +75,7 @@ class AddNewMilestoneEmptyLegScreenState extends State<AddNewMilestoneEmptyLeg> 
         ),
       );
       clearFields();
-      _fetchMilestones();
+      _fetchMilestones(widget.emptyLegRequestID);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving milestone: $e')),
@@ -92,17 +87,25 @@ class AddNewMilestoneEmptyLegScreenState extends State<AddNewMilestoneEmptyLeg> 
   @override
   void initState() {
     super.initState();
-    _fetchMilestones();
+    _fetchMilestones(widget.emptyLegRequestID);
+  }
+  Future<void> _fetchMilestones(String emptyLegRequestID) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('milestones')
+          .where('emptyLegRequestID', isEqualTo: emptyLegRequestID)
+          .get();
+
+      setState(() {
+        milestones = snapshot.docs
+            .map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>})
+            .toList();
+      });
+    } catch (e) {
+      print('Error fetching milestones: $e');
+    }
   }
 
-  Future<void> _fetchMilestones() async {
-    final snapshot = await FirebaseFirestore.instance.collection('milestones').get();
-    setState(() {
-      milestones = snapshot.docs
-          .map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>})
-          .toList();
-    });
-  }
   Future<void> _deleteMilestone(String id) async {
     showDialog(
       context: context,
@@ -143,7 +146,7 @@ class AddNewMilestoneEmptyLegScreenState extends State<AddNewMilestoneEmptyLeg> 
                   milestoneIds.remove(id); // ✅ Removes the ID from the list
                 });
 
-                _fetchMilestones(); // Refresh the UI or list
+                _fetchMilestones(widget.emptyLegRequestID); // Refresh the UI or list
 
                 Future.microtask(() {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -240,7 +243,7 @@ class AddNewMilestoneEmptyLegScreenState extends State<AddNewMilestoneEmptyLeg> 
       ),
     );
 
-    _fetchMilestones();
+    _fetchMilestones(widget.emptyLegRequestID);
   }
 
 

@@ -308,10 +308,42 @@ void _addLicenseField() {
                     const SizedBox(height: 10),
                     _buildLicenseCard(),
                     const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _saveProfile,
-                      child: const Text('Save'),
-                    ),
+                    GestureDetector(
+                      onTap: _saveProfile,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 120, vertical: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF2196F3), Color(0xFF21CBF3)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blueAccent.withOpacity(0.3),
+                              offset: const Offset(0, 4),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.save, color: Colors.white),
+                            SizedBox(width: 10),
+                            Text(
+                              'Save',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+
+
                   ],
                 ),
               ),

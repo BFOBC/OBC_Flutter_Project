@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -61,50 +65,101 @@ class ChatBubble extends StatelessWidget {
 
   /// 🟡 FILE SHIMMER HANDLER
   Widget _buildFilePreviewWithLoader(BuildContext context, String url) {
-    if (url.endsWith('.pdf')) {
-      return InkWell(
-        onTap: () => launchUrl(Uri.parse(url)),
-        child: Row(
-          children: const [
-            Icon(Icons.picture_as_pdf, color: Colors.red),
-            SizedBox(width: 8),
-            Text('View PDF'),
-          ],
-        ),
-      );
-    } else {
-      return FutureBuilder(
-        future: precacheImage(NetworkImage(url), context),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
+    final fileName = url.split('/').last;
+
+    return FutureBuilder<String?>(
+      future: _getLocalFilePathIfExists(fileName),
+      builder: (context, snapshot) {
+        final localPath = snapshot.data;
+
+        if (localPath != null) {
+          final file = File(localPath);
+
+          if (url.endsWith('.pdf')) {
+            return InkWell(
+              onTap: () => OpenFile.open(file.path),
+              child: Row(
+                children: const [
+                  Icon(Icons.picture_as_pdf, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('View PDF (Local)'),
+                ],
+              ),
+            );
+          } else {
             return InkWell(
               onTap: () => showDialog(
                 context: context,
-                builder: (_) => Dialog(child: Image.network(url)),
+                builder: (_) => Dialog(child: Image.file(file)),
               ),
-              child: Image.network(
-                url,
+              child: Image.file(
+                file,
                 height: 150,
                 width: 150,
                 fit: BoxFit.cover,
               ),
             );
-          } else {
-            // 🔄 Show simple loader instead of shimmer
-            return SizedBox(
-              height: 150,
-              width: 150,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.grey,
-                ),
-              ),
-            );
           }
-        },
-      );
-    }
+        }
+
+        // 🔁 If not downloaded yet, fallback to online preview
+        if (url.endsWith('.pdf')) {
+          return InkWell(
+            onTap: () => launchUrl(Uri.parse(url)),
+            child: Row(
+              children: const [
+                Icon(Icons.picture_as_pdf, color: Colors.red),
+                SizedBox(width: 8),
+                Text('View PDF'),
+              ],
+            ),
+          );
+        } else {
+          return FutureBuilder(
+            future: precacheImage(NetworkImage(url), context),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                return InkWell(
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => Dialog(child: Image.network(url)),
+                  ),
+                  child: Image.network(
+                    url,
+                    height: 150,
+                    width: 150,
+                    fit: BoxFit.cover,
+                  ),
+                );
+              } else {
+                return const SizedBox(
+                  height: 150,
+                  width: 150,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Future<String?> _getLocalFilePathIfExists(String fileName) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/$fileName';
+      final file = File(filePath);
+      if (await file.exists()) {
+        return filePath;
+      }
+    } catch (_) {}
+    return null;
   }
 
 

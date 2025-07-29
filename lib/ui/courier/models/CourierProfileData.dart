@@ -1,3 +1,5 @@
+import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
+
 import '../../common/models/Passport.dart';
 import '../../common/models/Visa.dart';
 
@@ -18,7 +20,7 @@ class CourierProfileData {
   bool? willingToDoFirstLastMile;
 
   String? profilePictureUrl; // Define it as a nullable String for URL
-
+  final List<Rating> ratings;
   // Empty constructor
   CourierProfileData({
     this.id,
@@ -37,6 +39,7 @@ class CourierProfileData {
     this.hasDrivingLicence,
     this.willingToDoFirstLastMile,
     this.profilePictureUrl, // Added profilePictureUrl to the constructor
+    this.ratings = const [],
   })  : visas = visas ?? [], // Default to an empty list if null
         passports = passports ?? [], // Default to an empty list if null
         _courierID = courierID ?? ''; // Default to an empty string if null
@@ -83,6 +86,10 @@ class CourierProfileData {
       hasDrivingLicence: map['drivingLicence'] as bool?,
       willingToDoFirstLastMile: map['firstLastMile'] as bool?,
       profilePictureUrl: map['profilePictureUrl'] as String?, // Added field
+      ratings: (map['ratings'] as List<dynamic>?)
+          ?.map((r) => Rating.fromMap(r as Map<String, dynamic>))
+          .toList() ??
+          [],
     );
   }
 

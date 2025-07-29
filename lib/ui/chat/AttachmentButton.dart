@@ -54,13 +54,14 @@ class AttachmentButton extends StatelessWidget {
             'fileUrl': url,
             'timestamp': Timestamp.now(),
             'isRead': false,
+            'isDownloaded':false
           });
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(json['message'] ?? 'Upload failed')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed,try again later')));
         }
       } catch (e) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Check your network')));
       }
     }
   }

@@ -1,14 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:broker_flutter_pp/ui/chat/AttachmentButton.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatBubble.dart';
-import 'package:broker_flutter_pp/ui/chat/FileBubble.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class ChatDetailScreen extends StatefulWidget {
   final String userID;
@@ -38,7 +42,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String otherUserID = widget.userID;
 
     if (currentUserID.isNotEmpty && otherUserID.isNotEmpty) {
-      // Ensure that the chatId is unique and consistent by sorting the user IDs
       String id1 = currentUserID.compareTo(otherUserID) < 0
           ? currentUserID
           : otherUserID;
@@ -47,28 +50,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           : currentUserID;
       String generatedChatId = '$id1-$id2';
 
-      // Check if chat already exists
-      var chatDoc =
-          await _firestore.collection('chats').doc(generatedChatId).get();
-
-      if (!chatDoc.exists) {
-        // Create a new chat document if it doesn't exist
-        await _firestore.collection('chats').doc(generatedChatId).set({
-          'users': [currentUserID, otherUserID],
-          'lastMessage': '',
-          'lastMessageTimestamp': FieldValue.serverTimestamp(),
-        });
-      }
-
+      // ✅ Just assign the chatId, do not create the document yet
       setState(() {
-        chatId =
-            generatedChatId; // Set the chatId to use in the message collection
+        chatId = generatedChatId;
       });
     }
   }
 
-  Future<Map<String, String>> _getUserDetails(
-      String userId, BuildContext context) async {
+  Future<Map<String, String>> _getUserDetails(String userId,
+      BuildContext context) async {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
     try {
@@ -102,7 +92,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _sendMessage() async {
-    if (_textController.text.isNotEmpty && chatId.isNotEmpty) {
+    if (_textController.text
+        .trim()
+        .isNotEmpty && chatId.isNotEmpty) {
       try {
         String currentUserID =
             FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
@@ -111,22 +103,28 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
         DocumentReference chatRef = _firestore.collection('chats').doc(chatId);
 
-        // Add new message to the messages subcollection within the chat
+        // ✅ Create chat doc only if it doesn't exist yet
+        var chatDoc = await chatRef.get();
+        if (!chatDoc.exists) {
+          await chatRef.set({
+            'users': [currentUserID, widget.userID],
+          });
+        }
+
         await chatRef.collection('messages').add({
           'senderId': currentUserID,
           'messageText': messageText,
           'timestamp': timestamp,
           'fileUrl': null,
           'isRead': false,
+          'isDownloaded': false
         });
 
-        // Update chat metadata with last message details
+        // ✅ Update chat metadata
         await chatRef.set({
-          'users': FieldValue.arrayUnion([currentUserID]),
-          // Ensure user ID is added to array
           'lastMessage': messageText,
           'lastMessageTimestamp': timestamp,
-        }, SetOptions(merge: true)); // Merge to avoid overwriting existing data
+        }, SetOptions(merge: true));
 
         _textController.clear();
       } catch (error) {
@@ -171,100 +169,210 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
       ),
       body: chatId
-              .isEmpty // Add check to show loading state until chatId is available
+          .isEmpty // Add check to show loading state until chatId is available
           ? const Center(
-              child: CircularProgressIndicator()) // Show a loading spinner
+          child: CircularProgressIndicator()) // Show a loading spinner
           : Column(
-              children: [
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _firestore
-                        .collection('chats')
-                        .doc(chatId)
-                        .collection('messages')
-                        .orderBy('timestamp', descending: true)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('chats')
+                  .doc(chatId)
+                  .collection('messages')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(10),
+                  reverse: true,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final text = message['messageText'] ?? '';
+                    final isSender = message['senderId'] ==
+                        FirebaseAuth.instance.currentUser?.uid;
+                    final isDownloaded = message['isDownloaded'] ?? false;
+                    final timestamp =
+                        (message['timestamp'] as Timestamp?)?.toDate() ??
+                            DateTime.now();
+
+                    // Compare minute-level timestamps to avoid repeating
+                    bool showTime = true;
+                    if (lastShownTime != null) {
+                      Duration diff =
+                      lastShownTime!.difference(timestamp).abs();
+                      if (diff.inMinutes < 1) {
+                        showTime = false;
                       }
-                      final messages = snapshot.data!.docs;
+                    }
 
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(10),
-                        reverse: true,
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          final text = message['messageText'] ?? '';
-                          final isSender = message['senderId'] ==
-                              FirebaseAuth.instance.currentUser?.uid;
-                          final timestamp =
-                              (message['timestamp'] as Timestamp?)?.toDate() ??
-                                  DateTime.now();
+                    lastShownTime = timestamp;
 
-                          // Compare minute-level timestamps to avoid repeating
-                          bool showTime = true;
-                          if (lastShownTime != null) {
-                            Duration diff =
-                                lastShownTime!.difference(timestamp).abs();
-                            if (diff.inMinutes < 1) {
-                              showTime = false;
-                            }
-                          }
+                    final fileUrl = message['fileUrl'] ?? '';
+                    print('fileUrl$fileUrl');
+                    print('isSender$isSender');
+                    print('isDownloaded$isDownloaded');
+                    // ✅ Auto download file if needed
+                    if (fileUrl.isNotEmpty &&
+                        !isSender &&
+                        !isDownloaded) {
+                      _downloadFileAndUpdate(message, context);
+                    }
 
-                          lastShownTime = timestamp;
-
-                          final fileUrl = message['fileUrl'] ?? '';
-                          print('fileUrl$fileUrl');
-
-                          return ChatBubble(
-                            isSender: isSender,
-                            text: text,
-                            fileUrl: fileUrl,
-                            timestamp: message['timestamp'],
-                            // ✅ Firestore Timestamp
-                            showTimestamp: showTime,
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Row(
-                    children: [
-                      AttachmentButton(chatId: chatId), // 👈 Add this line
-                      Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          decoration: InputDecoration(
-                            hintText: 'Enter message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(
-                                color: Colors.grey,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 15, vertical: 10),
+                    return ChatBubble(
+                      isSender: isSender,
+                      text: text,
+                      fileUrl: fileUrl,
+                      timestamp: message['timestamp'],
+                      // ✅ Firestore Timestamp
+                      showTimestamp: showTime,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          SafeArea(
+            bottom: true,
+            child: Padding(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter message...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: const BorderSide(
+                            color: Colors.grey,
                           ),
                         ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 10),
+                        prefixIcon: AttachmentButton(
+                            chatId: chatId), // 👈 inside input
                       ),
-                      const SizedBox(width: 8),
-                      FloatingActionButton(
-                        onPressed: _sendMessage,
-                        backgroundColor: Palette.primaryColor,
-                        mini: true,
-                        child: const Icon(Icons.send),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  FloatingActionButton(
+                    onPressed: _sendMessage,
+                    backgroundColor: Palette.primaryColor,
+                    mini: true,
+                    child: const Icon(
+                      Icons.send,
+                      color: Colors.white, // 👈 white color set
+                    ),
+                  ),
+                ],
+              ),
             ),
+          )
+        ],
+      ),
     );
   }
+
+  void _downloadFileAndUpdate(QueryDocumentSnapshot message,
+      BuildContext context) async {
+    try {
+      final ctx = context;
+      final fileUrl = message['fileUrl'];
+      final fileName = fileUrl
+          .split('/')
+          .last;
+
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/$fileName';
+
+      final response = await http.get(Uri.parse(fileUrl));
+
+      if (response.statusCode == 200) {
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        // 🔁 Update Firestore to prevent re-download
+        await message.reference.update({
+          'isDownloaded': true,
+          'localPath': filePath, // 👈 add this
+        });
+
+        deleteFileFromServer(ctx, fileUrl);
+        // ✅ Show success snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ File downloaded: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // ❌ Show error snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '❌ Failed to download file (Status: ${response.statusCode})'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // ❌ Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Download error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> deleteFileFromServer(BuildContext context, String fileUrl) async {
+    if (fileUrl.isEmpty) {
+      print("🚨 fileUrl is empty");
+      return;
+    }
+
+    final cleanPath = Uri.parse(fileUrl).path; // /uploads/abc.jpg
+
+    final uri = Uri.parse('https://mopogotechnologies.com/api/delete_file_by_url.php');
+
+    try {
+      var request = http.MultipartRequest('POST', uri);
+      request.fields['fileUrl'] = cleanPath;
+
+      print('📤 Sending multipart payload: fileUrl = $cleanPath');
+
+      var response = await request.send();
+
+      final respStr = await response.stream.bytesToString();
+      print('📥 Status: ${response.statusCode}');
+      print('📥 Body: $respStr');
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Deleted: ${respStr}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Failed: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      print('🚨 Exception: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('🚨 Error: $e')),
+      );
+    }
+  }
+
+
 }

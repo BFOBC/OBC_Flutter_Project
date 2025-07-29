@@ -3,6 +3,7 @@ import 'package:broker_flutter_pp/ui/broker/mission/PlaceNewJob.dart';
 import 'package:broker_flutter_pp/ui/broker/requestscreens/Submission.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
+import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/UserAvatar.dart';
@@ -52,7 +53,7 @@ class _SearchCourierState extends State<SearchCourier> {
     "Neutral": 30,
   };
 
-  final List<Color> colorList = [
+  final List<Color> _colorList = [
     Colors.red,
     Colors.green,
     Colors.blue,
@@ -84,6 +85,39 @@ class _SearchCourierState extends State<SearchCourier> {
     super.initState();
     widget.courierKey = widget.courierKey.replaceAll(RegExp(r'[\[\]<>]'), '').replaceAll("'", "");
     fetchCourierData(); // Fetch model when the screen is initialized
+
+    if (courierProfile?.ratings != null && courierProfile!.ratings!.isNotEmpty) {
+      int negativeCount = 0;
+      int neutralCount = 0;
+      int positiveCount = 0;
+
+      // Categorize ratings
+      for (var ratingItem in courierProfile!.ratings!) {
+        double rating = ratingItem.rating?.toDouble() ?? 0.0;
+
+        if (rating < 3) {
+          negativeCount++;
+        } else if (rating >= 5 && rating < 8) {
+          neutralCount++;
+        } else if (rating >= 8) {
+          positiveCount++;
+        }
+      }
+
+      // Calculate percentages
+      int total = negativeCount + neutralCount + positiveCount;
+      if (total > 0) {
+        dataMap["Negative"] = (negativeCount / total) * 100;
+        dataMap["Neutral"] = (neutralCount / total) * 100;
+        dataMap["Positive"] = (positiveCount / total) * 100;
+      } else {
+        // If no ratings, mark neutral by default
+        dataMap["Neutral"] = 100;
+      }
+    } else {
+      // If no ratings available, set 100% Neutral
+      dataMap["Neutral"] = 100;
+    }
   }
 
   // Fetch courier model from Firestore
@@ -195,75 +229,186 @@ class _SearchCourierState extends State<SearchCourier> {
                 if (_showVisas)
                   Visas(visas: visas),
                 if (_showPieChart)
-                  SizedBox(
-                    child: Center(
-                      child: CircularRating(
-                        dataMap: dataMap,
-                        colorList: colorList,
-                        showLegendAtBottom: true, // 👈 Just set this where needed
-                      ),
+                  Padding(
+                    padding:
+                    const EdgeInsets.symmetric(vertical: 10),
+                    child: CircularRating(
+                      dataMap: calculateRatingDistribution(
+                          courierProfile!.ratings ?? []),
+                      colorList: _colorList,
                     ),
                   ),
+
+                if (_showPieChart) ...[
+                  courierProfile!.ratings != null &&
+                      courierProfile!.ratings!.isNotEmpty
+                      ? ListView.builder(
+                    shrinkWrap: true,
+                    physics:
+                    const NeverScrollableScrollPhysics(),
+                    itemCount: courierProfile!.ratings!.length,
+                    itemBuilder: (context, index) {
+                      var ratingItem =
+                      courierProfile!.ratings![index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 5, horizontal: 15),
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(10),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ratingItem.from ??
+                                    "Anonymous",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              RatingBarIndicator(
+                                rating: ratingItem.rating
+                                    ?.toDouble() ??
+                                    0.0,
+                                itemBuilder: (context,
+                                    index) =>
+                                const Icon(Icons.star,
+                                    color:
+                                    Colors.amber),
+                                itemCount: 5,
+                                itemSize: 20.0,
+                                direction: Axis.horizontal,
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                ratingItem.comment ??
+                                    "No comment provided.",
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color:
+                                    Colors.grey[700]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                      : const Text("No rating available",
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold)),
+                ],
 
               ],
             ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: SafeArea( // ✅ Prevents overlap with system UI
+            child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 200,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SubmissionScreen(
-                            brokerKey: AuthUtils.getCurrentUserId2().toString(),
-                            courierKey: widget.courierKey,
-                            onSave: (Task) {},
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Chat button (⬆️ moved to top)
+                    SizedBox(
+                      width: 200,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ChatDetailScreen(userID: widget.courierKey),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.chat, color: Colors.white),
+                        label: const Text("Chat"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[500],
+                          foregroundColor: Colors.white,
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Palette.secondaryColor,
-                      foregroundColor: Colors.white,
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.0),
                       ),
                     ),
-                    child: const Text('Place the Job'),
-                  ),
+
+                    const SizedBox(height: 10),
+
+                    // Place the Job button with icon
+                    SizedBox(
+                      width: 200,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SubmissionScreen(
+                                brokerKey: AuthUtils.getCurrentUserId2().toString(),
+                                courierKey: widget.courierKey,
+                                onSave: (Task) {},
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.work, color: Colors.white),
+                        label: const Text("Place the Job"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Palette.secondaryColor,
+                          foregroundColor: Colors.white,
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          // Floating Action Button Positioned Above
-          Positioned(
-            bottom: 70, // Position it above the "Place the Job" button
-            right: 20, // Adjust to align with the screen edge
-            child: FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ChatDetailScreen(userID: widget.courierKey),
-                  ),
-                );
-              },
-              backgroundColor: Colors.blue,
-              child: Icon(Icons.chat, color: Colors.white),
-            ),
-          ),
+
         ],
       ),
     );
+  }
+  Map<String, double> calculateRatingDistribution(List<Rating> ratings) {
+    double negativeCount = 0;
+    double neutralCount = 0;
+    double positiveCount = 0;
+
+    for (var ratingItem in ratings) {
+      double ratingValue = ratingItem.rating?.toDouble() ?? 0.0;
+
+      if (ratingValue < 3) {
+        negativeCount++;
+      } else if (ratingValue >= 5 && ratingValue < 8) {
+        neutralCount++;
+      } else if (ratingValue >= 8) {
+        positiveCount++;
+      }
+    }
+
+    // Handle case where no ratings match categories
+    if (negativeCount == 0 && neutralCount == 0 && positiveCount == 0) {
+      neutralCount = 1; // Default to 0 neutral if no ratings found
+    }
+
+    return {
+      "Negative": negativeCount,
+      "Neutral": neutralCount,
+      "Positive": positiveCount,
+    };
   }
 }
