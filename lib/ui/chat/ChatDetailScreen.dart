@@ -305,6 +305,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           'isDownloaded': true,
           'localPath': filePath, // 👈 add this
         });
+        print("deleteFileFromServer going to call $fileUrl");
 
         deleteFileFromServer(ctx, fileUrl);
         // ✅ Show success snackbar

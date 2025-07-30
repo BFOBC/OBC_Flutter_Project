@@ -1,4 +1,5 @@
 
+import 'package:broker_flutter_pp/ui/auth/SignIn.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -112,12 +113,17 @@ class _CardViewState extends State<CardView> {
           }
         } else {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(errorMessage),
-                backgroundColor: Colors.red,
-              ),
-            );
+            if (errorMessage == "Blocked user") {
+              showBlockedDialog(context);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(errorMessage),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+
           }
         }
       } catch (e) {
@@ -173,17 +179,34 @@ class _CardViewState extends State<CardView> {
           .get();
 
       String? actualRole;
+      DocumentSnapshot? userDoc;
       if (brokerDoc.exists) {
         actualRole = 'broker';
+        userDoc = brokerDoc;
       } else if (courierDoc.exists) {
         actualRole = 'courier';
+        userDoc = courierDoc;
       }
 
-      // ❌ Role mismatch
+      // ❌ Mismatch in selected role vs actual
       if (actualRole != null && actualRole != selectedRole) {
         await FirebaseAuth.instance.signOut();
         return "This email is registered as a $actualRole. Please login using the correct role.";
       }
+
+      // ❌ Check blockUser flag
+// ❌ Check blockUser flag (Safely!)
+      if (userDoc != null && userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+
+        final isBlocked = data.containsKey('blockUser') && data['blockUser'] == true;
+
+        if (isBlocked) {
+          await FirebaseAuth.instance.signOut();
+          return "Blocked user";
+        }
+      }
+
 
       // ✅ If role not set yet (first-time login), create new doc
       if (actualRole == null) {
@@ -192,12 +215,14 @@ class _CardViewState extends State<CardView> {
         FirebaseFirestore.instance.collection(collectionName).doc(uid);
 
         Map<String, dynamic> userData = {
+          'blockedUser': false,
           'email': email,
           'role': selectedRole,
           'createdAt': FieldValue.serverTimestamp(),
           'id': uid,
           'name': selectedRole == 'courier' ? 'Test Courier' : 'Test Broker',
         };
+
 
         if (selectedRole == 'courier') {
           userData.addAll({
@@ -227,6 +252,82 @@ class _CardViewState extends State<CardView> {
       return "Something went wrong. Please try again.";
     }
   }
+  void showBlockedDialog(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "Account Blocked",
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.5), // Dim background
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return const SizedBox.shrink(); // Required placeholder
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+          child: Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.block, color: Colors.redAccent, size: 50),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Account Deactivate",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "Your account is not active.\nPlease contact support +923065000660.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.black54, fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        FirebaseAuth.instance.signOut();
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text("Ok"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
