@@ -224,6 +224,8 @@ class _CourierProfileState extends State<CourierProfile> {
         data['passports'] = passports.map((passport) => passport.toMap()).toList();
       }
 
+      data['isProfileCompleted']=true;
+
       if (data.isNotEmpty) {
         await _firestore
             .collection('courier')

@@ -1,5 +1,7 @@
 
 import 'package:broker_flutter_pp/ui/auth/SignIn.dart';
+import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart';
+import 'package:broker_flutter_pp/ui/courier/CourierProfile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -69,80 +71,8 @@ class _CardViewState extends State<CardView> {
   Future<void> _submitForm() async {
     print("SubmitForm called");
 
-    if (_formKey.currentState!.validate()) {
-      print("Form validated");
-
-      showProgressDialog(context);
-
-      try {
-        final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-        final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
-        roleProvider.setRole(role);
-
-        String email = _emailController.text.trim();
-        String password = _passwordController.text;
-
-        String? errorMessage = await signInAndSaveUser(email, password, _selectedIndex);
-
-        // ✅ Save credentials if rememberMe is checked
-// ✅ Save credentials + role if rememberMe is checked
-        if (_rememberMe) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('email', email);
-          await prefs.setString('password', password);
-          await prefs.setBool('rememberMe', true);
-
-          // 🔐 Save the role string ("broker" or "courier")
-          await prefs.setString('role', role == UserRole.broker ? 'Broker' : 'Courier');
-        } else {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.remove('email');
-          await prefs.remove('password');
-          await prefs.setBool('rememberMe', false);
-          await prefs.remove('role');
-        }
-
-
-        if (context.mounted) hideProgressDialog(context);
-
-        if (errorMessage == null) {
-          if (context.mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const DrawerScreen()),
-            );
-          }
-        } else {
-          if (context.mounted) {
-            if (errorMessage == "Blocked user") {
-              showBlockedDialog(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(errorMessage),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-
-          }
-        }
-      } catch (e) {
-        if (context.mounted) hideProgressDialog(context);
-
-        print("Exception occurred: $e");
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Something went wrong. Please try again."),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } else {
+    if (!_formKey.currentState!.validate()) {
       print("Form validation failed");
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -151,11 +81,139 @@ class _CardViewState extends State<CardView> {
           ),
         );
       }
+      return;
+    }
+
+    print("Form validated");
+    showProgressDialog(context);
+
+    try {
+      // Set role based on tab selection
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
+      roleProvider.setRole(role);
+
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      // Attempt login and retrieve result
+      final result = await signInAndSaveUser(email, password, _selectedIndex);
+
+      // Save or clear shared preferences based on Remember Me
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('email', email);
+        await prefs.setString('password', password);
+        await prefs.setBool('rememberMe', true);
+        await prefs.setString('role', role == UserRole.broker ? 'Broker' : 'Courier');
+      } else {
+        await prefs.remove('email');
+        await prefs.remove('password');
+        await prefs.setBool('rememberMe', false);
+        await prefs.remove('role');
+      }
+
+      if (context.mounted) hideProgressDialog(context);
+
+      // Handle login error response
+      if (result != null && result.containsKey('error')) {
+        final errorMessage = result['error'];
+
+        if (context.mounted) {
+          if (errorMessage == "Blocked user") {
+            showBlockedDialog(context);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+        return;
+      }
+
+      // Login successful, check profile completion
+      final isProfileCompleted = result?['isProfileCompleted'] ?? false;
+
+      if (!isProfileCompleted) {
+        if (context.mounted) {
+          Future.delayed(Duration.zero, () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  backgroundColor: Colors.white,
+                  title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Icon(Icons.info_outline, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          "Incomplete Profile",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                  content: const Text(
+                    "You must complete your profile before using the app.",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text("OK", style: TextStyle(color: Colors.orange)),
+                    ),
+                  ],
+                );
+              },
+            );
+          });
+
+          // Navigate to BrokerProfileScreen or CourierProfile based on role
+          if (role == UserRole.broker) {
+            final brokerProfile = Provider.of<RoleProvider>(context, listen: false).brokerProfile;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => BrokerProfileScreen(brokerProfile: brokerProfile)),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => CourierProfile()),
+            );
+          }
+        }
+      } else {
+        // Profile is completed, move to home screen
+        if (context.mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const DrawerScreen()),
+          );
+        }
+      }
+
+    } catch (e) {
+      if (context.mounted) hideProgressDialog(context);
+
+      print("Exception occurred: $e");
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Something went wrong. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<String?> signInAndSaveUser(
-      String email, String password, int selectedIndex) async {
+  Future<Map<String, dynamic>?> signInAndSaveUser(String email, String password, int selectedIndex) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
@@ -191,22 +249,27 @@ class _CardViewState extends State<CardView> {
       // ❌ Mismatch in selected role vs actual
       if (actualRole != null && actualRole != selectedRole) {
         await FirebaseAuth.instance.signOut();
-        return "This email is registered as a $actualRole. Please login using the correct role.";
+        return {'error': "This email is registered as a $actualRole. Please login using the correct role."};
       }
 
-      // ❌ Check blockUser flag
-// ❌ Check blockUser flag (Safely!)
+      // ❌ Check blockUser flag (Safely!)
       if (userDoc != null && userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
 
         final isBlocked = data.containsKey('blockUser') && data['blockUser'] == true;
-
         if (isBlocked) {
           await FirebaseAuth.instance.signOut();
-          return "Blocked user";
+          return {'error': "Blocked user"};
         }
-      }
 
+        // ✅ Also make sure isProfileCompleted key exists
+        if (!data.containsKey('isProfileCompleted')) {
+          await userDoc.reference.update({'isProfileCompleted': false});
+          data['isProfileCompleted'] = false;
+        }
+
+        return data; // ✅ Return full data with isProfileCompleted
+      }
 
       // ✅ If role not set yet (first-time login), create new doc
       if (actualRole == null) {
@@ -221,8 +284,8 @@ class _CardViewState extends State<CardView> {
           'createdAt': FieldValue.serverTimestamp(),
           'id': uid,
           'name': selectedRole == 'courier' ? 'Test Courier' : 'Test Broker',
+          'isProfileCompleted': false,
         };
-
 
         if (selectedRole == 'courier') {
           userData.addAll({
@@ -239,19 +302,22 @@ class _CardViewState extends State<CardView> {
 
         await userDocRef.set(userData);
         print("📝 New $selectedRole record created.");
-      } else {
-        print("ℹ️ Existing $actualRole user logged in.");
+
+        // Fetch newly created user doc and return it
+        DocumentSnapshot newUserDoc = await userDocRef.get();
+        return newUserDoc.data() as Map<String, dynamic>? ?? {};
       }
 
-      return null; // no error
+      return {'error': "User data not found"};
     } on FirebaseAuthException catch (e) {
       print("❌ Firebase Auth Error: ${e.code} - ${e.message}");
-      return e.message;
+      return {'error': e.message ?? "Authentication failed."};
     } catch (e) {
       print("❌ Unknown error: $e");
-      return "Something went wrong. Please try again.";
+      return {'error': "Something went wrong. Please try again."};
     }
   }
+
   void showBlockedDialog(BuildContext context) {
     showGeneralDialog(
       context: context,

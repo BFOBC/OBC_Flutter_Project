@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
@@ -9,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import '../ui/common/utils/DateTimePicker.dart';
@@ -92,6 +94,7 @@ class FirestoreService {
   }
 
   Future<void> saveBrokerProfile({
+    required bool isProfileCompleted,
     required String userId,
     required String email,
     required String? profilePictureUrl,
@@ -118,12 +121,18 @@ class FirestoreService {
         'license': updatedLicenses,
         'email': email,
         'profilePictureUrl': profilePictureUrl,
+        'isProfileCompleted': isProfileCompleted,
       };
 
       await userDoc.set(newData, SetOptions(merge: true));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved successfully!')),
+      Fluttertoast.showToast(
+        msg: "✅ Profile saved successfully!",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

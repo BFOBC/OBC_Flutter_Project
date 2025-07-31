@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
+import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -90,9 +91,10 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     }
 
     try {
-      FirestoreService firestoreService = FirestoreService(context);
+      FirestoreService service = FirestoreService(context);
 
-      await firestoreService.saveBrokerProfile(
+      await service.saveBrokerProfile(
+        isProfileCompleted: true,
         userId: _currentUser.uid,
         email: _currentUser.email.toString(),
         profilePictureUrl: _profilePictureUrl,
@@ -103,6 +105,9 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         phoneNumberController: _selectedPhoneNumber,
         paymentTermsController: _paymentTermsController,
         licenseControllers: _licenseControllers,
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const DrawerScreen()),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,7 +171,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           _isUploading = false;
         });
 
-        showCustomToast("Profile updated successfully!");
+        showCustomToast("Profile Picture Updated!");
       } else {
         setState(() {
           _isUploading = false;
