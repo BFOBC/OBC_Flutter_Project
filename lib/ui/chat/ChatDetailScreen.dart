@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
 
+import 'dart:io';
 import 'package:broker_flutter_pp/ui/chat/AttachmentButton.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatBubble.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -8,10 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
-import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
 class ChatDetailScreen extends StatefulWidget {

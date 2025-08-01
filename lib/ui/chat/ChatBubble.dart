@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:broker_flutter_pp/ui/chat/VideoPlayerWidget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -71,11 +72,19 @@ class ChatBubble extends StatelessWidget {
       future: _getLocalFilePathIfExists(fileName),
       builder: (context, snapshot) {
         final localPath = snapshot.data;
+        final isPDF = url.toLowerCase().endsWith('.pdf');
+        final isVideo = url.toLowerCase().endsWith('.mp4') ||
+            url.toLowerCase().endsWith('.mov') ||
+            url.toLowerCase().endsWith('.webm');
+        final isAudio = url.toLowerCase().endsWith('.mp3') ||
+            url.toLowerCase().endsWith('.wav') ||
+            url.toLowerCase().endsWith('.m4a') ||
+            url.toLowerCase().endsWith('.aac');
 
         if (localPath != null) {
           final file = File(localPath);
 
-          if (url.endsWith('.pdf')) {
+          if (isPDF) {
             return InkWell(
               onTap: () => OpenFile.open(file.path),
               child: Row(
@@ -86,7 +95,9 @@ class ChatBubble extends StatelessWidget {
                 ],
               ),
             );
-          } else {
+          } else if (isVideo) {
+            return _buildVideoPlayer(file.path, isLocal: true);
+          }else {
             return InkWell(
               onTap: () => showDialog(
                 context: context,
@@ -102,8 +113,8 @@ class ChatBubble extends StatelessWidget {
           }
         }
 
-        // 🔁 If not downloaded yet, fallback to online preview
-        if (url.endsWith('.pdf')) {
+        // 🔁 If file not available locally
+        if (isPDF) {
           return InkWell(
             onTap: () => launchUrl(Uri.parse(url)),
             child: Row(
@@ -114,6 +125,8 @@ class ChatBubble extends StatelessWidget {
               ],
             ),
           );
+        } else if (isVideo) {
+          return _buildVideoPlayer(url, isLocal: false);
         } else {
           return FutureBuilder(
             future: precacheImage(NetworkImage(url), context),
@@ -136,10 +149,7 @@ class ChatBubble extends StatelessWidget {
                   height: 150,
                   width: 150,
                   child: Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.grey,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.grey),
                   ),
                 );
               }
@@ -147,6 +157,17 @@ class ChatBubble extends StatelessWidget {
           );
         }
       },
+    );
+  }
+
+  Widget _buildVideoPlayer(String path, {required bool isLocal}) {
+    return SizedBox(
+      height: 200,
+      width: 200,
+      child: VideoPlayerWidget(
+        videoUrl: path,
+        isLocal: isLocal,
+      ),
     );
   }
 

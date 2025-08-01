@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
@@ -17,12 +16,11 @@ import 'package:http/http.dart' as http;
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-
 class BrokerProfileScreen extends StatefulWidget {
-
   final BrokerProfileData brokerProfile;
 
   const BrokerProfileScreen({super.key, required this.brokerProfile});
+
   @override
   _BrokerProfileScreenState createState() => _BrokerProfileScreenState();
 }
@@ -43,20 +41,21 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   File? _image;
   String uploadedImageUrl = "";
   bool _isUploading = false;
+
   @override
   void initState() {
     super.initState();
     _initializeProfile();
     print("Broker Profile name URL: ${widget.brokerProfile.name}");
-
   }
+
   Future<void> _initializeProfile() async {
     _currentUser = FirebaseAuth.instance.currentUser!;
     DocumentSnapshot profileSnapshot =
         await _firestore.collection('broker').doc(_currentUser.uid).get();
+    Map<String, dynamic> data = profileSnapshot.data() as Map<String, dynamic>;
 
     if (profileSnapshot.exists) {
-      Map<String, dynamic> data = profileSnapshot.data() as Map<String, dynamic>;
       _nameController.text = data['name'] ?? 'N/A';
       _websiteController.text = data['website'] ?? 'N/A';
       _companyNameController.text = data['company'] ?? 'N/A';
@@ -70,25 +69,94 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     } else {
       _licenseControllers = [TextEditingController()];
     }
+    final isProfileCompleted = data?['isProfileCompleted'] ?? false;
 
-    setState(() {
+    if (!isProfileCompleted) {
+      if (context.mounted) {
+        Future.delayed(Duration.zero, () {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                backgroundColor: Colors.white,
+                title: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(Icons.info_outline, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        "Incomplete Profile",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+                content: const Text(
+                  "You must complete your profile before using the app.",
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("OK",
+                        style: TextStyle(color: Colors.orange)),
+                  ),
+                ],
+              );
+            },
+          );
+        });
+      }
+    }
 
-    });
+    setState(() {});
   }
+
   Future<void> _saveProfile() async {
     // ✅ Validation before proceeding
-    if (_nameController.text.trim().isEmpty ||
-        _websiteController.text.trim().isEmpty ||
-        _companyNameController.text.trim().isEmpty ||
-        _countryController.text.trim().isEmpty ||
-        _selectedPhoneNumber.trim().isEmpty ||
-        _paymentTermsController.text.trim().isEmpty ||
-        _licenseControllers.any((c) => c.text.trim().isEmpty)) {
+    final missingFields = <String>[];
+
+    if (_nameController.text.trim().isEmpty || _nameController.text.trim() == "Test Broker") {
+      missingFields.add("Name");
+    }
+    if (_websiteController.text.trim().isEmpty || _websiteController.text.trim() == "N/A") {
+      missingFields.add("Website");
+    }
+    if (_companyNameController.text.trim().isEmpty  || _companyNameController.text.trim() == "N/A") {
+      missingFields.add("Company Name");
+    }
+    if (_countryController.text.trim().isEmpty || _countryController.text.trim() == "N/A") {
+      missingFields.add("Country");
+    }
+    if (_selectedPhoneNumber.trim().isEmpty) {
+      missingFields.add("Phone Number");
+    }
+    if (_paymentTermsController.text.trim().isEmpty || _paymentTermsController.text.trim() == "N/A") {
+      missingFields.add("Payment Terms");
+    }
+
+    if (missingFields.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
+        SnackBar(
+          content: Text('Please fill in the following field(s): ${missingFields.join(", ")}'),
+        ),
       );
       return;
     }
+
+    if (_licenseControllers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add the license')),
+      );
+      return;
+    }
+
 
     try {
       FirestoreService service = FirestoreService(context);
@@ -116,7 +184,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     }
   }
 
-
   Future<void> pickImageAndUpload() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
@@ -131,7 +198,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       return;
     }
 
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile == null) return;
 
     setState(() {
@@ -140,10 +208,12 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     });
 
     try {
-      final url = Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
+      final url =
+          Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
       final request = http.MultipartRequest('POST', url);
       request.fields['user_id'] = userId;
-      request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+      request.files
+          .add(await http.MultipartFile.fromPath('image', _image!.path));
 
       final response = await request.send();
       final resBody = await response.stream.bytesToString();
@@ -195,8 +265,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       File file = File(pickedFile.path);
       String fileName = 'profile_pictures/${_currentUser.uid}.jpg';
       try {
-        TaskSnapshot uploadTask =
-            await _storage.ref(fileName).putFile(file);
+        TaskSnapshot uploadTask = await _storage.ref(fileName).putFile(file);
         String downloadUrl = await uploadTask.ref.getDownloadURL();
 
         setState(() {
@@ -204,7 +273,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture uploaded successfully!')),
+          const SnackBar(
+              content: Text('Profile picture uploaded successfully!')),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,16 +285,16 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   }
 
   void _removeLicenseField(int index) {
-  setState(() {
-    _licenseControllers.removeAt(index);
-  });
-}
+    setState(() {
+      _licenseControllers.removeAt(index);
+    });
+  }
 
-void _addLicenseField() {
-  setState(() {
-    _licenseControllers.add(TextEditingController());
-  });
-}
+  void _addLicenseField() {
+    setState(() {
+      _licenseControllers.add(TextEditingController());
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -243,17 +313,19 @@ void _addLicenseField() {
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundImage: (uploadedImageUrl?.isNotEmpty == true)
-                              ? CachedNetworkImageProvider(
-                            "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
-                          )
-                              : (_profilePictureUrl?.isNotEmpty == true)
-                              ? CachedNetworkImageProvider(
-                            "${_profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
-                          )
-                              : const AssetImage('assets/place_holder_man.png') as ImageProvider,
+                          backgroundImage:
+                              (uploadedImageUrl?.isNotEmpty == true)
+                                  ? CachedNetworkImageProvider(
+                                      "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                                    )
+                                  : (_profilePictureUrl?.isNotEmpty == true)
+                                      ? CachedNetworkImageProvider(
+                                          "${_profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                                        )
+                                      : const AssetImage(
+                                              'assets/place_holder_man.png')
+                                          as ImageProvider,
                         ),
-
                         Positioned(
                           bottom: 0,
                           right: 4,
@@ -291,9 +363,10 @@ void _addLicenseField() {
                       ],
                     ),
                     const SizedBox(height: 15),
-                  //  _buildProfileField('Broker ID',_currentUser.uid),
+                    //  _buildProfileField('Broker ID',_currentUser.uid),
                     const SizedBox(height: 5),
-                    _buildNonEditableField('Email', _currentUser.email ?? 'N/A'),
+                    _buildNonEditableField(
+                        'Email', _currentUser.email ?? 'N/A'),
                     const SizedBox(height: 5),
                     _buildEditableField('Name', _nameController),
                     const SizedBox(height: 5),
@@ -309,14 +382,16 @@ void _addLicenseField() {
                       });
                     }),
                     const SizedBox(height: 5),
-                    _buildEditableField('Payment Terms', _paymentTermsController),
+                    _buildEditableField(
+                        'Payment Terms', _paymentTermsController),
                     const SizedBox(height: 10),
                     _buildLicenseCard(),
                     const SizedBox(height: 20),
                     GestureDetector(
                       onTap: _saveProfile,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 120, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 120, vertical: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           gradient: const LinearGradient(
@@ -347,8 +422,6 @@ void _addLicenseField() {
                         ),
                       ),
                     )
-
-
                   ],
                 ),
               ),
@@ -433,7 +506,7 @@ void _addLicenseField() {
     );
   }
 
-   Widget _buildEditableField(String label, TextEditingController controller) {
+  Widget _buildEditableField(String label, TextEditingController controller) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -496,7 +569,6 @@ void _addLicenseField() {
     );
   }
 
-
   Widget _buildLicenseCard() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
@@ -509,95 +581,96 @@ void _addLicenseField() {
             spreadRadius: 2,
             blurRadius: 5,
             offset: const Offset(0, 3),
-            ),
-            ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Licenses',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
-                    ),
-                    ),
-                    const SizedBox(height: 10),
-        // Render all license input fields
-        for (int i = 0; i < _licenseControllers.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _licenseControllers[i],
-                      decoration: const InputDecoration(
-                        hintText: 'Enter License',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(color: Colors.black45),
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeLicenseField(i),
-                  ),
-                ],
-              ),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Licenses',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
             ),
           ),
-        // Add License button
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(''), // Empty to align the button properly
-              ),
-              ElevatedButton(
-                onPressed: _addLicenseField,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
+          const SizedBox(height: 10),
+          // Render all license input fields
+          for (int i = 0; i < _licenseControllers.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10.0),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-                child: const Text('Add License'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _licenseControllers[i],
+                        decoration: const InputDecoration(
+                          hintText: 'Enter License',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: Colors.black45),
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z\s]')), // Example: Allow letters
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _removeLicenseField(i),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
+          // Add License button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(''), // Empty to align the button properly
+                ),
+                ElevatedButton(
+                  onPressed: _addLicenseField,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  child: const Text('Add License'),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 }

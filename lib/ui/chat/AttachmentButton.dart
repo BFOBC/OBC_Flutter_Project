@@ -10,67 +10,185 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class AttachmentButton extends StatelessWidget {
   final String chatId;
 
   const AttachmentButton({Key? key, required this.chatId}) : super(key: key);
 
-  Future<void> _pickAndUploadFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf']);
+  void _showAttachmentBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text('Pick Image'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _uploadFileToServer(context, pickerType: FileType.image);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf),
+                title: const Text('Pick PDF'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _uploadFileToServer(
+                    context,
+                    pickerType: FileType.custom,
+                    allowedExtensions: ['pdf'],
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Capture Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _uploadFileToServer(context, isCapture: true);
+                },
+              ),
+/*              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Capture Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _uploadFileToServer(context, isCapture: true, isVideoCapture: true);
+                },
+              ),*/
 
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-      final uri = Uri.parse('https://mopogotechnologies.com/api/upload_chat_file.php');
+            ],
+          ),
+        );
+      },
+    );
+  }
+  bool isFileSizeValid(File file, {int maxSizeInMB = 5}) {
+    final bytes = file.lengthSync();
+    final sizeInMB = bytes / (1024 * 1024);
+    return sizeInMB <= maxSizeInMB;
+  }
 
-      final request = http.MultipartRequest('POST', uri);
-      request.files.add(await http.MultipartFile.fromPath('file', file.path));
-      request.fields['user_id'] = userId;
-      request.fields['chat_id'] = chatId;
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+
+  Future<void> _uploadFileToServer(
+      BuildContext context, {
+        FileType? pickerType,
+        List<String>? allowedExtensions,
+        bool isCapture = false,
+        bool isVideoCapture = false,
+      }) async {
+    File? file;
+
+    if (isCapture) {
+      final picker = ImagePicker();
+      final media = isVideoCapture
+          ? await picker.pickVideo(source: ImageSource.camera)
+          : await picker.pickImage(source: ImageSource.camera);
+      if (media != null) {
+        file = File(media.path);
+      }
+    } else {
+      final result = await FilePicker.platform.pickFiles(
+        type: pickerType ?? FileType.any,
+        allowedExtensions: allowedExtensions,
       );
-
-      try {
-        final streamedResponse = await request.send();
-        final response = await http.Response.fromStream(streamedResponse);
-
-        Navigator.pop(context); // Close loader
-
-        final json = jsonDecode(response.body);
-        if (json['status'] == 'success') {
-          final url = json['url'];
-          await FirebaseFirestore.instance
-              .collection('chats')
-              .doc(chatId)
-              .collection('messages')
-              .add({
-            'senderId': userId,
-            'messageText': '',
-            'fileUrl': url,
-            'timestamp': Timestamp.now(),
-            'isRead': false,
-            'isDownloaded':false
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed,try again later')));
-        }
-      } catch (e) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Check your network')));
+      if (result?.files.single.path != null) {
+        file = File(result!.files.single.path!);
       }
     }
+
+    if (file == null) return;
+
+    // ===== File size check (limit: 5MB) =====
+    final int maxSizeInBytes = 5 * 1024 * 1024; // 5 MB
+    final int fileSize = await file.length();
+    if (fileSize > maxSizeInBytes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File size exceeds 5MB. Please choose a smaller file.')),
+      );
+      return;
+    }
+    // ========================================
+
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('User not logged in.')));
+      return;
+    }
+
+    final uri = Uri.parse('https://mopogotechnologies.com/api/upload_chat_file.php');
+    final request = http.MultipartRequest('POST', uri)
+      ..fields['user_id'] = userId
+      ..fields['chat_id'] = chatId
+      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final streamResp = await request.send();
+      final response = await http.Response.fromStream(streamResp);
+      Navigator.pop(context);
+
+      final json = jsonDecode(response.body);
+      if (json['status'] == 'success') {
+        final url = json['url'];
+
+        // Determine file type
+        final fileExtension = file.path.split('.').last.toLowerCase();
+        String fileType = 'unknown';
+        if (['mp3', 'm4a', 'aac', 'wav', 'ogg'].contains(fileExtension)) {
+          fileType = 'audio';
+        } else if (['mp4', 'mov', 'avi', 'mkv'].contains(fileExtension)) {
+          fileType = 'video';
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].contains(fileExtension)) {
+          fileType = 'image';
+        }
+
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(chatId)
+            .collection('messages')
+            .add({
+          'senderId': userId,
+          'messageText': '',
+          'fileUrl': url,
+          'timestamp': Timestamp.now(),
+          'isRead': false,
+          'isDownloaded': false,
+          'fileType': fileType,
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Upload failed, please try again later.')),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error. Please check your connection.')),
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.attach_file),
-      onPressed: () => _pickAndUploadFile(context),
+      onPressed: () => _showAttachmentBottomSheet(context),
     );
   }
 }

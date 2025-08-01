@@ -139,43 +139,6 @@ class _CardViewState extends State<CardView> {
 
       if (!isProfileCompleted) {
         if (context.mounted) {
-          Future.delayed(Duration.zero, () {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: Colors.white,
-                  title: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Icon(Icons.info_outline, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          "Incomplete Profile",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                  content: const Text(
-                    "You must complete your profile before using the app.",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text("OK", style: TextStyle(color: Colors.orange)),
-                    ),
-                  ],
-                );
-              },
-            );
-          });
-
           // Navigate to BrokerProfileScreen or CourierProfile based on role
           if (role == UserRole.broker) {
             final brokerProfile = Provider.of<RoleProvider>(context, listen: false).brokerProfile;
@@ -213,7 +176,7 @@ class _CardViewState extends State<CardView> {
     }
   }
 
-  Future<Map<String, dynamic>?> signInAndSaveUser(String email, String password, int selectedIndex) async {
+/*  Future<Map<String, dynamic>?> signInAndSaveUser(String email, String password, int selectedIndex) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
@@ -285,6 +248,7 @@ class _CardViewState extends State<CardView> {
           'id': uid,
           'name': selectedRole == 'courier' ? 'Test Courier' : 'Test Broker',
           'isProfileCompleted': false,
+          'isOnline': false
         };
 
         if (selectedRole == 'courier') {
@@ -309,6 +273,97 @@ class _CardViewState extends State<CardView> {
       }
 
       return {'error': "User data not found"};
+    } on FirebaseAuthException catch (e) {
+      print("❌ Firebase Auth Error: ${e.code} - ${e.message}");
+      return {'error': e.message ?? "Authentication failed."};
+    } catch (e) {
+      print("❌ Unknown error: $e");
+      return {'error': "Something went wrong. Please try again."};
+    }
+  }*/
+  Future<Map<String, dynamic>?> signInAndSaveUser(String email, String password, int selectedIndex) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      String uid = userCredential.user!.uid;
+      print("✅ Login successful: $uid");
+
+      // UI selection
+      String selectedRole = selectedIndex == 0 ? 'broker' : 'courier';
+
+      // Fetch both docs (partial or full)
+      DocumentSnapshot brokerDoc = await FirebaseFirestore.instance.collection('broker').doc(uid).get();
+      DocumentSnapshot courierDoc = await FirebaseFirestore.instance.collection('courier').doc(uid).get();
+
+      String? actualRole;
+      DocumentSnapshot? userDoc;
+
+      if (brokerDoc.exists) {
+        actualRole = 'broker';
+        userDoc = brokerDoc;
+      } else if (courierDoc.exists) {
+        actualRole = 'courier';
+        userDoc = courierDoc;
+      }
+
+      // ❌ Mismatch in selected vs actual
+      if (actualRole != null && actualRole != selectedRole) {
+        await FirebaseAuth.instance.signOut();
+        return {'error': "This email is registered as a $actualRole. Please login using the correct role."};
+      }
+
+      if (userDoc != null && userDoc.exists) {
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+
+        // ✅ Auto-complete missing fields on first login
+        Map<String, dynamic> updates = {};
+
+        if (!data.containsKey('id')) updates['id'] = uid;
+        if (!data.containsKey('createdAt')) updates['createdAt'] = FieldValue.serverTimestamp();
+        if (!data.containsKey('blockedUser')) updates['blockedUser'] = false;
+        if (!data.containsKey('isProfileCompleted')) updates['isProfileCompleted'] = false;
+        if (!data.containsKey('role')) updates['role'] = actualRole;
+        if (!data.containsKey('email')) updates['email'] = email;
+        if (!data.containsKey('name')) updates['name'] = actualRole == 'courier' ? 'Test Courier' : 'Test Broker';
+        if (!data.containsKey('isOnline')) updates['isOnline'] = true;
+        // For courier-specific fields
+        if (actualRole == 'courier') {
+          if (!data.containsKey('courierID')) updates['courierID'] = uid;
+          if (!data.containsKey('baseLocationLat')) updates['baseLocationLat'] = 51.1657;
+          if (!data.containsKey('baseLocationLong')) updates['baseLocationLong'] = 10.4515;
+          if (!data.containsKey('currentLocationLat')) updates['currentLocationLat'] = 51.1657;
+          if (!data.containsKey('currentLocationLong')) updates['currentLocationLong'] = 10.4515;
+          if (!data.containsKey('country')) updates['country'] = 'Germany';
+          if (!data.containsKey('base')) updates['base'] = true;
+          if (!data.containsKey('current')) updates['current'] = false;
+        }
+
+        // For broker-specific fields
+        if (actualRole == 'broker' && !data.containsKey('brokerID')) {
+          updates['brokerID'] = uid;
+        }
+
+        if (updates.isNotEmpty) {
+          await userDoc.reference.set(updates, SetOptions(merge: true));
+          print("✅ Auto-filled missing fields for $actualRole.");
+          // Also update local `data` with new fields for return
+          data.addAll(updates);
+        }
+
+        // ✅ Blocked check
+        if (data['blockedUser'] == true) {
+          await FirebaseAuth.instance.signOut();
+          return {'error': "Blocked user"};
+        }
+
+        return data;
+      }
+
+      // ❌ If user doesn't exist even partially (unexpected)
+      await FirebaseAuth.instance.signOut();
+      return {'error': "No role assigned to this account. Please contact support."};
+
     } on FirebaseAuthException catch (e) {
       print("❌ Firebase Auth Error: ${e.code} - ${e.message}");
       return {'error': e.message ?? "Authentication failed."};

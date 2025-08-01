@@ -108,7 +108,7 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Check back later or Add New',
+                    'Click below button to add new',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,

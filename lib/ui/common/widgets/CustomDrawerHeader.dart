@@ -17,7 +17,6 @@ class CustomDrawerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brokerProfile = Provider.of<RoleProvider>(context).brokerProfile;
-    final courierProfile = Provider.of<RoleProvider>(context).courierProfile;
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
     return DrawerHeader(

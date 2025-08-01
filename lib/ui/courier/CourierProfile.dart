@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
+import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -160,37 +161,88 @@ class _CourierProfileState extends State<CourierProfile> {
 
         _isLoading = false; // Set loading state to false once model is fetched
       });
+      final isProfileCompleted = data?['isProfileCompleted'] ?? false;
+
+      if (!isProfileCompleted) {
+        if (context.mounted) {
+          Future.delayed(Duration.zero, () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  backgroundColor: Colors.white,
+                  title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Icon(Icons.info_outline, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          "Incomplete Profile",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                  content: const Text(
+                    "You must complete your profile before using the app.",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text("OK", style: TextStyle(color: Colors.orange)),
+                    ),
+                  ],
+                );
+              },
+            );
+          });
+        }
+      }
     }
+
+  }
+  void _showErrorToast(String message, {Color textColor = Colors.white}) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.redAccent,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
   }
   Future<void> _updateFireStore() async {
-    // ✅ Validate Name
-    if (_nameController.text.trim().isEmpty) {
-      Fluttertoast.showToast(
-        msg: "🙋‍♂️ Name cannot be empty!",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.redAccent,
-        textColor: Colors.black,
-        fontSize: 16.0,
-      );
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
 
+    // ✅ Validate Name
+    if (name.isEmpty || name == "Test Courier") {
+      _showErrorToast("🙋‍♂️ Enter valid name!", textColor: Colors.black);
       return;
     }
 
     // ✅ Validate Phone
-    if (_phoneController.text.trim().isEmpty || countryCode.isEmpty) {
-      Fluttertoast.showToast(
-        msg: "📱 Phone number is required!",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.redAccent,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
-
+    if (phone.isEmpty || countryCode.isEmpty) {
+      _showErrorToast("📱 Phone number is required!");
       return;
     }
 
+    // ✅ Validate Visa
+    if (visas.isEmpty) {
+      _showErrorToast("🛂 Visa details are required!");
+      return;
+    }
+
+    // ✅ Validate Passport
+    if (passports.isEmpty) {
+      _showErrorToast("🛃 Passport details are required!");
+      return;
+    }
     try {
       setState(() {
         _isLoading = true; // ✅ Should be true here
@@ -240,7 +292,9 @@ class _CourierProfileState extends State<CourierProfile> {
           textColor: Colors.white,
           fontSize: 16.0,
         );
-
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DrawerScreen()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No valid model to save!')),
@@ -536,7 +590,7 @@ class _CourierProfileState extends State<CourierProfile> {
                               ? CachedNetworkImageProvider(
                             "${courierProfile.profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
                           )
-                              : const AssetImage('assets/avatar.png') as ImageProvider,
+                              : const AssetImage('assets/place_holder_man.png') as ImageProvider,
                         ),
 
                         Positioned(
@@ -580,7 +634,7 @@ class _CourierProfileState extends State<CourierProfile> {
               _buildProfileField('ID', courierProfile.id.toString()),*/
                     const SizedBox(height: 10),
                     _buildNonEditableField(
-                        'Email:', _currentUser.email ?? 'N/A'),
+                        '', _currentUser.email ?? 'N/A'),
                     const SizedBox(height: 10),
                     _buildEditableField('Name', _nameController),
                     const SizedBox(height: 10),

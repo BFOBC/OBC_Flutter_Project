@@ -67,6 +67,8 @@ dependencies:
   file_picker: ^6.1.1
   url_launcher: ^6.2.5
   open_file: ^3.2.1
+  video_player: ^2.8.2
+  chewie: ^1.7.4
 
 
 
