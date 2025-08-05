@@ -191,19 +191,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
+                    final messageId = message.id;         // ✅ Get Firestore message ID
                     final text = message['messageText'] ?? '';
-                    final isSender = message['senderId'] ==
-                        FirebaseAuth.instance.currentUser?.uid;
+                    final isSender = message['senderId'] == FirebaseAuth.instance.currentUser?.uid;
                     final isDownloaded = message['isDownloaded'] ?? false;
-                    final timestamp =
-                        (message['timestamp'] as Timestamp?)?.toDate() ??
-                            DateTime.now();
+                    final timestamp = (message['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
 
                     // Compare minute-level timestamps to avoid repeating
                     bool showTime = true;
                     if (lastShownTime != null) {
-                      Duration diff =
-                      lastShownTime!.difference(timestamp).abs();
+                      Duration diff = lastShownTime!.difference(timestamp).abs();
                       if (diff.inMinutes < 1) {
                         showTime = false;
                       }
@@ -212,26 +209,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     lastShownTime = timestamp;
 
                     final fileUrl = message['fileUrl'] ?? '';
-                    print('fileUrl$fileUrl');
-                    print('isSender$isSender');
-                    print('isDownloaded$isDownloaded');
+                    print('fileUrl: $fileUrl');
+                    print('isSender: $isSender');
+                    print('isDownloaded: $isDownloaded');
+
                     // ✅ Auto download file if needed
-                    if (fileUrl.isNotEmpty &&
-                        !isSender &&
-                        !isDownloaded) {
+                    if (fileUrl.isNotEmpty && !isSender && !isDownloaded) {
                       _downloadFileAndUpdate(message, context);
                     }
 
+                    // ✅ Pass chatId and messageId to ChatBubble
                     return ChatBubble(
+                      senderId: message['senderId'],
+                      chatId: chatId,               // ← make sure chatId is available in this widget
+                      messageId: messageId,
                       isSender: isSender,
                       text: text,
                       fileUrl: fileUrl,
                       timestamp: message['timestamp'],
-                      // ✅ Firestore Timestamp
                       showTimestamp: showTime,
                     );
                   },
                 );
+
               },
             ),
           ),

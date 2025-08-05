@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:broker_flutter_pp/ui/common/models/CountryDialCode.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -55,12 +57,41 @@ class _CourierProfileState extends State<CourierProfile> {
   bool _isUploading = false;
   String countryCode = '';
   String phoneNumber = '';
+  String initialCountryCode = 'DE';
+
 
   @override
   void initState() {
     super.initState();
     _getProfile();
   }
+
+
+  Future<bool> requestGalleryPermission() async {
+    if (Platform.isAndroid) {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      final sdkInt = androidInfo.version.sdkInt;
+
+      if (sdkInt >= 33) {
+        final status = await Permission.photos.request();
+        if (status.isGranted) return true;
+        if (status.isPermanentlyDenied) openAppSettings();
+        return false;
+      } else {
+        final status = await Permission.storage.request();
+        if (status.isGranted) return true;
+        if (status.isPermanentlyDenied) openAppSettings();
+        return false;
+      }
+    } else if (Platform.isIOS) {
+      final status = await Permission.photos.request();
+      if (status.isGranted) return true;
+      if (status.isPermanentlyDenied) openAppSettings();
+      return false;
+    }
+    return false;
+  }
+
   Future<void> pickImageAndUpload() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
@@ -69,8 +100,8 @@ class _CourierProfileState extends State<CourierProfile> {
       return;
     }
 
-    final status = await Permission.photos.request();
-    if (!status.isGranted) {
+    bool hasPermission = await requestGalleryPermission();
+    if (!hasPermission) {
       showCustomToast("Permission denied", isError: true);
       return;
     }
@@ -78,10 +109,8 @@ class _CourierProfileState extends State<CourierProfile> {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile == null) return;
 
-    setState(() {
-      _image = File(pickedFile.path);
-      _isUploading = true;
-    });
+    _image = File(pickedFile.path);
+    _isUploading = true;
 
     try {
       final url = Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
@@ -95,41 +124,23 @@ class _CourierProfileState extends State<CourierProfile> {
 
       if (json['status'] == 'success') {
         uploadedImageUrl = json['url'];
+        await FirebaseFirestore.instance.collection('courier').doc(userId).set(
+          {'profilePictureUrl': uploadedImageUrl},
+          SetOptions(merge: true),
+        );
 
-        print("Picked Image: ${_image?.path}");
-        print("Upload URL: $uploadedImageUrl");
-        print("User ID: $userId");
-
-        try {
-          final firestore = FirebaseFirestore.instance;
-          await firestore.collection('courier').doc(userId).set(
-            {'profilePictureUrl': uploadedImageUrl},
-            SetOptions(merge: true),
-          );
-          print("Firestore update success");
-        } catch (e) {
-          print("Firestore error: $e");
-        }
-
-        setState(() {
-          _isUploading = false;
-        });
-
+        _isUploading = false;
         showCustomToast("Profile updated successfully!");
       } else {
-        setState(() {
-          _isUploading = false;
-        });
+        _isUploading = false;
         showCustomToast(json['message'] ?? "Upload failed", isError: true);
       }
     } catch (e) {
-      setState(() {
-        _isUploading = false;
-      });
-
+      _isUploading = false;
       showCustomToast("An error occurred during upload", isError: true);
     }
   }
+
 
   Future<void> _getProfile() async {
     _currentUser = FirebaseAuth.instance.currentUser!;
@@ -146,6 +157,7 @@ class _CourierProfileState extends State<CourierProfile> {
       print("Courier");
       print(data);
 
+
       setState(() {
         courierProfile = CourierProfileData.fromMap(data);
         // Now courierProfile is assigned safely
@@ -158,6 +170,21 @@ class _CourierProfileState extends State<CourierProfile> {
         _hasDrivingLicence = courierProfile.hasDrivingLicence ?? false;
         _willingToDoFirstLastMile =
             courierProfile.willingToDoFirstLastMile ?? false;
+
+        String apiDialCode = data['countryCode'];
+
+        String? isoCode = CountryDialCodeData.getIsoCode(apiDialCode);
+        int? maxLength = CountryDialCodeData.getMaxLength(apiDialCode);
+
+        print('ISO Country Code: $isoCode');
+        print('Max Length: $maxLength');
+
+        if (isoCode != null) {
+          setState(() {
+            initialCountryCode = isoCode;
+            // You can also store maxLength and use it in validator if needed
+          });
+        }
 
         _isLoading = false; // Set loading state to false once model is fetched
       });
@@ -227,7 +254,7 @@ class _CourierProfileState extends State<CourierProfile> {
     }
 
     // ✅ Validate Phone
-    if (phone.isEmpty || countryCode.isEmpty) {
+    if (phone.isEmpty) {
       _showErrorToast("📱 Phone number is required!");
       return;
     }
@@ -261,8 +288,9 @@ class _CourierProfileState extends State<CourierProfile> {
       }
 
       final phone = _phoneController.text.trim();
-      final formattedPhone = '$countryCode$phone';
-      data['phoneNumber'] = formattedPhone;
+      //final formattedPhone = '$countryCode$phone';
+      data['phoneNumber'] = phone;
+      data['countryCode'] = countryCode;
 
       if (_profilePictureUrl != null && _profilePictureUrl!.isNotEmpty) {
         data['profilePictureUrl'] = _profilePictureUrl;
@@ -339,7 +367,7 @@ class _CourierProfileState extends State<CourierProfile> {
           ),
           border: InputBorder.none,
         ),
-        initialCountryCode: 'PK', // Default country
+        initialCountryCode: initialCountryCode, // Default country
         onChanged: (phone) {
           onChanged(phone.completeNumber); // Callback to get full number
           countryCode=phone.countryCode;

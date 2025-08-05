@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
+import 'package:broker_flutter_pp/ui/common/models/CountryDialCode.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -42,6 +43,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   String uploadedImageUrl = "";
   bool _isUploading = false;
 
+  String countryCode = '+49';
+  String initialCountryCode = 'DE';
   @override
   void initState() {
     super.initState();
@@ -66,6 +69,22 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           .map((license) => TextEditingController(text: license as String))
           .toList();
       _profilePictureUrl = data['profilePictureUrl'];
+
+      String apiDialCode = data['countryCode'];
+
+      String? isoCode = CountryDialCodeData.getIsoCode(apiDialCode);
+      int? maxLength = CountryDialCodeData.getMaxLength(apiDialCode);
+
+      print('ISO Country Code: $isoCode');
+      print('Max Length: $maxLength');
+
+      if (isoCode != null) {
+        setState(() {
+          initialCountryCode = isoCode;
+          // You can also store maxLength and use it in validator if needed
+        });
+      }
+
     } else {
       _licenseControllers = [TextEditingController()];
     }
@@ -134,7 +153,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     if (_countryController.text.trim().isEmpty || _countryController.text.trim() == "N/A") {
       missingFields.add("Country");
     }
-    if (_selectedPhoneNumber.trim().isEmpty) {
+    if (_phoneController.text.trim().isEmpty) {
       missingFields.add("Phone Number");
     }
     if (_paymentTermsController.text.trim().isEmpty || _paymentTermsController.text.trim() == "N/A") {
@@ -165,6 +184,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         isProfileCompleted: true,
         userId: _currentUser.uid,
         email: _currentUser.email.toString(),
+        countryCode:countryCode.toString(),
         profilePictureUrl: _profilePictureUrl,
         nameController: _nameController,
         websiteController: _websiteController,
@@ -552,6 +572,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         ],
       ),
       child: IntlPhoneField(
+        key: ValueKey(initialCountryCode), // ⬅️ force rebuild on change
         controller: controller,
         decoration: const InputDecoration(
           labelText: 'Phone Number',
@@ -561,9 +582,11 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           ),
           border: InputBorder.none,
         ),
-        initialCountryCode: 'PK', // Default country
+        initialCountryCode: initialCountryCode, // Default country
         onChanged: (phone) {
-          onChanged(phone.completeNumber); // Callback to get full number
+          onChanged(phone.number); // Callback to get full number
+          countryCode=phone.countryCode;
+          print('countryCode$countryCode');
         },
       ),
     );

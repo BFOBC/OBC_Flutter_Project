@@ -18,6 +18,7 @@ class CourierProfileData {
   bool? hasCar;
   bool? hasDrivingLicence;
   bool? willingToDoFirstLastMile;
+  String? countryCode;
 
   String? profilePictureUrl; // Define it as a nullable String for URL
   final List<Rating> ratings;
@@ -39,6 +40,7 @@ class CourierProfileData {
     this.hasDrivingLicence,
     this.willingToDoFirstLastMile,
     this.profilePictureUrl, // Added profilePictureUrl to the constructor
+    this.countryCode, // Added profilePictureUrl to the constructor
     this.ratings = const [],
   })  : visas = visas ?? [], // Default to an empty list if null
         passports = passports ?? [], // Default to an empty list if null
@@ -59,6 +61,7 @@ class CourierProfileData {
     if (email != null) data['email'] = email;
     if (paymentTerms != null) data['paymentTerms'] = paymentTerms;
     if (profilePictureUrl != null) data['profilePictureUrl'] = profilePictureUrl; // Added field to Map
+    if (countryCode != null) data['countryCode'] = countryCode; // Added field to Map
 
     return data;
   }
@@ -86,6 +89,7 @@ class CourierProfileData {
       hasDrivingLicence: map['drivingLicence'] as bool?,
       willingToDoFirstLastMile: map['firstLastMile'] as bool?,
       profilePictureUrl: map['profilePictureUrl'] as String?, // Added field
+      countryCode: map['countryCode'] as String?, // Added field
       ratings: (map['ratings'] as List<dynamic>?)
           ?.map((r) => Rating.fromMap(r as Map<String, dynamic>))
           .toList() ??

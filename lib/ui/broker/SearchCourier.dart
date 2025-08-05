@@ -185,7 +185,7 @@ class _SearchCourierState extends State<SearchCourier> {
               children: [
                 UserAvatar(imageUrl: userImage),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 5),
                 Center(
                   child: RatingBarIndicator(
                     rating: rating,
@@ -198,7 +198,7 @@ class _SearchCourierState extends State<SearchCourier> {
                     direction: Axis.horizontal,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 5),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Align(
@@ -314,12 +314,13 @@ class _SearchCourierState extends State<SearchCourier> {
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Column(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Chat button (⬆️ moved to top)
+                    // Chat button
                     SizedBox(
-                      width: 200,
+                      width: 150,
                       child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.push(
@@ -343,11 +344,11 @@ class _SearchCourierState extends State<SearchCourier> {
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(width: 16), // horizontal spacing
 
-                    // Place the Job button with icon
+                    // Place the Job button
                     SizedBox(
-                      width: 200,
+                      width: 150,
                       child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.push(
@@ -362,7 +363,7 @@ class _SearchCourierState extends State<SearchCourier> {
                           );
                         },
                         icon: const Icon(Icons.work, color: Colors.white),
-                        label: const Text("Place the Job"),
+                        label: const Text("Place Job"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Palette.secondaryColor,
                           foregroundColor: Colors.white,

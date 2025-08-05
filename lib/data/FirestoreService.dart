@@ -97,6 +97,7 @@ class FirestoreService {
     required bool isProfileCompleted,
     required String userId,
     required String email,
+    required String countryCode,
     required String? profilePictureUrl,
     required TextEditingController nameController,
     required TextEditingController websiteController,
@@ -120,6 +121,7 @@ class FirestoreService {
         'paymentTerms': paymentTermsController.text.isEmpty ? 'N/A' : paymentTermsController.text,
         'license': updatedLicenses,
         'email': email,
+        'countryCode': countryCode,
         'profilePictureUrl': profilePictureUrl,
         'isProfileCompleted': isProfileCompleted,
       };

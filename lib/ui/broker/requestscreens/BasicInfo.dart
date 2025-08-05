@@ -9,7 +9,7 @@ class BasicInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -18,18 +18,24 @@ class BasicInfo extends StatelessWidget {
             'Basic Information',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           _buildInfoCard('Name', _safeValue(courierProfileData.name)),
           const SizedBox(height: 10),
           _buildInfoCard('Email', _safeValue(courierProfileData.email)),
           const SizedBox(height: 10),
-          _buildInfoCard('Phone', _safeValue(courierProfileData.phoneNumber)),
+          _buildInfoCard('Phone', _safeValue('${courierProfileData.countryCode}${courierProfileData.phoneNumber}')),
           const SizedBox(height: 10),
-          _buildInfoCard('Address', _safeValue(courierProfileData.address)),
+          _buildInfoCard('Owned Car', _boolToYesNo(courierProfileData.hasCar.toString())),
           const SizedBox(height: 10),
+          _buildInfoCard('Has Driving Licence', _boolToYesNo(courierProfileData.hasDrivingLicence.toString())),
+          const SizedBox(height: 10),
+          _buildInfoCard('Willing to do First Mile', _boolToYesNo(courierProfileData.willingToDoFirstLastMile.toString())),
+          const SizedBox(height: 10),
+          // Add more fields if needed
         ],
       ),
     );
+
   }
 
 // 👇 Helper method to handle null/empty values
@@ -38,6 +44,18 @@ class BasicInfo extends StatelessWidget {
       return 'N/A';
     }
     return value;
+  }
+  String _boolToYesNo(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'No';
+    }
+
+    final lower = value.toLowerCase();
+    if (lower == 'true') {
+      return 'Yes';
+    } else {
+      return 'No';
+    }
   }
 
 
