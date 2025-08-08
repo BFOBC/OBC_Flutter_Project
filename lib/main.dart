@@ -1,4 +1,5 @@
 
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
@@ -12,7 +13,8 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:workmanager/workmanager.dart';
 import 'firebase_options.dart';
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+final GlobalKey<NavigatorState> navigatorKeyMain = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensures binding is initialized
@@ -22,6 +24,7 @@ void main() async {
   await FirebaseMessaging.instance.requestPermission(); // Important for iOS
 
   initializeWorkManager();
+  notificationListner();
   WidgetsFlutterBinding.ensureInitialized(); // <-- VERY IMPORTANT
 
   runApp(
@@ -119,6 +122,9 @@ void callbackDispatcher() {
       return Future.value(false);
     }
   });
+}
+Future<void> notificationListner() async {
+  await NotificationService.init(); // ✅ Init all listeners
 }
 
 

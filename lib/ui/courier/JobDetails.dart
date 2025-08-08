@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/main.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
@@ -258,7 +259,7 @@ class _JobDetailsState extends State<JobDetails> {
     );
   }
 
-  void handleJobAction(BuildContext context, String nodeID, bool acceptJob, String brokerID, String emptyLegRequestID) {
+  Future<void> handleJobAction(BuildContext context, String nodeID, bool acceptJob, String brokerID, String emptyLegRequestID) async {
     // **Remove this extra pop** - dialog already closed in _showRequestDialog
     // Navigator.of(context).pop();
 
@@ -277,6 +278,19 @@ class _JobDetailsState extends State<JobDetails> {
     }).catchError((error) {
       print('❌ Failed to update job status: $error');
     });
+
+/*
+    final userInfo = await NotificationService.getUserFcmInfo(context);
+    if (userInfo != null) {
+      await NotificationService.sendNotification(
+        toToken: userInfo['token']!,
+        type: acceptJob ? "courier_accept" : "courier_reject",
+        screen: "BrokerMissions",
+        extraData: {"senderName": userInfo['name']},
+      );
+    }
+*/
+
 
 
     final User currentUser = FirebaseAuth.instance.currentUser!;
@@ -301,13 +315,15 @@ class _JobDetailsState extends State<JobDetails> {
 
         // Navigate after a slight delay
         Future.delayed(const Duration(milliseconds: 200), () {
-          navigatorKey.currentState?.pushAndRemoveUntil(
+          navigatorKeyMain.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const DrawerScreen()),
                 (Route<dynamic> route) => false,
           );
         });
       },
     );
+
+
 
   }
 

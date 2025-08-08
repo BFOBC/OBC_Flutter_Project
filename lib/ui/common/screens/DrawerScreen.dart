@@ -7,8 +7,10 @@ import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/CustomDrawerHeader.dart';
 import 'package:provider/provider.dart';
@@ -78,6 +80,31 @@ class _DrawerScreenState extends State<DrawerScreen> {
   void initState() {
     super.initState();
     _initializeSelectedWidget();
+    generateToken();
+  }
+
+  Future<void> generateToken() async {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+
+    // Get FCM token
+    String? token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      String? uid = FirebaseAuth.instance.currentUser?.uid;
+
+      // Determine the correct collection based on role
+      String collectionName =
+      roleProvider.role == UserRole.broker ? 'broker' : 'courier';
+
+      // Save the token in the correct collection
+      await FirebaseFirestore.instance
+          .collection(collectionName)
+          .doc(uid)
+          .set({
+        'fcm_token': token,
+      }, SetOptions(merge: true));
+    }
+
   }
 
   void _initializeSelectedWidget() {
@@ -88,7 +115,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
   }
 
   Future<void> _onItemSelected(String title) async {
-    final onlineStatus = Provider.of<OnlineStatusProvider>(context, listen: false);
+    final onlineStatus =
+        Provider.of<OnlineStatusProvider>(context, listen: false);
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
     String? message;
@@ -203,6 +231,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
       SnackBar(content: Text(message)),
     );
   }
+
   Future<bool> isInternetAvailable() async {
     try {
       final result = await InternetAddress.lookup('google.com');
@@ -260,58 +289,59 @@ class _DrawerScreenState extends State<DrawerScreen> {
       ),
     );
   }
+
   Future<bool> _showExitDialog(BuildContext context) async {
     return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false, // User must choose Yes/No
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
-          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-          title: Row(
-            children: const [
-              Icon(Icons.exit_to_app, color: Colors.red),
-              SizedBox(width: 10),
-              Text(
-                "Exit App",
-                style: TextStyle(fontWeight: FontWeight.normal),
+          context: context,
+          barrierDismissible: false, // User must choose Yes/No
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-            ],
-          ),
-          content: const Text(
-            "Are you sure you want to exit the app?",
-            style: TextStyle(fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false); // Don't exit
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey[700],
+              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+              contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              title: Row(
+                children: const [
+                  Icon(Icons.exit_to_app, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text(
+                    "Exit App",
+                    style: TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                ],
               ),
-              child: const Text("No"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(true); // Exit
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+              content: const Text(
+                "Are you sure you want to exit the app?",
+                style: TextStyle(fontSize: 14),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false); // Don't exit
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[700],
+                  ),
+                  child: const Text("No"),
                 ),
-              ),
-              child: const Text("Yes"),
-            ),
-          ],
-        );
-      },
-    ) ??
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true); // Exit
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text("Yes"),
+                ),
+              ],
+            );
+          },
+        ) ??
         false;
   }
 
@@ -361,7 +391,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
                 // 3. Navigate to login
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginCard()),
-                      (Route<dynamic> route) => false,
+                  (Route<dynamic> route) => false,
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -378,8 +408,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
       },
     );
   }
-
 }
+
 Future<void> clearSavedLoginData() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.remove('email');
@@ -387,6 +417,7 @@ Future<void> clearSavedLoginData() async {
   await prefs.remove('rememberMe');
   await prefs.remove('role');
 }
+
 class DrawerItem extends StatelessWidget {
   final IconData icon;
   final String title;

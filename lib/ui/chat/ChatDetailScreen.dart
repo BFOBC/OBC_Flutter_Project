@@ -1,5 +1,6 @@
 
 import 'dart:io';
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/chat/AttachmentButton.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatBubble.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -89,6 +90,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _sendMessage() async {
+    _textController.clear();
     if (_textController.text
         .trim()
         .isNotEmpty && chatId.isNotEmpty) {
@@ -123,7 +125,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           'lastMessageTimestamp': timestamp,
         }, SetOptions(merge: true));
 
-        _textController.clear();
+
+        final userInfo = await NotificationService.getUserFcmInfo(context);
+        if (userInfo != null) {
+          await NotificationService.sendNotification(
+            toToken:  userInfo['token']!,
+            type: "new_msg",
+            screen: "ChatDetailScreen",
+            extraData: {"senderName":  userInfo['name']},
+          );
+        }
+
       } catch (error) {
         print('Error sending message: $error');
       }

@@ -1,3 +1,4 @@
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,6 +20,7 @@ import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart'; // Import your
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+
 class ChatListScreen extends StatelessWidget {
   final String userId; // Current user's ID
 
@@ -39,7 +41,8 @@ class ChatListScreen extends StatelessWidget {
             'uid': courierDoc.id,
             'name': courierDoc['name'] ?? 'Unknown Courier',
             'phoneNumber': courierDoc['phoneNumber'] ?? '',
-            'profilePictureUrl': courierDoc['profilePictureUrl'] ?? ''
+            'profilePictureUrl': courierDoc['profilePictureUrl'] ?? '',
+            'countryCode': courierDoc['countryCode'] ?? ''
           };
         }
       } else if (roleProvider.role == UserRole.courier) {
@@ -52,6 +55,7 @@ class ChatListScreen extends StatelessWidget {
             'uid': brokerDoc.id,
             'name': brokerDoc['name'] ?? 'Unknown Broker',
             'phoneNumber': brokerDoc['phoneNumber'] ?? '',
+            'countryCode': brokerDoc['countryCode'] ?? '',
             'profilePictureUrl': brokerDoc['profilePictureUrl'] ?? ''
           };
         }
@@ -59,7 +63,7 @@ class ChatListScreen extends StatelessWidget {
     } catch (e) {
       print("Error fetching user details: $e");
     }
-    return {'uid': 'Unknown', 'name': 'Unknown User', 'phoneNumber': ''};
+    return {'uid': 'Unknown', 'name': 'Unknown User', 'phoneNumber': '','countryCode':''};
   }
 
   @override
@@ -165,7 +169,9 @@ class ChatListScreen extends StatelessWidget {
                         String otherUserName =
                             userSnapshot.data!['name'] ?? 'Unknown';
                         String otherUserUid = userSnapshot.data!['uid'] ?? '';
+                        String? countryCode = userSnapshot.data!['countryCode'];
                         String? phoneNumber = userSnapshot.data!['phoneNumber'];
+                        String? completePhoneNumber = '$countryCode$phoneNumber';
                         String? profilePictureUrl =
                             userSnapshot.data!['profilePictureUrl'];
                         String displayLetter =
@@ -311,8 +317,8 @@ class ChatListScreen extends StatelessWidget {
                                         fontSize: 12, color: Colors.grey[600]),
                                   ),
                                 ),
-                                if (phoneNumber != null &&
-                                    phoneNumber.isNotEmpty)
+                                if (completePhoneNumber != null &&
+                                    completePhoneNumber.isNotEmpty)
                                   Positioned(
                                     top: 10,
                                     right: 16,
@@ -322,10 +328,10 @@ class ChatListScreen extends StatelessWidget {
                                           icon: Icon(Icons.phone,
                                               color: Colors.green, size: 20),
                                           onPressed: () async {
-                                            print('phoneNumber$phoneNumber');
+                                            print('phoneNumber$completePhoneNumber');
                                             final Uri uri = Uri(
                                                 scheme: 'tel',
-                                                path: phoneNumber);
+                                                path: completePhoneNumber);
                                             try {
                                               bool launched = await launchUrl(
                                                   uri,
@@ -345,20 +351,14 @@ class ChatListScreen extends StatelessWidget {
                                           icon: Icon(Icons.add,
                                               color: Colors.teal, size: 20),
                                           onPressed: () async {
-                                            final Uri waUri = Uri.parse(
-                                                "https://wa.me/$phoneNumber");
-                                            if (await canLaunchUrl(waUri)) {
-                                              await launchUrl(waUri,
-                                                  mode: LaunchMode
-                                                      .externalApplication);
-                                            } else {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                    content: Text(
-                                                        'Could not launch WhatsApp')),
-                                              );
-                                            }
+                                            // Combine safely
+                                            String completePhoneNumber = '${countryCode ?? ''}${phoneNumber ?? ''}'
+                                                .replaceAll('+', '')
+                                                .replaceAll(' ', '')
+                                                .trim();
+
+
+
                                           },
                                         ),
                                       ],

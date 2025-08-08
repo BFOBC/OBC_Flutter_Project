@@ -289,11 +289,11 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
   String _getStatusForIndex(int index) {
     switch (index) {
       case 0:
-        return 'In Progress';
+        return 'Pending';
       case 1:
         return 'Todo';
       case 2:
-        return 'Pending';
+        return 'In Progress';
       default:
         return 'Completed';
     }

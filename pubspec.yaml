@@ -65,11 +65,12 @@ dependencies:
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
   file_picker: ^6.1.1
-  url_launcher: ^6.2.5
+  url_launcher: ^6.1.11
   open_file: ^3.2.1
   video_player: ^2.8.2 #not using
   chewie: ^1.7.4 # not using
   device_info_plus: ^10.0.1
+  android_intent_plus: ^4.0.3
 
 
 

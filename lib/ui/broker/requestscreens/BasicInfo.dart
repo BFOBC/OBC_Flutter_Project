@@ -23,7 +23,7 @@ class BasicInfo extends StatelessWidget {
           const SizedBox(height: 10),
           _buildInfoCard('Email', _safeValue(courierProfileData.email)),
           const SizedBox(height: 10),
-          _buildInfoCard('Phone', _safeValue('${courierProfileData.countryCode}${courierProfileData.phoneNumber}')),
+          _buildInfoCard('Phone', safeContact(courierProfileData.countryCode, courierProfileData.phoneNumber)),
           const SizedBox(height: 10),
           _buildInfoCard('Owned Car', _boolToYesNo(courierProfileData.hasCar.toString())),
           const SizedBox(height: 10),
@@ -45,6 +45,14 @@ class BasicInfo extends StatelessWidget {
     }
     return value;
   }
+  String safeContact(String? code, String? number) {
+    if ((code == null || code.trim().isEmpty) &&
+        (number == null || number.trim().isEmpty)) {
+      return 'N/A';
+    }
+    return '${code ?? ''}${number ?? ''}';
+  }
+
   String _boolToYesNo(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'No';

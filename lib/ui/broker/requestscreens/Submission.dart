@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
+import '../../../data/NotificationService.dart';
 import 'milestoneinputform.dart'; // make sure this is the correct path
 
 class SubmissionScreen extends StatefulWidget {
@@ -541,6 +542,17 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     // Save the request to Firestore
     print(newRequest.startTimeDate.toString());
 
+    // Broker sending a request to courier
+    final userInfo = await NotificationService.getUserFcmInfo(context);
+    if (userInfo != null) {
+      await NotificationService.sendNotification(
+        toToken:  userInfo['token']!,
+        type: "broker_request",
+        screen: "DrawerScreen",
+        extraData: {"senderName":  userInfo['name']},
+      );
+    }
+
 
     String? requestId = await firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID);
 
@@ -585,7 +597,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                       borderRadius: BorderRadius.circular(5.0),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context).pop(); // Close the dialog
                     _navigateToDrawerPage(); // Navigate to the Drawer page
                   },
