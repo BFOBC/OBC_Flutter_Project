@@ -32,6 +32,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void initState() {
     super.initState();
     _getChatId();
+    markMessagesAsReadWithoutIndex();
+  }
+  Future<void> markMessagesAsReadWithoutIndex() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .where('isRead', isEqualTo: false) // sirf unread messages
+          .get();
+
+      // Filter locally for messages sent by other user
+      final otherUserMessages = snapshot.docs.where(
+            (doc) => doc['senderId'] != widget.userID,
+      );
+
+      for (var doc in otherUserMessages) {
+        await doc.reference.update({'isRead': true});
+      }
+
+      print("✅ All unread messages marked as read (without index) for chatId: $chatId");
+    } catch (e) {
+      print("❌ Error marking messages as read: $e");
+    }
   }
 
 // Function to get chatId based on userIDs
@@ -90,24 +114,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _sendMessage() async {
-    _textController.clear();
-    if (_textController.text
-        .trim()
-        .isNotEmpty && chatId.isNotEmpty) {
+    String messageText = _textController.text.trim();
+    print("DEBUG: Message Text: '$messageText'");
+    print("DEBUG: Chat ID: '$chatId'");
+
+    if (messageText.isNotEmpty && chatId.isNotEmpty) {
+      _textController.clear();
+
       try {
         String currentUserID =
             FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
-        String messageText = _textController.text.trim();
+        print("DEBUG: Current User ID: $currentUserID");
+
         Timestamp timestamp = Timestamp.now();
 
         DocumentReference chatRef = _firestore.collection('chats').doc(chatId);
 
-        // ✅ Create chat doc only if it doesn't exist yet
+        // ✅ Check if chat doc exists
         var chatDoc = await chatRef.get();
+        print("DEBUG: Chat doc exists? ${chatDoc.exists}");
         if (!chatDoc.exists) {
           await chatRef.set({
             'users': [currentUserID, widget.userID],
           });
+          print("DEBUG: Created new chat document");
         }
 
         await chatRef.collection('messages').add({
@@ -118,29 +148,70 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           'isRead': false,
           'isDownloaded': false
         });
+        print("DEBUG: Message saved to Firestore");
 
         // ✅ Update chat metadata
         await chatRef.set({
           'lastMessage': messageText,
           'lastMessageTimestamp': timestamp,
         }, SetOptions(merge: true));
-
+        print("DEBUG: Chat metadata updated");
 
         final userInfo = await NotificationService.getUserFcmInfo(context);
+
+        final token = await NotificationService.getUserFcmTokenById(widget.userID);
+        print("Opposite role FCM Token: $token");
+
+
+        print("FCM Token: $token");
+
+
+
+        print("DEBUG: User FCM Info: $userInfo");
+
         if (userInfo != null) {
           await NotificationService.sendNotification(
-            toToken:  userInfo['token']!,
+            title: "New Message",
+            toToken: token!,
             type: "new_msg",
             screen: "ChatDetailScreen",
-            extraData: {"senderName":  userInfo['name']},
+            extraData: {"senderName": userInfo['name']},
           );
+          print("DEBUG: Notification sent");
         }
 
+        // ✅ Show success snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Message sent successfully"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
       } catch (error) {
-        print('Error sending message: $error');
+        print('ERROR sending message: $error');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to send message: $error"),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
+    } else {
+      print("DEBUG: Either message is empty or chatId is empty");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Message cannot be empty"),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

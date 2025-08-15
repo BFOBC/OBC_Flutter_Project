@@ -546,6 +546,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     final userInfo = await NotificationService.getUserFcmInfo(context);
     if (userInfo != null) {
       await NotificationService.sendNotification(
+        title: "New Request",
         toToken:  userInfo['token']!,
         type: "broker_request",
         screen: "DrawerScreen",

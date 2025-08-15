@@ -135,7 +135,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey, // 👈 Add this line
+      navigatorKey: navigatorKeyMain, // 👈 Add this line
       title: 'OBC App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

@@ -12,10 +12,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../ui/common/utils/RoleProvider.dart';
+
 // Aur main.dart ka import karo
 import 'package:broker_flutter_pp/main.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+//final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class NotificationService {
   static const String _serverUrl =
@@ -23,13 +24,14 @@ class NotificationService {
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   /// Map screen names from notification data → actual Widget
   static final Map<String, Widget Function()> screenRoutes = {
     "DrawerScreen": () => DrawerScreen(),
     "CourierMissionScreen": () => CourierMissions(),
     "BrokerMissionScreen": () => BrokerMissions(),
+    "ChatDetailScreen": () => ChatDetailScreen(userID: 'VmM650tiV1WqZGnQW3rujDG4FOB2',), // add this
     // Add more here as needed
   };
 
@@ -47,22 +49,27 @@ class NotificationService {
       },
     );
 
+    // Request notification permissions
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
 
     // Foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print("📩 Foreground message: ${message.data}");
 
-      final title = message.notification?.title ?? message.data['title'] ?? '';
-      final body = message.notification?.body ?? message.data['body'] ?? '';
+      // Sirf login user ke liye check
+      if (await _shouldShowNotification(message.data)) {
+        final title = message.notification?.title ?? message.data['title'] ?? '';
+        final body = message.notification?.body ?? message.data['body'] ?? '';
 
-      _showLocalNotification(
-        title: title,
-        body: body,
-        payload: jsonEncode(message.data),
-      );
+        await _showLocalNotification(
+          title: title,
+          body: body,
+          payload: jsonEncode(message.data),
+        );
+      } else {
+        print("ℹ️ Notification skipped (user not logged in or token mismatch)");
+      }
     });
-
     // Background → app open
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("📩 Opened from background: ${message.data}");
@@ -75,6 +82,11 @@ class NotificationService {
       print("📩 Opened from terminated: ${initialMessage.data}");
       _handleNotificationClick(initialMessage.data);
     }
+    // Terminated → app open
+    if (initialMessage != null) {
+      print("📩 Opened from terminated: ${initialMessage.data}");
+      _handleNotificationClick(initialMessage.data);
+    }
   }
 
   /// Handle navigation dynamically
@@ -83,13 +95,20 @@ class NotificationService {
     print("🔀 Navigate to: $screen");
 
     if (screen != null && screenRoutes.containsKey(screen)) {
-      navigatorKey.currentState?.push(
+      navigatorKeyMain.currentState?.push(
         MaterialPageRoute(builder: (_) => screenRoutes[screen]!()),
       );
     } else {
       print("⚠️ No matching screen found for: $screen");
     }
   }
+
+  static Future<bool> _shouldShowNotification(Map<String, dynamic> data) async {
+    // Always return true for testing
+    print("🔹 _shouldShowNotification called");
+    return true;
+  }
+
 
   /// Get logged-in user's FCM token & name
   static Future<Map<String, String?>?> getUserFcmInfo(context) async {
@@ -99,7 +118,7 @@ class NotificationService {
       if (uid == null) return null;
 
       String collectionName =
-      roleProvider.role == UserRole.broker ? 'broker' : 'courier';
+          roleProvider.role == UserRole.broker ? 'broker' : 'courier';
 
       DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection(collectionName)
@@ -120,8 +139,39 @@ class NotificationService {
     }
   }
 
+  /// Get opposite role user's FCM token
+  static Future<String?> getUserFcmTokenById(String userId) async {
+    try {
+      // Check in broker collection
+      var doc = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(userId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['fcm_token'] as String?;
+      }
+
+      // Check in courier collection
+      doc = await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(userId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['fcm_token'] as String?;
+      }
+
+      return null; // userID kisi bhi collection me nahi mila
+    } catch (e) {
+      print("❌ Error fetching FCM token for userID $userId: $e");
+      return null;
+    }
+  }
+
   /// Send notification with dynamic screen
   static Future<bool> sendNotification({
+    required String title,
     required String toToken,
     required String type,
     required String screen,
@@ -134,7 +184,7 @@ class NotificationService {
         "courier_reject": "{name} has rejected your request.",
         "job_completed": "{name} has marked the job as completed.",
         "mile_stone_completed": "{name} has completed a milestone.",
-        "new_msg": "{name} has send you a message",
+        "new_msg": "{name} has sent you a message",
       };
 
       if (!templates.containsKey(type)) {
@@ -142,7 +192,6 @@ class NotificationService {
       }
 
       final senderName = extraData?["senderName"] ?? "Someone";
-      final title = "Notification";
       final body = templates[type]!.replaceAll("{name}", senderName);
 
       final mergedData = {
