@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
@@ -253,6 +254,24 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                           final User currentUser = FirebaseAuth.instance.currentUser!;
                           String email = currentUser.email!;
 
+                          //send milestone completed notification
+                          final userInfo = await NotificationService.getUserFcmInfo(context);
+                          final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
+                          print("Opposite role FCM Token: $token");
+                          print("FCM Token: $token");
+                          print("DEBUG: User FCM Info: $userInfo");
+
+                          if (userInfo != null) {
+                            await NotificationService.sendNotification(
+                              title: "Milestone Completed",
+                              toToken: token!,
+                              type: "mile_stone_completed",
+                              screen: "CompleteMilestone",
+                              extraData: {"senderName": userInfo['name']},
+                            );
+                            print("DEBUG: Notification sent");
+                          }
+
                           await firestoreService.createNotification(
                             brokerID: milestone.brokerID!,
                             courierID: currentUser.uid,
@@ -260,7 +279,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                             sentBy: "Courier",
                             message: milestone.milestoneNodeID.toString(),
                             milestoneID:
-                            "Your Milestone $milestoneID is Completed by $email",
+                            "Your Milestone $milestoneID is Completed by $userInfo['name']",
                           );
 
                           Navigator.of(context).pop();
@@ -346,6 +365,25 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
   Future<void> completeJob(BuildContext context, String brokerID, String emptyLegRequestID) async {
     final FirestoreService service = FirestoreService(context);
 
+    //job completion notification
+    final User currentUser = FirebaseAuth.instance.currentUser!;
+    final userInfo = await NotificationService.getUserFcmInfo(context);
+    final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
+    print("Opposite role FCM Token: $token");
+    print("FCM Token: $token");
+    print("DEBUG: User FCM Info: $userInfo");
+
+    if (userInfo != null) {
+      await NotificationService.sendNotification(
+        title: "Milestone Completed",
+        toToken: token!,
+        type: "mile_stone_completed",
+        screen: "CompleteMilestone",
+        extraData: {"senderName": userInfo['name']},
+      );
+      print("DEBUG: Notification sent");
+    }
+
     try {
       // Mark the job as completed
       await service.updateJobStatus(emptyLegRequestID, 'Completed');
@@ -353,7 +391,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
       // Prepare notification message
       final User currentUser = FirebaseAuth.instance.currentUser!;
       final String email = currentUser.email ?? 'Unknown User';
-      final String message = "Your Job has been completed by $email";
+      final String message = "Your Job has been completed by $userInfo['name']";
 
       // Create notification after job completion
       await service.createNotification(

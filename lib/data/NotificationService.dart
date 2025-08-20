@@ -3,6 +3,7 @@ import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
+import 'package:broker_flutter_pp/ui/courier/missions/CompleteMilestone.dart';
 import 'package:broker_flutter_pp/ui/courier/missions/CourierMissions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,19 +22,22 @@ import 'package:broker_flutter_pp/main.dart';
 class NotificationService {
   static const String _serverUrl =
       "https://mopogotechnologies.com/fcm-server/send_notification.php";
+  static String? currentRoute;
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
   /// Map screen names from notification data → actual Widget
-  static final Map<String, Widget Function()> screenRoutes = {
+/*  static final Map<String, Widget Function()> screenRoutes = {
     "DrawerScreen": () => DrawerScreen(),
-    "CourierMissionScreen": () => CourierMissions(),
+    "CourierMissions": () => CourierMissions(),
     "BrokerMissionScreen": () => BrokerMissions(),
-    "ChatDetailScreen": () => ChatDetailScreen(userID: 'VmM650tiV1WqZGnQW3rujDG4FOB2',), // add this
+    "ChatDetailScreen": () => ChatDetailScreen(
+          userID: 'VmM650tiV1WqZGnQW3rujDG4FOB2',
+        ), // add this
     // Add more here as needed
-  };
+  };*/
 
   /// Init service
   static Future<void> init() async {
@@ -58,7 +62,8 @@ class NotificationService {
 
       // Sirf login user ke liye check
       if (await _shouldShowNotification(message.data)) {
-        final title = message.notification?.title ?? message.data['title'] ?? '';
+        final title =
+            message.notification?.title ?? message.data['title'] ?? '';
         final body = message.notification?.body ?? message.data['body'] ?? '';
 
         await _showLocalNotification(
@@ -82,33 +87,68 @@ class NotificationService {
       print("📩 Opened from terminated: ${initialMessage.data}");
       _handleNotificationClick(initialMessage.data);
     }
-    // Terminated → app open
-    if (initialMessage != null) {
-      print("📩 Opened from terminated: ${initialMessage.data}");
-      _handleNotificationClick(initialMessage.data);
-    }
   }
 
   /// Handle navigation dynamically
+  static final Map<String, Widget Function(Map<String, dynamic> data)> screenRoutes = {
+    "DrawerScreen": (data) => DrawerScreen(),
+    "CourierMissions": (data) => CourierMissions(),
+    "BrokerMissionScreen": (data) => BrokerMissions(),
+    "ChatDetailScreen": (data) => ChatDetailScreen(
+      userID: data['userID'] ?? 'defaultUser',
+    ),
+    // Add more screens here
+  };
+
   static void _handleNotificationClick(Map<String, dynamic> data) {
     final screen = data['screen'];
     print("🔀 Navigate to: $screen");
 
     if (screen != null && screenRoutes.containsKey(screen)) {
-      navigatorKeyMain.currentState?.push(
-        MaterialPageRoute(builder: (_) => screenRoutes[screen]!()),
+      final nav = navigatorKeyMain.currentState;
+
+      if (nav == null) {
+        print("⚠️ Navigator not ready, skipping");
+        return;
+      }
+
+      // App terminated → always reset to DrawerScreen, then push screen
+      if (FirebaseMessaging.instance.getInitialMessage() != null) {
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => DrawerScreen()),
+              (route) => false,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          nav.push(
+            MaterialPageRoute(builder: (_) => screenRoutes[screen]!(data)),
+          );
+        });
+        return;
+      }
+
+      // App already running (foreground/background) → just push new screen
+      if (currentRoute == screen) {
+        print("⚠️ Already on $screen, no navigation");
+        return;
+      }
+      currentRoute = screen;
+
+      nav.push(
+        MaterialPageRoute(builder: (_) => screenRoutes[screen]!(data)),
       );
     } else {
       print("⚠️ No matching screen found for: $screen");
     }
   }
 
+
+
+
   static Future<bool> _shouldShowNotification(Map<String, dynamic> data) async {
     // Always return true for testing
     print("🔹 _shouldShowNotification called");
     return true;
   }
-
 
   /// Get logged-in user's FCM token & name
   static Future<Map<String, String?>?> getUserFcmInfo(context) async {

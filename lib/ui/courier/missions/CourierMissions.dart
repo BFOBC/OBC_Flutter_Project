@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -30,6 +31,7 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
   @override
   void initState() {
     super.initState();
+    NotificationService.currentRoute = "CourierMissions";
     WidgetsBinding.instance.addObserver(this);
     _loadTasks();
   }
@@ -37,6 +39,7 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    NotificationService.currentRoute = null;
     super.dispose();
   }
 

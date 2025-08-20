@@ -158,15 +158,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         print("DEBUG: Chat metadata updated");
 
         final userInfo = await NotificationService.getUserFcmInfo(context);
-
         final token = await NotificationService.getUserFcmTokenById(widget.userID);
         print("Opposite role FCM Token: $token");
-
-
         print("FCM Token: $token");
-
-
-
         print("DEBUG: User FCM Info: $userInfo");
 
         if (userInfo != null) {
@@ -175,7 +169,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             toToken: token!,
             type: "new_msg",
             screen: "ChatDetailScreen",
-            extraData: {"senderName": userInfo['name']},
+            extraData: {"senderName": userInfo['name'],"userID":widget.userID},
           );
           print("DEBUG: Notification sent");
         }

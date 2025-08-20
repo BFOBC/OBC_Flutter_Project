@@ -5,6 +5,7 @@ import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
@@ -543,7 +544,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     print(newRequest.startTimeDate.toString());
 
     // Broker sending a request to courier
-    final userInfo = await NotificationService.getUserFcmInfo(context);
+/*    final userInfo = await NotificationService.getUserFcmInfo(context);
     if (userInfo != null) {
       await NotificationService.sendNotification(
         title: "New Request",
@@ -552,6 +553,24 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         screen: "DrawerScreen",
         extraData: {"senderName":  userInfo['name']},
       );
+    }*/
+    //send broker request notification to the courier
+    final User currentUser = FirebaseAuth.instance.currentUser!;
+    final userInfo = await NotificationService.getUserFcmInfo(context);
+    final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
+    print("Opposite role FCM Token: $token");
+    print("FCM Token: $token");
+    print("DEBUG: User FCM Info: $userInfo");
+
+    if (userInfo != null) {
+      await NotificationService.sendNotification(
+        title: "New Request",
+        toToken: token!,
+        type: "broker_request",
+        screen: "DrawerScreen",
+        extraData: {"senderName": userInfo['name']},
+      );
+      print("DEBUG: Notification sent");
     }
 
 
