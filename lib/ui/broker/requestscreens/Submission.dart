@@ -556,19 +556,20 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     }*/
     //send broker request notification to the courier
     final User currentUser = FirebaseAuth.instance.currentUser!;
-    final userInfo = await NotificationService.getUserFcmInfo(context);
-    final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
-    print("Opposite role FCM Token: $token");
-    print("FCM Token: $token");
-    print("DEBUG: User FCM Info: $userInfo");
+  //  final userInfo = await NotificationService.getUserFcmInfo(context);
+    final courierData = await NotificationService.getCourierNameAndTokenById(widget.courierKey);
+    final brokerData = await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
+    //final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
 
-    if (userInfo != null) {
+    print("User FCM Info: $courierData");
+
+    if (courierData != null) {
       await NotificationService.sendNotification(
         title: "New Request",
-        toToken: token!,
+        toToken: courierData['token']!,
         type: "broker_request",
         screen: "DrawerScreen",
-        extraData: {"senderName": userInfo['name']},
+        extraData: {"senderName": brokerData?['name']},
       );
       print("DEBUG: Notification sent");
     }

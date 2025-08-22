@@ -178,6 +178,47 @@ class NotificationService {
       return null;
     }
   }
+  /// Get Courier Name & FCM Token
+  static Future<Map<String, String?>?> getCourierNameAndTokenById(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(userId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          "name": data['name'] as String?,
+          "token": data['fcm_token'] as String?,
+        };
+      }
+      return null;
+    } catch (e) {
+      print("❌ Error fetching Courier Name & Token for userID $userId: $e");
+      return null;
+    }
+  }
+  static Future<Map<String, String?>?> getBrokerNameAndTokenById(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(userId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          "name": data['name'] as String?,
+          "token": data['fcm_token'] as String?,
+        };
+      }
+      return null;
+    } catch (e) {
+      print("❌ Error fetching Courier Name & Token for userID $userId: $e");
+      return null;
+    }
+  }
 
   /// Get opposite role user's FCM token
   static Future<String?> getUserFcmTokenById(String userId) async {
@@ -223,6 +264,9 @@ class NotificationService {
         "courier_accept": "{name} has accepted your request.",
         "courier_reject": "{name} has rejected your request.",
         "job_completed": "{name} has marked the job as completed.",
+        "decline_job": "{name} has decline your Job",
+        "accepted_job": "{name} has accepted your Job",
+        "job_started": "{name} has started the Job",
         "mile_stone_completed": "{name} has completed a milestone.",
         "new_msg": "{name} has sent you a message",
       };

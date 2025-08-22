@@ -255,19 +255,18 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                           String email = currentUser.email!;
 
                           //send milestone completed notification
-                          final userInfo = await NotificationService.getUserFcmInfo(context);
-                          final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
-                          print("Opposite role FCM Token: $token");
-                          print("FCM Token: $token");
-                          print("DEBUG: User FCM Info: $userInfo");
+                          final brokerData = await NotificationService.getBrokerNameAndTokenById(widget.task.brokerId.toString());
+                          final courierData = await NotificationService.getCourierNameAndTokenById(currentUser.uid.toString());
 
-                          if (userInfo != null) {
+                          print("brokerData: Notification sent$brokerData");
+
+                          if (brokerData != null) {
                             await NotificationService.sendNotification(
                               title: "Milestone Completed",
-                              toToken: token!,
+                              toToken: brokerData['token']!,
                               type: "mile_stone_completed",
-                              screen: "CompleteMilestone",
-                              extraData: {"senderName": userInfo['name']},
+                              screen: "BrokerMissionScreen",
+                              extraData: {"senderName": courierData!['name']},
                             );
                             print("DEBUG: Notification sent");
                           }
@@ -279,7 +278,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                             sentBy: "Courier",
                             message: milestone.milestoneNodeID.toString(),
                             milestoneID:
-                            "Your Milestone $milestoneID is Completed by $userInfo['name']",
+                            "Your Milestone $milestoneID is Completed by $brokerData['name']",
                           );
 
                           Navigator.of(context).pop();

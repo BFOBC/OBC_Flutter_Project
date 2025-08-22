@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/ViewMilestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -100,13 +101,51 @@ class _ViewBrokerMissionsState extends State<ViewBrokerMissions> {
           actions: [
             // "Yes" Button
             ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
+                final User currentUser = FirebaseAuth.instance.currentUser!;
+                debugPrint("job started Notification");
+
+
+                // broker data
+                final brokerData =
+                await NotificationService.getBrokerNameAndTokenById(widget.task!.brokerId.toString());
+
+                // courier data
+                final courierData =
+                await NotificationService.getCourierNameAndTokenById(currentUser.uid);
+
+                String title = 'Job Started';
+                String type = 'job_started';
+
+
+
+                print("job started Notification $brokerData");
+
+                if (brokerData != null) {
+                  await NotificationService.sendNotification(
+                    title: title,
+                    toToken: brokerData['token']!,
+                    type: type,
+                    screen: "BrokerMissionScreen",
+                    extraData: {"senderName": courierData?['name']},
+                  );
+                  print("DEBUG: Notification sent");
+                }
+
+
+/*                await sendMilestoneCompletedNotification(
+                widget.task!.brokerId.toString(),
+                currentUser.uid,
+                );*/
+
                 FirestoreService service = FirestoreService(context);
                 service.updateJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
                 service.updateEmptyLegTableJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
                 String taskID = widget.task!.emptyLegRequestID!;
-                final User currentUser = FirebaseAuth.instance.currentUser!;
                 String email = currentUser.email!;
+
+
+
                 service.createNotification(
                   brokerID: widget.task!.brokerId!,
                   courierID: currentUser.uid,
@@ -137,7 +176,13 @@ class _ViewBrokerMissionsState extends State<ViewBrokerMissions> {
             ),
             // "No" Button
             ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
+ /*               final User currentUser = FirebaseAuth.instance.currentUser!;
+
+                await sendMilestoneCompletedNotification(
+                widget.task!.brokerId.toString(),
+                currentUser.uid,
+                );*/
                 debugPrint("Job not started.");
                 Navigator.of(context).pop(); // Close the dialog
               },
@@ -154,6 +199,35 @@ class _ViewBrokerMissionsState extends State<ViewBrokerMissions> {
         );
       },
     );
+  }
+  static Future<void> sendMilestoneCompletedNotification(String brokerId, String courierId) async {
+    debugPrint("sendMilestoneCompletedNotification Entered");
+
+    // broker data
+    final brokerData =
+    await NotificationService.getBrokerNameAndTokenById(brokerId);
+
+    // courier data
+    final courierData =
+    await NotificationService.getCourierNameAndTokenById(courierId);
+
+    String title = 'Job Started';
+    String type = 'job_started';
+
+
+
+    print("job started Notification $brokerData");
+
+    if (brokerData != null) {
+      await NotificationService.sendNotification(
+        title: title,
+        toToken: brokerData['token']!,
+        type: type,
+        screen: "BrokerMissionScreen",
+        extraData: {"senderName": courierData?['name']},
+      );
+      print("DEBUG: Notification sent");
+    }
   }
 
   @override

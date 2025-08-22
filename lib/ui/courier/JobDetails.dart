@@ -82,65 +82,78 @@ class _JobDetailsState extends State<JobDetails> {
                       _buildInfoCard('Arrival', jobData.arrivalLocation ?? 'Not Available'),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            emptyLegTBLRequestNodeID=jobData.emptyLegTBLNodeID.toString();
-                            _showRequestDialog(
-                                context, 'Do you want to accept Job?', widget.emptyLegRequestID, true);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          child: const Text(
-                            'Accept Job',
-                            style: TextStyle(fontSize: 12, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _showRequestDialog(
-                                context, 'Do you want to decline Job?', widget.emptyLegRequestID, false);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          child: const Text(
-                            'Decline Job',
-                            style: TextStyle(fontSize: 12, color: Colors.white),
+                  SafeArea(
+                    minimum: const EdgeInsets.all(8), // thoda margin bhi de diya
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              emptyLegTBLRequestNodeID = jobData.emptyLegTBLNodeID.toString();
+                              _showRequestDialog(
+                                context,
+                                'Do you want to accept Job?',
+                                widget.emptyLegRequestID,
+                                true,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            child: const Text(
+                              'Accept Job',
+                              style: TextStyle(fontSize: 12, color: Colors.white),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MilestonesScreen(emptyLegRequestID: widget.emptyLegRequestID) /*AddNewMilestone()*/,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          child: const Text(
-                            'Milestone',
-                            style: TextStyle(fontSize: 12, color: Colors.white),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _showRequestDialog(
+                                context,
+                                'Do you want to decline Job?',
+                                widget.emptyLegRequestID,
+                                false,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            child: const Text(
+                              'Decline Job',
+                              style: TextStyle(fontSize: 12, color: Colors.white),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MilestonesScreen(
+                                    emptyLegRequestID: widget.emptyLegRequestID,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            child: const Text(
+                              'Milestone',
+                              style: TextStyle(fontSize: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               );
@@ -279,6 +292,7 @@ class _JobDetailsState extends State<JobDetails> {
       print('❌ Failed to update job status: $error');
     });
 
+
 /*
     final userInfo = await NotificationService.getUserFcmInfo(context);
     if (userInfo != null) {
@@ -290,10 +304,10 @@ class _JobDetailsState extends State<JobDetails> {
       );
     }
 */
-
-
-
     final User currentUser = FirebaseAuth.instance.currentUser!;
+    sendMilestoneCompletedNotification(jobStatus, brokerID, currentUser.uid.toString());
+
+
     final String email = currentUser.email ?? 'Unknown User';
     final String message = acceptJob
         ? "Your Job accepted by $email"
@@ -323,9 +337,45 @@ class _JobDetailsState extends State<JobDetails> {
       },
     );
 
-
-
   }
 
+  static Future<void> sendMilestoneCompletedNotification(String jobStatus,String brokerId, String courierId) async {
+    // broker data
+    final brokerData =
+    await NotificationService.getBrokerNameAndTokenById(brokerId);
+
+    // courier data
+    final courierData =
+    await NotificationService.getCourierNameAndTokenById(courierId);
+
+    String title = '';
+    String type = '';
+    final courierName = courierData?['name'] ?? "Courier";
+
+    if (jobStatus == 'todo') {
+      title = 'Accepted Job';
+    } else {
+      title = 'Decline Job';
+    }
+    if (jobStatus == 'todo') {
+      type = 'accepted_job';
+    } else {
+      type = 'decline_job';
+    }
+
+
+    print("brokerData: Notification sent $brokerData");
+
+    if (brokerData != null) {
+      await NotificationService.sendNotification(
+        title: title,
+        toToken: brokerData['token']!,
+        type: type,
+        screen: "BrokerMissionScreen",
+        extraData: {"senderName": courierData?['name']},
+      );
+      print("DEBUG: Notification sent");
+    }
+  }
 
 }

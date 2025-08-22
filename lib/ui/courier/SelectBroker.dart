@@ -303,8 +303,8 @@ class _SelectBrokerState extends State<SelectBroker> {
       ),
 
       // Bottom Button placed in bottomNavigationBar
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(25.0),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.all(16), // safe padding for bottom & sides
         child: SizedBox(
           width: double.infinity,
           height: 40,
@@ -313,14 +313,15 @@ class _SelectBrokerState extends State<SelectBroker> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => JobDetails(
-                      emptyLegRequestID: widget.emptyLegRequestID,
-                      brokerID: widget.brokerID,
-                    )),
+                  builder: (context) => JobDetails(
+                    emptyLegRequestID: widget.emptyLegRequestID,
+                    brokerID: widget.brokerID,
+                  ),
+                ),
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor:Colors.green,
+              backgroundColor: Colors.green,
               foregroundColor: Colors.white,
               textStyle: const TextStyle(
                 fontWeight: FontWeight.bold,
@@ -333,6 +334,7 @@ class _SelectBrokerState extends State<SelectBroker> {
           ),
         ),
       ),
+
     );
   }
 
