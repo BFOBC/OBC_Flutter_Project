@@ -251,6 +251,7 @@ class NotificationService {
   }
 
   /// Send notification with dynamic screen
+/*
   static Future<bool> sendNotification({
     required String title,
     required String toToken,
@@ -305,6 +306,73 @@ class NotificationService {
       return false;
     }
   }
+*/
+
+  /// Send notification with dynamic screen
+  static Future<bool> sendNotification({
+    required String title,
+    required String toToken,
+    required String type,
+    required String screen,
+    Map<String, dynamic>? extraData,
+  }) async {
+    try {
+      // ✅ Define templates
+      const Map<String, String> templates = {
+        "broker_request": "{name} has sent you a job request.",
+        "courier_accept": "{name} has accepted your request.",
+        "courier_reject": "{name} has rejected your request.",
+        "job_completed": "{name} has marked the job as completed.",
+        "decline_job": "{name} has declined your Job.",
+        "accepted_job": "{name} has accepted your Job.",
+        "job_started": "{name} has started the Job.",
+        "mile_stone_completed": "{name} has completed a milestone.",
+        "new_msg": "{name} has sent you a message.",
+      };
+
+      // ✅ Validate type
+      if (!templates.containsKey(type)) {
+        throw Exception("Invalid notification type: $type");
+      }
+
+      // ✅ Prepare body text
+      final senderName = (extraData?["senderName"] ?? "Someone").toString();
+      final body = templates[type]!.replaceAll("{name}", senderName);
+
+      // ✅ Merge data (ensure no null issue)
+      final Map<String, dynamic> mergedData = {
+        "screen": screen,
+        if (extraData != null) ...extraData,
+      };
+
+      // ✅ HTTP Request
+      final response = await http.post(
+        Uri.parse(_serverUrl),
+        body: {
+          "token": toToken,
+          "title": title,
+          "body": body,
+          "data": jsonEncode(mergedData),
+        },
+      );
+
+      // ✅ Logging
+      if (response.statusCode == 200) {
+        print("✅ Notification sent: type=$type, screen=$screen");
+        print("📦 Data: $mergedData");
+        return true;
+      } else {
+        print("❌ Failed to send notification. Code: ${response.statusCode}");
+        print("Response: ${response.body}");
+        return false;
+      }
+    } catch (e, stack) {
+      print("⚠️ Error sending notification: $e");
+      print(stack);
+      return false;
+    }
+  }
+
 
   /// Show local notification
   static Future<void> _showLocalNotification({

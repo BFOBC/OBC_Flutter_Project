@@ -164,15 +164,34 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         print("DEBUG: User FCM Info: $userInfo");
 
         if (userInfo != null) {
+          final params = {
+            "title": "New Message",
+            "toToken": token,
+            "type": "new_msg",
+            "screen": "ChatDetailScreen",
+            "extraData": {
+              "senderName": userInfo['name'],
+              "userID": widget.userID,
+              "chatId": chatId,
+            }
+          };
+
+          // 🔹 log all params before sending
+          print("🔔 Sending Notification Params: $params");
+
           await NotificationService.sendNotification(
-            title: "New Message",
-            toToken: token!,
-            type: "new_msg",
-            screen: "ChatDetailScreen",
-            extraData: {"senderName": userInfo['name'],"userID":widget.userID},
+            title: params["title"] as String,
+            toToken: params["toToken"] as String,
+            type: params["type"] as String,
+            screen: params["screen"] as String,
+            extraData: params["extraData"] as Map<String, dynamic>, // 👈 cast required
           );
-          print("DEBUG: Notification sent");
+
+
+
+          print("✅ ChatNotification sent!");
         }
+
 
         // ✅ Show success snackbar
         ScaffoldMessenger.of(context).showSnackBar(
