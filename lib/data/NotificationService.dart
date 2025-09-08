@@ -43,51 +43,50 @@ class NotificationService {
   static Future<void> init() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidInit);
+
     await _localNotifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (details) {
         if (details.payload != null && details.payload!.isNotEmpty) {
-          final data = jsonDecode(details.payload!);
-          _handleNotificationClick(data);
+          try {
+            final data = jsonDecode(details.payload!) as Map<String, dynamic>;
+            print("📦 Payload tapped: $data");
+            _handleNotificationClick(data);
+          } catch (e) {
+            print("❌ Payload decode error: $e");
+          }
         }
       },
     );
 
-    // Request notification permissions
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
-
-    // Foreground messages
+    // 🔔 Foreground message
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print("📩 Foreground message: ${message.data}");
 
-      // Sirf login user ke liye check
-      if (await _shouldShowNotification(message.data)) {
-        final title =
-            message.notification?.title ?? message.data['title'] ?? '';
-        final body = message.notification?.body ?? message.data['body'] ?? '';
+      final title = message.notification?.title ?? message.data['title'] ?? '';
+      final body = message.notification?.body ?? message.data['body'] ?? '';
 
-        await _showLocalNotification(
-          title: title,
-          body: body,
-          payload: jsonEncode(message.data),
-        );
-      } else {
-        print("ℹ️ Notification skipped (user not logged in or token mismatch)");
-      }
+      await _showLocalNotification(
+        title: title,
+        body: body,
+        payload: jsonEncode(message.data), // 👈 payload save
+      );
     });
-    // Background → app open
+
+    // 🔔 Background → user taps notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print("📩 Opened from background: ${message.data}");
       _handleNotificationClick(message.data);
     });
 
-    // Terminated → app open
+    // 🔔 Terminated → cold start
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       print("📩 Opened from terminated: ${initialMessage.data}");
       _handleNotificationClick(initialMessage.data);
     }
   }
+
 
   /// Handle navigation dynamically
   static final Map<String, Widget Function(Map<String, dynamic> data)> screenRoutes = {
@@ -112,21 +111,6 @@ class NotificationService {
         return;
       }
 
-      // App terminated → always reset to DrawerScreen, then push screen
-      if (FirebaseMessaging.instance.getInitialMessage() != null) {
-        nav.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => DrawerScreen()),
-              (route) => false,
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          nav.push(
-            MaterialPageRoute(builder: (_) => screenRoutes[screen]!(data)),
-          );
-        });
-        return;
-      }
-
-      // App already running (foreground/background) → just push new screen
       if (currentRoute == screen) {
         print("⚠️ Already on $screen, no navigation");
         return;
@@ -140,8 +124,6 @@ class NotificationService {
       print("⚠️ No matching screen found for: $screen");
     }
   }
-
-
 
 
   static Future<bool> _shouldShowNotification(Map<String, dynamic> data) async {
@@ -308,16 +290,15 @@ class NotificationService {
   }
 */
 
-  /// Send notification with dynamic screen
+  /// Send notification in a universal way
   static Future<bool> sendNotification({
     required String title,
-    required String toToken,
+    required String toToken, // existing parameter name, no change needed
     required String type,
     required String screen,
     Map<String, dynamic>? extraData,
   }) async {
     try {
-      // ✅ Define templates
       const Map<String, String> templates = {
         "broker_request": "{name} has sent you a job request.",
         "courier_accept": "{name} has accepted your request.",
@@ -330,36 +311,39 @@ class NotificationService {
         "new_msg": "{name} has sent you a message.",
       };
 
-      // ✅ Validate type
       if (!templates.containsKey(type)) {
         throw Exception("Invalid notification type: $type");
       }
 
-      // ✅ Prepare body text
       final senderName = (extraData?["senderName"] ?? "Someone").toString();
       final body = templates[type]!.replaceAll("{name}", senderName);
 
-      // ✅ Merge data (ensure no null issue)
-      final Map<String, dynamic> mergedData = {
-        "screen": screen,
-        if (extraData != null) ...extraData,
+      // ✅ Universal payload matching PHP backend
+      final requestBody = {
+        "token": toToken,
+        "title": title,
+        "body": body,
+        "data": {
+          "screen": screen,
+          "senderName": senderName,
+          "userID": extraData?["userID"] ?? "",
+          "chatId": extraData?["chatId"] ?? "",
+          "testParam":"testing",
+        },
+        "priority": "high"
       };
 
-      // ✅ HTTP Request
+      // 🔹 Send POST request
       final response = await http.post(
         Uri.parse(_serverUrl),
-        body: {
-          "token": toToken,
-          "title": title,
-          "body": body,
-          "data": jsonEncode(mergedData),
-        },
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
       );
 
-      // ✅ Logging
       if (response.statusCode == 200) {
         print("✅ Notification sent: type=$type, screen=$screen");
-        print("📦 Data: $mergedData");
+        print("📦 Request Body: $requestBody");
+        print("Response: ${response.body}");
         return true;
       } else {
         print("❌ Failed to send notification. Code: ${response.statusCode}");
@@ -372,8 +356,6 @@ class NotificationService {
       return false;
     }
   }
-
-
   /// Show local notification
   static Future<void> _showLocalNotification({
     required String title,
@@ -398,4 +380,30 @@ class NotificationService {
       payload: payload,
     );
   }
+  //from background
+  static Future<void> showNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      "default_channel",
+      "General Notifications",
+      channelDescription: "App notifications",
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const platformDetails = NotificationDetails(android: androidDetails);
+
+    await _localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      platformDetails,
+      payload: payload, // 👈 yeh JSON string store ho rahi hai
+    );
+  }
+
+
 }

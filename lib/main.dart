@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
@@ -125,9 +127,23 @@ void callbackDispatcher() {
 }
 Future<void> notificationListner() async {
   await NotificationService.init(); // ✅ Init all listeners
+  // Register background handler
+ // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 }
 
+/// Background handler
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("📩 Background/Terminated message: ${message.data}");
 
+  // Yahan tum apna NotificationService call karo
+  await NotificationService.showNotification(
+    title: message.data['title'] ?? "No Title",
+    body: message.data['body'] ?? "No Body",
+    payload: jsonEncode(message.data),
+  );
+
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

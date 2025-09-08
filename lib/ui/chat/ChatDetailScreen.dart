@@ -163,31 +163,41 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         print("FCM Token: $token");
         print("DEBUG: User FCM Info: $userInfo");
 
+
+
         if (userInfo != null) {
           final params = {
             "title": "New Message",
-            "toToken": token,
+            "token": token,
             "type": "new_msg",
             "screen": "ChatDetailScreen",
-            "extraData": {
+            "data": {
               "senderName": userInfo['name'],
-              "userID": widget.userID,
+              "userID": currentUserID,
               "chatId": chatId,
             }
           };
 
-          // 🔹 log all params before sending
-          print("🔔 Sending Notification Params: $params");
+          print("=====================================");
+          print("📩 Notification Params:");
+          params.forEach((key, value) {
+            if (value is Map) {
+              print("➡️ $key : {");
+              value.forEach((k, v) => print("     $k : $v"));
+              print("}");
+            } else {
+              print("➡️ $key : $value");
+            }
+          });
+          print("=====================================");
 
           await NotificationService.sendNotification(
             title: params["title"] as String,
-            toToken: params["toToken"] as String,
+            toToken: params["token"] as String,
             type: params["type"] as String,
             screen: params["screen"] as String,
-            extraData: params["extraData"] as Map<String, dynamic>, // 👈 cast required
+            extraData: params["data"] as Map<String, dynamic>,
           );
-
-
 
           print("✅ ChatNotification sent!");
         }
