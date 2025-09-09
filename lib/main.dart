@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
+import 'package:broker_flutter_pp/ui/common/utils/LoggingNavigatorObserver.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
@@ -17,6 +18,7 @@ import 'package:workmanager/workmanager.dart';
 import 'firebase_options.dart';
 
 final GlobalKey<NavigatorState> navigatorKeyMain = GlobalKey<NavigatorState>();
+final loggingObserver = LoggingNavigatorObserver();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensures binding is initialized
@@ -24,6 +26,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await FirebaseMessaging.instance.requestPermission(); // Important for iOS
+
+  // 🔹 Register background handler BEFORE runApp
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   initializeWorkManager();
   notificationListner();
@@ -39,6 +44,10 @@ void main() async {
       child: const MyApp(),
     ),
   );
+  // Check pending payload after app is built
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.handlePendingPayload();
+  });
 }
 void initializeWorkManager() {
   // ✅ Initialize WorkManager
@@ -127,22 +136,19 @@ void callbackDispatcher() {
 }
 Future<void> notificationListner() async {
   await NotificationService.init(); // ✅ Init all listeners
-  // Register background handler
- // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 }
 
 /// Background handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print("📩 Background/Terminated message: ${message.data}");
+  print("📩 Background/Terminated message received: ${message.data}");
 
-  // Yahan tum apna NotificationService call karo
+  // Show local notification (optional)
   await NotificationService.showNotification(
     title: message.data['title'] ?? "No Title",
     body: message.data['body'] ?? "No Body",
-    payload: jsonEncode(message.data),
+    payload: jsonEncode(message.data), // important for tap navigation
   );
-
 }
 
 class MyApp extends StatelessWidget {
@@ -152,6 +158,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKeyMain, // 👈 Add this line
+      navigatorObservers: [loggingObserver],
       title: 'OBC App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

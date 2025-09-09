@@ -31,6 +31,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
+    print("ChatDetailScreen:initState");
+    print(widget.userID);
     _getChatId();
     markMessagesAsReadWithoutIndex();
   }
@@ -477,6 +479,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
     }
   }
-
+  @override
+  void dispose() {
+    print("ChatDetailScreen:dispose");
+    print(widget.userID);
+    NotificationService.currentRoute = null;
+    super.dispose();
+  }
 
 }

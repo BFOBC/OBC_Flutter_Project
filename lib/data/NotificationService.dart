@@ -17,8 +17,6 @@ import '../ui/common/utils/RoleProvider.dart';
 // Aur main.dart ka import karo
 import 'package:broker_flutter_pp/main.dart';
 
-//final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 class NotificationService {
   static const String _serverUrl =
       "https://mopogotechnologies.com/fcm-server/send_notification.php";
@@ -27,37 +25,51 @@ class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  static Map<String, dynamic>? _pendingPayload;
+  static bool _isHandlingClick = false;
 
-  /// Map screen names from notification data → actual Widget
-/*  static final Map<String, Widget Function()> screenRoutes = {
-    "DrawerScreen": () => DrawerScreen(),
-    "CourierMissions": () => CourierMissions(),
-    "BrokerMissionScreen": () => BrokerMissions(),
-    "ChatDetailScreen": () => ChatDetailScreen(
-          userID: 'VmM650tiV1WqZGnQW3rujDG4FOB2',
-        ), // add this
-    // Add more here as needed
-  };*/
-
+  // add these private fields near top of the class
+  static DateTime? _lastNavTime;
+  static const int _navDebounceMs = 2500; // ignore nav attempts within 2.5s
   /// Init service
   static Future<void> init() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidInit);
 
+    // Initialize local notifications first (register tap callback)
     await _localNotifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (details) {
         if (details.payload != null && details.payload!.isNotEmpty) {
-          try {
-            final data = jsonDecode(details.payload!) as Map<String, dynamic>;
-            print("📦 Payload tapped: $data");
+          final data = _normalizePayload(details.payload!);
+          print("📦 Local notif tapped: $data");
+
+          // ✅ Sirf foreground ke liye navigate
+          if (navigatorKeyMain.currentState != null) {
             _handleNotificationClick(data);
-          } catch (e) {
-            print("❌ Payload decode error: $e");
+          } else {
+            _pendingPayload = data;
           }
         }
       },
     );
+
+    // After initialize, check if app was launched by tapping a local notification
+    final launchDetails =
+        await _localNotifications.getNotificationAppLaunchDetails();
+    if ((launchDetails?.didNotificationLaunchApp ?? false) &&
+        (launchDetails?.notificationResponse?.payload?.isNotEmpty ?? false)) {
+      final payloadStr = launchDetails!.notificationResponse!.payload!;
+      final data = _normalizePayload(payloadStr);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (navigatorKeyMain.currentState == null) {
+          _pendingPayload = data;
+        } else {
+          _handleNotificationClick(data);
+        }
+      });
+    }
 
     // 🔔 Foreground message
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
@@ -66,70 +78,120 @@ class NotificationService {
       final title = message.notification?.title ?? message.data['title'] ?? '';
       final body = message.notification?.body ?? message.data['body'] ?? '';
 
+      // Save raw message.data as payload (stringified)
       await _showLocalNotification(
         title: title,
         body: body,
-        payload: jsonEncode(message.data), // 👈 payload save
+        payload: jsonEncode(message.data),
       );
     });
 
-    // 🔔 Background → user taps notification
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("📩 Opened from background: ${message.data}");
-      _handleNotificationClick(message.data);
-    });
-
-    // 🔔 Terminated → cold start
+    // Terminated → cold start
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       print("📩 Opened from terminated: ${initialMessage.data}");
-      _handleNotificationClick(initialMessage.data);
+      final data = _normalizePayload(initialMessage.data);
+      if (navigatorKeyMain.currentState == null) {
+        _pendingPayload = data;
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleNotificationClick(data);
+        });
+      }
+    }
+
+    // Background → user taps FCM notification
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("📩 Opened from background: ${message.data}");
+      final data = _normalizePayload(message.data);
+      if (navigatorKeyMain.currentState == null) {
+        _pendingPayload = data;
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleNotificationClick(data);
+        });
+      }
+    });
+  }
+
+  static Map<String, dynamic> _normalizePayload(dynamic payload) {
+    // payload might be a stringified JSON or a Map (Map<dynamic,dynamic>)
+    if (payload is String) {
+      try {
+        payload = jsonDecode(payload);
+      } catch (_) {}
+    }
+
+    if (payload is Map) {
+      // convert dynamic map -> Map<String, dynamic>
+      final map = Map<String, dynamic>.from(payload);
+      // If message has nested 'data' object (common when sending { data: {...} })
+      if (map['data'] is Map) {
+        return Map<String, dynamic>.from(map['data']);
+      }
+      return map;
+    }
+
+    return <String, dynamic>{};
+  }
+
+  static void handlePendingPayload() {
+    if (_pendingPayload != null) {
+      final nav = navigatorKeyMain.currentState;
+      if (nav != null) {
+        nav.push(
+          MaterialPageRoute(
+              builder: (_) =>
+                  screenRoutes[_pendingPayload!['screen']]!(_pendingPayload!)),
+        );
+        _pendingPayload = null;
+      }
     }
   }
 
-
   /// Handle navigation dynamically
-  static final Map<String, Widget Function(Map<String, dynamic> data)> screenRoutes = {
+  static final Map<String, Widget Function(Map<String, dynamic> data)>
+      screenRoutes = {
     "DrawerScreen": (data) => DrawerScreen(),
     "CourierMissions": (data) => CourierMissions(),
     "BrokerMissionScreen": (data) => BrokerMissions(),
     "ChatDetailScreen": (data) => ChatDetailScreen(
-      userID: data['userID'] ?? 'defaultUser',
-    ),
+          userID: data['userID'] ?? 'defaultUser',
+        ),
     // Add more screens here
   };
 
   static void _handleNotificationClick(Map<String, dynamic> data) {
     final screen = data['screen'];
-    print("🔀 Navigate to: $screen");
+    print("🔀 Navigate to: $screen with payload: $data");
 
     if (screen != null && screenRoutes.containsKey(screen)) {
       final nav = navigatorKeyMain.currentState;
-
       if (nav == null) {
         print("⚠️ Navigator not ready, skipping");
         return;
       }
 
-      if (currentRoute == screen) {
-        print("⚠️ Already on $screen, no navigation");
+      final idPart = (data['chatId'] ?? data['userID'] ?? '').toString();
+      final screenKey = "$screen::$idPart";
+
+      if (currentRoute == screenKey) {
+        print("⚠️ Already on $screenKey, no navigation");
         return;
       }
-      currentRoute = screen;
 
-      nav.push(
-        MaterialPageRoute(builder: (_) => screenRoutes[screen]!(data)),
+      // ✅ Lock karo until dispose
+      currentRoute = screenKey;
+
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => screenRoutes[screen]!(data),
+        ),
+        (Route<dynamic> route) => route.isFirst, // ✅ sirf root bacha rahega
       );
     } else {
       print("⚠️ No matching screen found for: $screen");
     }
-  }
-
-
-  static Future<bool> _shouldShowNotification(Map<String, dynamic> data) async {
-    // Always return true for testing
-    print("🔹 _shouldShowNotification called");
-    return true;
   }
 
   /// Get logged-in user's FCM token & name
@@ -160,8 +222,10 @@ class NotificationService {
       return null;
     }
   }
+
   /// Get Courier Name & FCM Token
-  static Future<Map<String, String?>?> getCourierNameAndTokenById(String userId) async {
+  static Future<Map<String, String?>?> getCourierNameAndTokenById(
+      String userId) async {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('courier')
@@ -181,7 +245,9 @@ class NotificationService {
       return null;
     }
   }
-  static Future<Map<String, String?>?> getBrokerNameAndTokenById(String userId) async {
+
+  static Future<Map<String, String?>?> getBrokerNameAndTokenById(
+      String userId) async {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('broker')
@@ -328,7 +394,7 @@ class NotificationService {
           "senderName": senderName,
           "userID": extraData?["userID"] ?? "",
           "chatId": extraData?["chatId"] ?? "",
-          "testParam":"testing",
+          "testParam": "testing",
         },
         "priority": "high"
       };
@@ -356,6 +422,7 @@ class NotificationService {
       return false;
     }
   }
+
   /// Show local notification
   static Future<void> _showLocalNotification({
     required String title,
@@ -380,6 +447,7 @@ class NotificationService {
       payload: payload,
     );
   }
+
   //from background
   static Future<void> showNotification({
     required String title,
@@ -404,6 +472,4 @@ class NotificationService {
       payload: payload, // 👈 yeh JSON string store ho rahi hai
     );
   }
-
-
 }
