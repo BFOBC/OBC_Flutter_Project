@@ -366,19 +366,16 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
 
     //job completion notification
     final User currentUser = FirebaseAuth.instance.currentUser!;
-    final userInfo = await NotificationService.getUserFcmInfo(context);
-    final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
-    print("Opposite role FCM Token: $token");
-    print("FCM Token: $token");
-    print("DEBUG: User FCM Info: $userInfo");
+    final brokerData = await NotificationService.getBrokerNameAndTokenById(widget.task.brokerId.toString());
+    final courierData = await NotificationService.getCourierNameAndTokenById(currentUser.uid.toString());
 
-    if (userInfo != null) {
+    if (brokerData != null) {
       await NotificationService.sendNotification(
-        title: "Milestone Completed",
-        toToken: token!,
-        type: "mile_stone_completed",
-        screen: "CompleteMilestone",
-        extraData: {"senderName": userInfo['name']},
+        title: "Job Completed",
+        toToken: brokerData['token']!,
+        type: "job_completed",
+        screen: "BrokerMissionScreen",
+        extraData: {"senderName": courierData!['name']},
       );
       print("DEBUG: Notification sent");
     }
@@ -390,7 +387,7 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
       // Prepare notification message
       final User currentUser = FirebaseAuth.instance.currentUser!;
       final String email = currentUser.email ?? 'Unknown User';
-      final String message = "Your Job has been completed by $userInfo['name']";
+      final String message = "Your Job has been completed by $courierData['name']";
 
       // Create notification after job completion
       await service.createNotification(

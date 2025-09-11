@@ -106,37 +106,7 @@ class _ViewBrokerMissionsState extends State<ViewBrokerMissions> {
                 debugPrint("job started Notification");
 
 
-                // broker data
-                final brokerData =
-                await NotificationService.getBrokerNameAndTokenById(widget.task!.brokerId.toString());
-
-                // courier data
-                final courierData =
-                await NotificationService.getCourierNameAndTokenById(currentUser.uid);
-
-                String title = 'Job Started';
-                String type = 'job_started';
-
-
-
-                print("job started Notification $brokerData");
-
-                if (brokerData != null) {
-                  await NotificationService.sendNotification(
-                    title: title,
-                    toToken: brokerData['token']!,
-                    type: type,
-                    screen: "BrokerMissionScreen",
-                    extraData: {"senderName": courierData?['name']},
-                  );
-                  print("DEBUG: Notification sent");
-                }
-
-
-/*                await sendMilestoneCompletedNotification(
-                widget.task!.brokerId.toString(),
-                currentUser.uid,
-                );*/
+                final courierData = await NotificationService.getCourierNameAndTokenById(currentUser.uid.toString());
 
                 FirestoreService service = FirestoreService(context);
                 service.updateJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
@@ -151,7 +121,7 @@ class _ViewBrokerMissionsState extends State<ViewBrokerMissions> {
                   courierID: currentUser.uid,
                   emptyLegRequestID: widget.task!.emptyLegRequestID!,
                   sentBy: "Courier",
-                  message: "Your Job $taskID is started by $email",
+                  message: "Your Job $taskID is started by $courierData['name']",
                 );
 
                 ScaffoldMessenger.of(context).showSnackBar(

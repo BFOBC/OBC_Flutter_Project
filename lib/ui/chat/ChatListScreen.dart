@@ -1,22 +1,11 @@
-import 'package:android_intent_plus/android_intent.dart';
+
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart'; // Import your ChatDetailScreen
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-
-import 'package:broker_flutter_pp/res/custom_colors.dart';
-import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart'; // Import your ChatDetailScreen
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -40,7 +29,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("⚠️ Your chats will be deleted in 15 days."),
+          content: Text("⚠️ Your chats will be deleted in 3 days."),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 3),
         ),
@@ -51,41 +40,79 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Future<Map<String, String>> _getUserDetails(
       String userId, BuildContext context) async {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    print("_getUserDetailsChatList → userId=$userId role=${roleProvider.role}");
 
     try {
       if (roleProvider.role == UserRole.broker) {
-        var courierDoc = await FirebaseFirestore.instance
-            .collection('courier')
-            .doc(userId)
-            .get();
+        print("🔍 Broker login → courier details fetch kar rahe hain...");
+        if (userId.isEmpty) return _unknownUser("Empty userId for courier");
+
+        var courierRef =
+        FirebaseFirestore.instance.collection('courier').doc(userId);
+
+        print("📌 CourierRef path: ${courierRef.path}");
+
+        var courierDoc = await courierRef.get();
+        print("CourierDoc exists=${courierDoc.exists}, data=${courierDoc.data()}");
+
         if (courierDoc.exists && courierDoc.data() != null) {
+          final data = courierDoc.data()!;
           return {
             'uid': courierDoc.id,
-            'name': courierDoc['name'] ?? 'Unknown Courier',
-            'phoneNumber': courierDoc['phoneNumber'] ?? '',
-            'profilePictureUrl': courierDoc['profilePictureUrl'] ?? '',
-            'countryCode': courierDoc['countryCode'] ?? ''
+            'name': (data['name'] ?? '').toString().trim().isNotEmpty
+                ? data['name']
+                : 'Unknown Courier',
+            'phoneNumber': data['phoneNumber'] ?? '',
+            'profilePictureUrl': data['profilePictureUrl'] ?? '',
+            'countryCode': data['countryCode'] ?? ''
           };
+        } else {
+          return _unknownUser("Courier record not found ya null hai");
         }
       } else if (roleProvider.role == UserRole.courier) {
-        var brokerDoc = await FirebaseFirestore.instance
-            .collection('broker')
-            .doc(userId)
-            .get();
+        print("🔍 Courier login → broker details fetch kar rahe hain...");
+        if (userId.isEmpty) return _unknownUser("Empty userId for broker");
+
+        var brokerRef =
+        FirebaseFirestore.instance.collection('broker').doc(userId);
+
+        print("📌 BrokerRef path: ${brokerRef.path}");
+
+        var brokerDoc = await brokerRef.get();
+        print("BrokerDoc exists=${brokerDoc.exists}, data=${brokerDoc.data()}");
+
         if (brokerDoc.exists && brokerDoc.data() != null) {
+          final data = brokerDoc.data()!;
           return {
             'uid': brokerDoc.id,
-            'name': brokerDoc['name'] ?? 'Unknown Broker',
-            'phoneNumber': brokerDoc['phoneNumber'] ?? '',
-            'countryCode': brokerDoc['countryCode'] ?? '',
-            'profilePictureUrl': brokerDoc['profilePictureUrl'] ?? ''
+            'name': (data['name'] ?? '').toString().trim().isNotEmpty
+                ? data['name']
+                : 'Unknown Broker',
+            'phoneNumber': data['phoneNumber'] ?? '',
+            'countryCode': data['countryCode'] ?? '',
+            'profilePictureUrl': data['profilePictureUrl'] ?? ''
           };
+        } else {
+          return _unknownUser("Broker record not found ya null hai");
         }
+      } else {
+        return _unknownUser("Role unknown hai: ${roleProvider.role}");
       }
     } catch (e) {
-      print("Error fetching user details: $e");
+      return _unknownUser("❌ Exception aayi: $e");
     }
-    return {'uid': 'Unknown', 'name': 'Unknown User', 'phoneNumber': '','countryCode':''};
+  }
+
+  /// Helper → Unknown user map
+  Map<String, String> _unknownUser(String reason) {
+    print("🔄 Returning UnknownUser because: $reason");
+    return {
+      'uid': 'Unknown',
+      'name': 'Unknown User',
+      'phoneNumber': '',
+      'countryCode': '',
+      'profilePictureUrl': ''
+    };
   }
 
   @override
@@ -176,6 +203,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     String otherUserId =
                     users.isNotEmpty ? users.first : 'Unknown';
 
+                    print("otherUserId $otherUserId");
+
                     return FutureBuilder<Map<String, String>>(
                       future: _getUserDetails(otherUserId, context),
                       builder: (context, userSnapshot) {
@@ -197,9 +226,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         String? profilePictureUrl =
                         userSnapshot.data!['profilePictureUrl'];
                         String displayLetter =
-                        (otherUserName != null && otherUserName.isNotEmpty)
-                            ? otherUserName[0].toUpperCase()
-                            : '?';
+                        (otherUserName.isNotEmpty) ? otherUserName[0].toUpperCase() : '?';
                         // Stateful widget ke andar declare karo
                         int _unreadCount = 0; // local state for badge
 

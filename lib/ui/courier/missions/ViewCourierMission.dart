@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
@@ -101,13 +102,14 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
           actions: [
             // "Yes" Button
             ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
                 FirestoreService service = FirestoreService(context);
                 service.updateJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
                 service.updateEmptyLegTableJobStatus(widget.task!.emptyLegRequestID.toString(), "In Progress");
                 String taskID = widget.task!.emptyLegRequestID!;
                 final User currentUser = FirebaseAuth.instance.currentUser!;
                 String email = currentUser.email!;
+
                 service.createNotification(
                   brokerID: widget.task!.brokerId!,
                   courierID: currentUser.uid,
@@ -122,7 +124,23 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
                   ),
                 );
 
-                debugPrint("Job started!");
+                final brokerData = await NotificationService.getBrokerNameAndTokenById(widget.task!.brokerId.toString());
+                final courierData = await NotificationService.getCourierNameAndTokenById(currentUser.uid.toString());
+                print("Broker Data Job Started: $brokerData");
+                print("Broker Token $brokerData['token']");
+                if (brokerData != null) {
+                  await NotificationService.sendNotification(
+                    title: "Job Started",
+                    toToken: brokerData['token']!,
+                    type: "job_started",
+                    screen: "BrokerMissionScreen",
+                    extraData: {"senderName": courierData!['name']},
+                  );
+                  print("Job Started");
+                }else{
+
+                  print("Job Not Started");
+                }
 
                 Navigator.of(context).pop(); // Close the dialog
                 Navigator.of(context).pop(); // Go back to the previous screen

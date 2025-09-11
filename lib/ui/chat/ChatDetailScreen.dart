@@ -84,6 +84,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<Map<String, String>> _getUserDetails(String userId,
       BuildContext context) async {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    print("_getUserDetails $userId");
 
     try {
       if (roleProvider.role == UserRole.broker) {
