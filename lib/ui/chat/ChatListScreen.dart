@@ -178,7 +178,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Text(
-                  '⚠️ Your chats will be deleted in 15 days.',
+                  '⚠️ Your chats will be deleted in 3 days.',
                   style: TextStyle(
                     color: Colors.black87,
                     fontWeight: FontWeight.w500,
@@ -363,7 +363,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                     ),
 
                                     // 📞 Call Buttons
-                                    if (completePhoneNumber != null && completePhoneNumber.isNotEmpty)
+/*                                    if (completePhoneNumber != null && completePhoneNumber.isNotEmpty)
                                       Positioned(
                                         top: 10,
                                         right: 16,
@@ -396,7 +396,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                             ),
                                           ],
                                         ),
-                                      ),
+                                      ),*/
 
                                     // 🔴 Unread Badge
                                     if (_unreadCount > 0)

@@ -415,30 +415,30 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
         deleteFileFromServer(ctx, fileUrl);
         // ✅ Show success snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
+/*        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ File downloaded: $fileName'),
             backgroundColor: Colors.green,
           ),
-        );
+        );*/
       } else {
         // ❌ Show error snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
+/*        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
                 '❌ Failed to download file (Status: ${response.statusCode})'),
             backgroundColor: Colors.red,
           ),
-        );
+        );*/
       }
     } catch (e) {
       // ❌ Show error snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
+/*      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('❌ Download error: $e'),
           backgroundColor: Colors.red,
         ),
-      );
+      );*/
     }
   }
 

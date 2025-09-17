@@ -602,17 +602,29 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
                     ),
                     onSubmitted: (value) {
                       if (value.length == 3) {
-                        searchNearbyLocations(value.toUpperCase()); // Optional: force uppercase
+                        searchNearbyLocations(value.toUpperCase()); // ✅ call function
                       } else {
-                        // Optional: show error
                         print('❌ Must be exactly 3 letters');
                       }
                     },
                   ),
+                ),
 
+                /// 👉 Added Search Button
+                IconButton(
+                  icon: const Icon(Icons.send, color: Colors.blue),
+                  onPressed: () {
+                    final value = _searchController.text.trim();
+                    if (value.length == 3) {
+                      searchNearbyLocations(value.toUpperCase());
+                    } else {
+                      print('❌ Must be exactly 3 letters');
+                    }
+                  },
                 ),
               ],
             ),
+
           ),
         ),
 

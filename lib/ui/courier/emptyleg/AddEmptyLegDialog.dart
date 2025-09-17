@@ -49,8 +49,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   final CollectionReference emptyLegCollection =
       FirebaseFirestore.instance.collection('emptyLegs');
 
-  List<AirportModel> fromAirportSuggestions =
-      []; // Suggestions for "From Location"
+  List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
   final DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ");
   final DateFormat outputFormat = DateFormat("yyyy-MM-dd HH:mm");

@@ -1,12 +1,16 @@
+import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:broker_flutter_pp/ui/courier/emptyleg/UpperCaseTextFormatter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import '../../../data/NotificationService.dart';
@@ -17,8 +21,9 @@ class SubmissionScreen extends StatefulWidget {
   final String brokerKey;
   final String courierKey;
   final Function(Task task) onSave;
-
-  const SubmissionScreen({
+  AirportModel? selectedFromAirport;
+  AirportModel? selectedToAirport;
+   SubmissionScreen({
     super.key,
     this.data,
     required this.brokerKey,
@@ -43,6 +48,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   String emptyLegRequestID = "";
   late List<String> milestoneNodeID = [];
 
+  List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
+  List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
+
   @override
   void initState() {
     super.initState();
@@ -55,7 +63,54 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _submissionBidController.text = widget.data!.bid ?? '';
     }
   }
+  Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
+    final dbHelper = DatabaseOperation();
+    try {
+      List<AirportModel> airports =
+      await dbHelper.fetchAirportsFromDatabase(query);
+      return airports;
+    } catch (e) {
+      print('Error _fetchAirports $e');
+      return [];
+    }
+  }
+  // Fetch airports that match the query for From Location
+  Future<void> _fetchFromAirportData(String query) async {
+    if (query.isNotEmpty) {
+      try {
+        final airports = await fetchAirportsFromDatabase(query);
+        setState(() {
+          fromAirportSuggestions = airports;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error fetching airports: $e')));
+      }
+    } else {
+      setState(() {
+        fromAirportSuggestions = [];
+      });
+    }
+  }
 
+  // Fetch airports that match the query for To Location
+  Future<void> _fetchToAirportData(String query) async {
+    if (query.isNotEmpty) {
+      try {
+        final airports = await fetchAirportsFromDatabase(query);
+        setState(() {
+          toAirportSuggestions = airports;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error fetching airports: $e')));
+      }
+    } else {
+      setState(() {
+        toAirportSuggestions = [];
+      });
+    }
+  }
   void _addMilestoneForm() {
     setState(() {
       milestoneForms.add(MilestoneFormData());
@@ -159,14 +214,44 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
     return true;
   }
-
+  Widget _buildTextField2(
+      TextEditingController controller,
+      String labelText, {
+        ValueChanged<String>? onChanged,
+        ValueChanged<String>? onFieldSubmitted,
+        List<TextInputFormatter>? inputFormatters,
+        TextInputType keyboardType = TextInputType.text, // ✅ Default to text
+      }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      // ✅ Use it here
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return '$labelText is required';
+        }
+        return null;
+      },
+    );
+  }
   Widget _buildTextField(
       TextEditingController controller, String label, bool readOnly) {
+    final isNumberField = controller == _submissionCourierController ||
+        controller == _submissionBidController;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: controller,
         readOnly: readOnly,
+        keyboardType: isNumberField ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
@@ -174,33 +259,34 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
         onTap: readOnly
             ? () async {
-                DateTime? pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                if (pickedDate != null) {
-                  TimeOfDay? pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.now(),
-                  );
-                  if (pickedTime != null) {
-                    final dt = DateTime(
-                      pickedDate.year,
-                      pickedDate.month,
-                      pickedDate.day,
-                      pickedTime.hour,
-                      pickedTime.minute,
-                    );
-                    controller.text = dt.toString();
-                  }
-                }
-              }
+          DateTime? pickedDate = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2020),
+            lastDate: DateTime(2100),
+          );
+          if (pickedDate != null) {
+            TimeOfDay? pickedTime = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.now(),
+            );
+            if (pickedTime != null) {
+              final dt = DateTime(
+                pickedDate.year,
+                pickedDate.month,
+                pickedDate.day,
+                pickedTime.hour,
+                pickedTime.minute,
+              );
+              controller.text = dt.toString();
+            }
+          }
+        }
             : null,
       ),
     );
   }
+
 
   @override
   void dispose() {
@@ -375,15 +461,49 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               ),
             ),
 
+            // 🔹 Block B (Updated with From/To Location from Block A)
             const SizedBox(height: 10),
+
+// Start & End Date/Time
             _buildTextField(_submissionStartDateController, 'Start Time And Date', true),
             _buildTextField(_submissionEndDateController, 'End Time And Date', true),
-            _buildTextField(_submissionDepartureController, 'Departure Location', false),
-            _buildTextField(_submissionArrivalController, 'Arrival Location', false),
+
+// From Location
+            _buildStyledField(
+              child: _buildTextField2(
+                _submissionDepartureController,
+                'From Location',
+                onChanged: (value) {
+                  if (value.length == 3) _fetchFromAirportData(value);
+                },
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(3),
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+                  UpperCaseTextFormatter(),
+                ],
+              ),
+            ),
+            _buildSuggestionList(fromAirportSuggestions, _submissionDepartureController, isFrom: true),
+// To Location
+            _buildStyledField(
+              child: _buildTextField2(
+                _submissionArrivalController,
+                'To Location',
+                onChanged: (value) {
+                  if (value.length == 3) _fetchToAirportData(value);
+                },
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(3),
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+                  UpperCaseTextFormatter(),
+                ],
+              ),
+            ),
+            _buildSuggestionList(toAirportSuggestions, _submissionArrivalController,
+                isFrom: false),
             _buildTextField(_submissionCourierController, 'Bid', false),
             _buildTextField(_submissionBidController, 'Courier Capacity', false),
             const SizedBox(height: 10),
-
             /// Add Milestone Button (centered + rectangular)
             Center(
               child: ElevatedButton.icon(
@@ -465,8 +585,37 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
       ),
     );
+
   }
 
+  Widget _buildSuggestionList(
+      List<AirportModel> suggestions, TextEditingController controller,
+      {required bool isFrom}) {
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        final airport = suggestions[index];
+        return ListTile(
+          title: Text(airport.name ?? 'Unknown'),
+          onTap: () {
+            setState(() {
+              controller.text = airport.name ?? '';
+              if (isFrom) {
+                widget.selectedFromAirport = airport;
+                fromAirportSuggestions = [];
+              } else {
+                widget.selectedToAirport = airport;
+                toAirportSuggestions = [];
+              }
+            });
+          },
+        );
+      },
+    );
+  }
   Future<void> _saveMilestoneToFirebase(Milestone milestone) async {
     try {
       final CollectionReference milestonesCollection =
@@ -645,6 +794,19 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).pushNamed('/DrawerScreen');
   }
+}
+Widget _buildStyledField({required Widget child}) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.symmetric(
+      horizontal: 1, // 👈 pehle 12 tha, ab kam kar diya
+      vertical: 4,
+    ),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: child,
+  );
 }
 
 /// Helper class to hold form controllers
