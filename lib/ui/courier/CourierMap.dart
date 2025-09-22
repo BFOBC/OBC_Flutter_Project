@@ -44,9 +44,8 @@ class _CourierMapState extends State<CourierMap>
 
 
   LatLng _baseLocation =
-      const LatLng(30.3753, 69.3451); // Example: New York City
-  LatLng _currentLocation =
-      const LatLng(30.3753, 69.3451); // Example: Los Angeles
+      const LatLng(0, 0); // Example: New York City
+  LatLng _currentLocation = const LatLng(0, 0); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
   List<Map<String, dynamic>> brokerInfoList = [];
 
@@ -75,7 +74,7 @@ class _CourierMapState extends State<CourierMap>
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('⚠️ Location services are disabled.')),
+        const SnackBar(content: Text('⚠️ Location services are disabled.')),
       );
       return null;
     }
@@ -86,7 +85,7 @@ class _CourierMapState extends State<CourierMap>
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Location permission denied by user.')),
+          const SnackBar(content: Text('❌ Location permission denied by user.')),
         );
         return null;
       }
@@ -94,32 +93,45 @@ class _CourierMapState extends State<CourierMap>
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                '❗ Location permission permanently denied. Open settings.')),
+        const SnackBar(
+            content: Text('❗ Location permission permanently denied. Open settings.')),
       );
       await Geolocator.openAppSettings();
       return null;
     }
 
-    // Step 3: Get current position
+    // Step 3: Try to get location from Firestore
     try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      _currentLocation = LatLng(position.latitude, position.longitude);
-      // Animate the camera to the new location
-
       FirestoreService firsBase = FirestoreService(context);
-      Map<String, double> location = await firsBase.getCourierLocation(_currentUser.uid);
-      LatLng fetchLocation = LatLng(location['lat']!, location['long']!);
-      animateCamera(fetchLocation, 10.0);
+      Map<String, double> location =
+      await firsBase.getCourierLocation(_currentUser.uid);
 
+      LatLng? finalLocation;
+
+      if (location.isNotEmpty &&
+          location['lat'] != null &&
+          location['long'] != null &&
+          (location['lat'] != 0.0 && location['long'] != 0.0)) {
+        // ✅ Valid Firestore location
+        finalLocation = LatLng(location['lat']!, location['long']!);
+      } else {
+        // ❌ Firestore location invalid → fallback to phone GPS
+        Position gpsPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        finalLocation = LatLng(gpsPosition.latitude, gpsPosition.longitude);
+      }
+
+      _currentLocation = finalLocation;
+
+      // Animate camera to chosen location
+      animateCamera(finalLocation, 10.0);
+
+      // Fetch courier location status
       final status = await firsBase.getCourierLocationStatus(_currentUser.uid);
 
       if (status != null) {
         String locationType = status.isCurrent ? "current" : "base";
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -135,7 +147,19 @@ class _CourierMapState extends State<CourierMap>
         );
       }
 
-      return position;
+      return Position(
+        latitude: _currentLocation!.latitude,
+        longitude: _currentLocation!.longitude,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        heading: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+        altitudeAccuracy: 0.0, // ✅ required
+        headingAccuracy: 0.0,  // ✅ required
+      );
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🚫 Error fetching location: $e')),
