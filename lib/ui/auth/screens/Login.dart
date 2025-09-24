@@ -152,6 +152,8 @@ class _CardViewState extends State<CardView> {
           }
         }
       } else {
+        FirestoreService service = FirestoreService(context);
+        service.setUserOnline();
         // Profile is completed, move to home screen
         if (context.mounted) {
           Navigator.of(context).pushReplacement(
@@ -327,6 +329,7 @@ class _CardViewState extends State<CardView> {
         if (!data.containsKey('email')) updates['email'] = email;
         if (!data.containsKey('name')) updates['name'] = actualRole == 'courier' ? 'Test Courier' : 'Test Broker';
         if (!data.containsKey('isOnline')) updates['isOnline'] = true;
+        if (!data.containsKey('profilePictureUrl')) updates['profilePictureUrl'] = 'https://mopogotechnologies.com/assets/images/profiles/place_holder_man.png';
         // For courier-specific fields
         if (actualRole == 'courier') {
           if (!data.containsKey('courierID')) updates['courierID'] = uid;

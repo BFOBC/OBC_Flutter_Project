@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
@@ -214,7 +215,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
           break;
 
         case AppStrings.settings:
-          _selectedWidget = const SettingScreen();
+          _selectedWidget =const  SettingScreen();
           break;
 
         default:
@@ -382,12 +383,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // 1. Sign out from Firebase
-                await FirebaseAuth.instance.signOut();
-
-                // 2. Clear SharedPreferences
-                await clearSavedLoginData();
-
+                await clearSavedLoginData(context);
                 // 3. Navigate to login
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginCard()),
@@ -410,7 +406,17 @@ class _DrawerScreenState extends State<DrawerScreen> {
   }
 }
 
-Future<void> clearSavedLoginData() async {
+Future<void> clearSavedLoginData(BuildContext context) async {
+  // Get role from Provider
+  final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+  FirestoreService service = FirestoreService(context);
+
+  // Decide collection name based on role
+  String collection =
+  roleProvider.role == UserRole.courier ? 'courier' : 'broker';
+
+  await service.setUserOffline();
+
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.remove('email');
   await prefs.remove('password');

@@ -12,6 +12,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../data/DatabaseOperation.dart';
 import '../common/models/AirportModel.dart';
 import '../common/widgets/ConfirmLocationChangeDialog.dart';
@@ -31,7 +32,7 @@ class _CourierMapState extends State<CourierMap>
 
   bool _isSearching = false;
   bool _isSearchBarVisible = false; // Visibility state for search bar
-  bool _isBaseSelected = true;
+  bool _isBaseSelected = false;
   String _searchText = ""; // This holds the text in the search bar
   String brokerName = '';
   String brokerContact = '';
@@ -42,9 +43,7 @@ class _CourierMapState extends State<CourierMap>
   // Add a MapController to control the map
   Completer<GoogleMapController> _mapController = Completer();
 
-
-  LatLng _baseLocation =
-      const LatLng(0, 0); // Example: New York City
+  LatLng _baseLocation = const LatLng(0, 0); // Example: New York City
   LatLng _currentLocation = const LatLng(0, 0); // Example: Los Angeles
   late LatLng _selectedLocation; // Will store the currently selected location
   List<Map<String, dynamic>> brokerInfoList = [];
@@ -55,18 +54,191 @@ class _CourierMapState extends State<CourierMap>
   late User _currentUser;
   bool _hasData = false;
 
-
-
-
-
   List<String> _suggestedCountries = [];
 
   @override
   void initState() {
     super.initState();
     _currentUser = FirebaseAuth.instance.currentUser!;
-    getCurrentLocation(context);
+    // getCurrentLocation(context);
+    checkAndAnimateUserLocation(_currentUser.uid);
     fetchEmptyLegRequests();
+  }
+
+  // 🔹 Step 1: Location permission check
+// 🔹 Step 1: Location permission check
+// 🔹 Step 1: Permission check (as you already have)
+  Future<bool> _handleLocationPermission(BuildContext context) async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _showLocationDialog(
+        context,
+        title: "Location Service Disabled",
+        message:
+        "⚠️ Please enable Location services in your phone settings to use this app.",
+      );
+      return false;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _showLocationDialog(
+          context,
+          title: "Permission Required",
+          message:
+          "❌ This app cannot work without location access.\n\nPlease allow location permission.",
+        );
+        return false;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      _showLocationDialog(
+        context,
+        title: "Permission Permanently Denied",
+        message:
+        "❗ Location permission is permanently denied.\n\nPlease open settings and enable permission for this app.",
+        openSettings: true,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+// 🔹 Step 2: Get phone GPS location safely
+  Future<LatLng> _getPhoneLocation() async {
+    try {
+      // ⏳ Timeout set to 10 sec max
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+
+      return LatLng(position.latitude, position.longitude);
+    } catch (e) {
+      print("⚠️ Location error: $e");
+      // fallback: last known position
+      final lastPosition = await Geolocator.getLastKnownPosition();
+      if (lastPosition != null) {
+        return LatLng(lastPosition.latitude, lastPosition.longitude);
+      }
+      // agar kuch bhi na mila to default lat/lng (0,0)
+      return const LatLng(0, 0);
+    }
+  }
+
+// 🔹 Step 2: Custom Dialog
+  void _showLocationDialog(
+      BuildContext context, {
+        required String title,
+        required String message,
+        bool openSettings = false,
+      }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // user tap/back se dismiss na kar sake
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.location_off, color: Colors.red, size: 28),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            if (openSettings)
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await Geolocator.openAppSettings();
+                },
+                child: const Text(
+                  "Open Settings",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text(
+                "OK",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  // 🔹 Step 3: Store location in Firestore
+  Future<void> _saveLocationToFirestore(String uid, LatLng location) async {
+    await FirebaseFirestore.instance.collection('courier').doc(uid).set({
+      "currentLocationLat": location.latitude,
+      "currentLocationLong": location.longitude,
+    }, SetOptions(merge: true));
+  }
+
+  // 🔹 Step 4: Main method (decides Base vs Current)
+  Future<void> checkAndAnimateUserLocation(String uid) async {
+    try {
+      if (!await _handleLocationPermission(context)) return;
+
+      // Get saved location (base or current) from Firestore
+      final doc =
+          await FirebaseFirestore.instance.collection('courier').doc(uid).get();
+
+      LatLng? finalLocation;
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        bool isBase = data['base'] ?? false;
+        double lat = (data['baseLocationLat'] ?? 0).toDouble();
+        double long = (data['baseLocationLong'] ?? 0).toDouble();
+        _baseLocation = LatLng(lat, long);
+        _isBaseSelected = true;
+        if (isBase && lat != 0.0 && long != 0.0) {
+          // ✅ Animate to Base Location
+          finalLocation = LatLng(lat, long);
+          _showSnack('📍 You are available at your base location.');
+        }
+      }
+
+      // ❌ If base is not valid → fallback to current phone GPS
+      if (finalLocation == null) {
+        _isBaseSelected = false;
+        finalLocation = await _getPhoneLocation();
+        await _saveLocationToFirestore(uid, finalLocation);
+        _showSnack('📍 You are available at your current location.');
+      }
+
+      // 🔹 Animate Google Map Camera
+      animateCamera(finalLocation, 500.0);
+    } catch (e) {
+      _showSnack('🚫 Error fetching location: $e');
+    }
   }
 
   Future<Position?> getCurrentLocation(BuildContext context) async {
@@ -88,7 +260,8 @@ class _CourierMapState extends State<CourierMap>
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Location permission denied by user.')),
+          const SnackBar(
+              content: Text('❌ Location permission denied by user.')),
         );
         return null;
       }
@@ -97,7 +270,8 @@ class _CourierMapState extends State<CourierMap>
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('❗ Location permission permanently denied. Open settings.')),
+            content: Text(
+                '❗ Location permission permanently denied. Open settings.')),
       );
       await Geolocator.openAppSettings();
       return null;
@@ -107,7 +281,7 @@ class _CourierMapState extends State<CourierMap>
     try {
       FirestoreService firsBase = FirestoreService(context);
       Map<String, double> location =
-      await firsBase.getCourierLocation(_currentUser.uid);
+          await firsBase.getCourierLocation(_currentUser.uid);
 
       LatLng? finalLocation;
 
@@ -128,7 +302,7 @@ class _CourierMapState extends State<CourierMap>
       _currentLocation = finalLocation;
 
       // Animate camera to chosen location
-      animateCamera(finalLocation, 10.0);
+      animateCamera(finalLocation, 500.0);
 
       // Fetch courier location status
       final status = await firsBase.getCourierLocationStatus(_currentUser.uid);
@@ -159,10 +333,10 @@ class _CourierMapState extends State<CourierMap>
         heading: 0.0,
         speed: 0.0,
         speedAccuracy: 0.0,
-        altitudeAccuracy: 0.0, // ✅ required
-        headingAccuracy: 0.0,  // ✅ required
+        altitudeAccuracy: 0.0,
+        // ✅ required
+        headingAccuracy: 0.0, // ✅ required
       );
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('🚫 Error fetching location: $e')),
@@ -183,7 +357,8 @@ class _CourierMapState extends State<CourierMap>
     List<Map<String, dynamic>> requests = [];
 
     try {
-      requests = await firestoreService.getEmptyLegRequestsWithBrokers(_currentUser.uid);
+      requests = await firestoreService
+          .getEmptyLegRequestsWithBrokers(_currentUser.uid);
       print("✅ fetchEmptyLegRequests: Received ${requests.length} requests");
 
       for (var i = 0; i < requests.length; i++) {
@@ -206,19 +381,19 @@ class _CourierMapState extends State<CourierMap>
     });
   }
 
-
-
   @override
   void dispose() {
-   // _radarController.dispose();
+    // _radarController.dispose();
     super.dispose();
   }
 
   void _onMarkerTap(bool isShown) {
     setState(() {
-      _isSearchBarVisible = isShown; // Show the search bar when marker is tapped
+      _isSearchBarVisible =
+          isShown; // Show the search bar when marker is tapped
     });
   }
+
   void showChangeBaseLocationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -231,7 +406,6 @@ class _CourierMapState extends State<CourierMap>
           titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
           contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
-
           title: Row(
             children: [
               Icon(Icons.location_on, color: Colors.green),
@@ -247,12 +421,10 @@ class _CourierMapState extends State<CourierMap>
               ),
             ],
           ),
-
           content: Text(
             "Do you want to change your base location?",
             style: TextStyle(fontSize: 14),
           ),
-
           actions: [
             TextButton(
               style: TextButton.styleFrom(
@@ -279,13 +451,11 @@ class _CourierMapState extends State<CourierMap>
               },
               child: Text("Yes"),
             ),
-
           ],
         );
       },
     );
   }
-
 
   void _onSearchAirport(String query) async {
     setState(() {
@@ -352,6 +522,8 @@ class _CourierMapState extends State<CourierMap>
       // Update the markers set with a new marker
       setState(() {
         if (_isBaseSelected) {
+          print('BaseLocationCountry $country');
+          //for the time being to get the country name
           country = airportItem.countryCode.toString();
         }
         _baseLocation = latLng; // Update the selected location
@@ -367,11 +539,11 @@ class _CourierMapState extends State<CourierMap>
         };
 
         // Animate the camera to the new location
-        animateCamera(_baseLocation, 10.0);
+        animateCamera(_baseLocation, 500.0);
         Future.delayed(Duration(milliseconds: 200), () {
           Fluttertoast.showToast(
             msg:
-            "You are available at (${airportItem.country}, ${airportItem.city})",
+                "You are available at (${airportItem.country}, ${airportItem.city})",
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.TOP,
             backgroundColor: Colors.green,
@@ -393,7 +565,6 @@ class _CourierMapState extends State<CourierMap>
       print(stackTrace);
     }
   }
-
 
   void _onCountrySelected(AirportModel airportItem) {
     showDialog(
@@ -443,7 +614,7 @@ class _CourierMapState extends State<CourierMap>
                 };
 
                 // Animate the camera to the new location
-                animateCamera(_baseLocation, 10.0);
+                animateCamera(_baseLocation, 500.0);
 
                 // Reset other UI elements
                 _searchText = "";
@@ -462,13 +633,14 @@ class _CourierMapState extends State<CourierMap>
       },
     );
   }
+
   void animateCamera(LatLng location, double zoom) async {
     final GoogleMapController controller = await _mapController.future;
 
     // ✅ Move camera close to the location
     controller.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: location, zoom: 16.0), // 👈 try zoom = 16.0
+        CameraPosition(target: location, zoom: 11.5), // 👈 try zoom = 16.0
       ),
     );
 
@@ -490,7 +662,8 @@ class _CourierMapState extends State<CourierMap>
       circle = Circle(
         circleId: CircleId('base_circle'),
         center: location,
-        radius: 300, // 👈 1000 meters = 1km radius
+        radius: 300,
+        // 👈 1000 meters = 1km radius
         fillColor: Colors.green.withOpacity(0.2),
         strokeColor: Colors.green,
         strokeWidth: 2,
@@ -506,7 +679,8 @@ class _CourierMapState extends State<CourierMap>
       circle = Circle(
         circleId: CircleId('current_circle'),
         center: location,
-        radius: 300, // 👈 Increase radius here too
+        radius: 300,
+        // 👈 Increase radius here too
         fillColor: Colors.red.withOpacity(0.15),
         strokeColor: Colors.red.withOpacity(0.5),
         strokeWidth: 2,
@@ -521,7 +695,6 @@ class _CourierMapState extends State<CourierMap>
       _circles.add(circle);
     });
   }
-
 
   Future<String?> getCountryFromLatLng(
       double latitude, double longitude) async {
@@ -592,6 +765,25 @@ class _CourierMapState extends State<CourierMap>
     }
   }
 
+
+// Permission check helper
+  Future<bool> _checkLocationPermission(BuildContext context) async {
+    var status = await Permission.location.status;
+    if (status.isGranted) {
+      return true;
+    } else {
+      var result = await Permission.location.request();
+      if (result.isGranted) {
+        return true;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location permission is required!")),
+        );
+        return false;
+      }
+    }
+  }
+
   void _openBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -599,192 +791,246 @@ class _CourierMapState extends State<CourierMap>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       backgroundColor: Colors.white,
-      isScrollControlled: false,
+      isScrollControlled: true, // 👈 Safe with keyboard & nav bar
       builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Drag handle
-                  Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // Title
-                  const Center(
-                    child: Text(
-                      'Change Availability',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20), // bottom safe padding
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Drag handle
+                    Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 15),
 
-                  // Divider
-                  Divider(thickness: 1.2, color: Colors.grey.shade300),
-                  const SizedBox(height: 20),
+                    // Title
+                    const Center(
+                      child: Text(
+                        'Change Availability',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
 
-                  // Toggle section (smaller buttons)
-                  Row(
-                    children: [
-                      // Base option
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isBaseSelected = true;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10), // smaller
-                            decoration: BoxDecoration(
-                              color: _isBaseSelected ? Colors.blue : Colors.grey.shade100,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(10),
-                                bottomLeft: Radius.circular(10),
+                    // Divider
+                    Divider(thickness: 1.2, color: Colors.grey.shade300),
+                    const SizedBox(height: 20),
+
+                    // Toggle section
+                    Row(
+                      children: [
+                        // Base option
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isBaseSelected = true;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _isBaseSelected ? Colors.blue : Colors.grey.shade100,
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(10),
+                                  bottomLeft: Radius.circular(10),
+                                ),
+                                border: Border.all(
+                                  color: _isBaseSelected ? Colors.blue : Colors.grey.shade400,
+                                ),
+                                boxShadow: _isBaseSelected
+                                    ? [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ]
+                                    : [],
                               ),
-                              border: Border.all(
-                                color: _isBaseSelected ? Colors.blue : Colors.grey.shade400,
-                              ),
-                              boxShadow: _isBaseSelected
-                                  ? [
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                                  : [],
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Base',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: _isBaseSelected ? Colors.white : Colors.black87,
-                                  fontWeight: FontWeight.bold,
+                              child: Center(
+                                child: Text(
+                                  'Base',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: _isBaseSelected ? Colors.white : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
 
-                      // Current option
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isBaseSelected = false;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 10), // smaller
-                            decoration: BoxDecoration(
-                              color: !_isBaseSelected ? Colors.blue : Colors.grey.shade100,
-                              borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(10),
-                                bottomRight: Radius.circular(10),
+                        // Current option
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isBaseSelected = false;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: !_isBaseSelected ? Colors.blue : Colors.grey.shade100,
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(10),
+                                  bottomRight: Radius.circular(10),
+                                ),
+                                border: Border.all(
+                                  color: !_isBaseSelected ? Colors.blue : Colors.grey.shade400,
+                                ),
+                                boxShadow: !_isBaseSelected
+                                    ? [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ]
+                                    : [],
                               ),
-                              border: Border.all(
-                                color: !_isBaseSelected ? Colors.blue : Colors.grey.shade400,
-                              ),
-                              boxShadow: !_isBaseSelected
-                                  ? [
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                                  : [],
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Current',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: !_isBaseSelected ? Colors.white : Colors.black87,
-                                  fontWeight: FontWeight.bold,
+                              child: Center(
+                                child: Text(
+                                  'Current',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: !_isBaseSelected ? Colors.white : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
-                  // Confirm button (green with white text)
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      _selectedLocation = _isBaseSelected ? _baseLocation : _currentLocation;
+                    // Confirm button
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        bool hasPermission = await _checkLocationPermission(context);
+                        if (!hasPermission) return; // agar permission nahi to exit
 
-                      if (_isBaseSelected) {
-                        animateCamera(_baseLocation, 10.0);
-                        _updateBaseLocation(_baseLocation.longitude, _baseLocation.longitude, false);
-                      } else {
-                        animateCamera(_currentLocation, 10.0);
-                        _updateCurrentLocation(_currentLocation.latitude, _currentLocation.longitude);
-                      }
+                        _selectedLocation = _isBaseSelected ? _baseLocation : _currentLocation;
 
-                      String message = _isBaseSelected
-                          ? "You are available at Base Location"
-                          : "You are available at Current Location";
+                        if (_isBaseSelected) {
+                          animateCamera(_baseLocation, 500.0);
+                          _updateBaseLocation(
+                            _baseLocation.latitude,
+                            _baseLocation.longitude,
+                            false,
+                          );
+                        } else {
+                          if (!await _handleLocationPermission(context)) return;
+                          _currentLocation= await _getPhoneLocation();
+                          // thoda delay permission dene ke turant baad
+                          await Future.delayed(const Duration(milliseconds: 300));
+                          _currentLocation = await _getPhoneLocation();
+                          animateCamera(_currentLocation, 500.0);
+                          _updateCurrentLocation(
+                            _currentLocation.latitude,
+                            _currentLocation.longitude,
+                          );
+                        }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(message),
-                          duration: const Duration(seconds: 2),
+                        String message = _isBaseSelected
+                            ? "You are available at Base Location"
+                            : "You are available at Current Location";
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+                        );
+
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        minimumSize: const Size(200, 45),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      );
-
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, // Green background
-                      minimumSize: const Size(200, 45), // smaller size
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        elevation: 4,
+                        shadowColor: Colors.greenAccent,
                       ),
-                      elevation: 4,
-                      shadowColor: Colors.greenAccent,
-                    ),
-                    icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-                    label: const Text(
-                      'Confirm',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white, // White text
+                      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                      label: const Text(
+                        'Confirm',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                  ],
+                );
+              },
+            ),
+          ),
         );
       },
     );
   }
 
+// helper widget for toggle buttons
+  Widget _buildOption({
+    required bool isSelected,
+    required String text,
+    required bool isLeft,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue : Colors.grey.shade100,
+        borderRadius: BorderRadius.horizontal(
+          left: isLeft ? const Radius.circular(10) : Radius.zero,
+          right: !isLeft ? const Radius.circular(10) : Radius.zero,
+        ),
+        border: Border.all(
+          color: isSelected ? Colors.blue : Colors.grey.shade400,
+        ),
+        boxShadow: isSelected
+            ? [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          )
+        ]
+            : [],
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
 
 
   List<Widget> _buildBottomSheetList(
@@ -886,10 +1132,12 @@ class _CourierMapState extends State<CourierMap>
           GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _baseLocation,
-              zoom: 10.0,
+              zoom: 500.0,
             ),
-            markers: _markers, // ✅ Already added
-            circles: _circles, // ✅ 👈 Add this line here
+            markers: _markers,
+            // ✅ Already added
+            circles: _circles,
+            // ✅ 👈 Add this line here
             onMapCreated: (GoogleMapController controller) {
               _mapController.complete(controller);
             },
@@ -897,7 +1145,6 @@ class _CourierMapState extends State<CourierMap>
               print('Map Tap!');
             },
           ),
-
 
           // Conditionally show the progress bar
           if (_isLoading)
@@ -909,13 +1156,13 @@ class _CourierMapState extends State<CourierMap>
           if (_isSearchBarVisible) // Conditionally render the search bar
             Positioned(
               top: 40.0,
-              left: 20.0,
-              right: 20.0,
+              left: 500.0,
+              right: 500.0,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(25.0),
+                  borderRadius: BorderRadius.circular(2500.0),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -929,13 +1176,16 @@ class _CourierMapState extends State<CourierMap>
                     Row(
                       children: [
                         const Icon(Icons.search, color: Colors.grey),
-                        const SizedBox(width: 10.0),
+                        const SizedBox(width: 500.0),
                         Expanded(
                           child: TextField(
                             maxLength: 3, // Max 3 characters allowed
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')), // Only alphabets
-                              LengthLimitingTextInputFormatter(3), // Hard limit to 3 characters
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z]')),
+                              // Only alphabets
+                              LengthLimitingTextInputFormatter(3),
+                              // Hard limit to 3 characters
                             ],
                             onSubmitted: (value) {
                               _onSearchAirport(value);
@@ -975,36 +1225,39 @@ class _CourierMapState extends State<CourierMap>
               ),
             ),
 
-        if(_hasData)
-          DraggableScrollableSheet(
-            initialChildSize: 0.5, // Sheet visible just a bit initially
-            minChildSize: 0.2, // Minimum height (closed state)
-            maxChildSize: 0.8, // Half screen height
-            builder: (BuildContext context, ScrollController scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    )
-                  ],
-                ),
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: _filteredUsers.length,
-                        itemBuilder: (context, index) {
-                          return _filteredUsers[index]; // Your custom card widgets
-                        },
-                      ),
-              );
-            },
-          ),
+          if (_hasData)
+            DraggableScrollableSheet(
+              initialChildSize: 0.5, // Sheet visible just a bit initially
+              minChildSize: 0.2, // Minimum height (closed state)
+              maxChildSize: 0.8, // Half screen height
+              builder:
+                  (BuildContext context, ScrollController scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: _filteredUsers.length,
+                          itemBuilder: (context, index) {
+                            return _filteredUsers[
+                                index]; // Your custom card widgets
+                          },
+                        ),
+                );
+              },
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -1015,5 +1268,9 @@ class _CourierMapState extends State<CourierMap>
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
-}
 
+  // 🔹 Utility Snack method
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+}

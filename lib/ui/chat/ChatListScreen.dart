@@ -119,6 +119,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // 🔹 removes back button
         title: Text(
           'Chats',
           style: TextStyle(color: Colors.white),

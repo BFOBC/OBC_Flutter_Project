@@ -1,11 +1,17 @@
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/RatingDialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingScreen extends StatelessWidget {
-  const SettingScreen({super.key});
+   const SettingScreen({super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -246,11 +252,7 @@ class SettingScreen extends StatelessWidget {
             ),
             TextButton(
               onPressed: () async {
-                // 1. Sign out from Firebase
-                await FirebaseAuth.instance.signOut();
 
-                // 2. Clear SharedPreferences
-                await clearSavedLoginData();
 
                 // 3. Navigate to Login screen
                 Navigator.of(context).pushAndRemoveUntil(
@@ -266,15 +268,4 @@ class SettingScreen extends StatelessWidget {
       },
     );
   }
-  Future<void> clearSavedLoginData() async {
-    print("I am courier clear pref method");
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('email');
-    await prefs.remove('password');
-    await prefs.remove('rememberMe');
-    await prefs.remove('role');
-  }
-
-
 }

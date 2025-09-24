@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/common/models/CountryDialCode.dart';
 import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
 import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,6 +18,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/CourierProfileData.dart';
 import 'package:http/http.dart' as http;
 
@@ -171,21 +176,21 @@ class _CourierProfileState extends State<CourierProfile> {
         _willingToDoFirstLastMile =
             courierProfile.willingToDoFirstLastMile ?? false;
 
-        String apiDialCode = data['countryCode'];
+        String? apiDialCode = data['countryCode'] as String?;
 
-        String? isoCode = CountryDialCodeData.getIsoCode(apiDialCode);
-        int? maxLength = CountryDialCodeData.getMaxLength(apiDialCode);
+        if (apiDialCode != null && apiDialCode.isNotEmpty) {
+          String? isoCode = CountryDialCodeData.getIsoCode(apiDialCode);
+          int? maxLength = CountryDialCodeData.getMaxLength(apiDialCode);
 
-        print('ISO Country Code: $isoCode');
-        print('Max Length: $maxLength');
+          print('ISO Country Code: $isoCode');
+          print('Max Length: $maxLength');
 
-        if (isoCode != null) {
-          setState(() {
-            initialCountryCode = isoCode;
-            // You can also store maxLength and use it in validator if needed
-          });
+          if (isoCode != null) {
+            setState(() {
+              initialCountryCode = isoCode;
+            });
+          }
         }
-
         _isLoading = false; // Set loading state to false once model is fetched
       });
       final isProfileCompleted = data?['isProfileCompleted'] ?? false;
@@ -399,9 +404,9 @@ class _CourierProfileState extends State<CourierProfile> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          titlePadding: EdgeInsets.only(top: 20, left: 24, right: 24),
-          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-          actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
+          titlePadding: const EdgeInsets.only(top: 20, left: 24, right: 24),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          actionsPadding: const EdgeInsets.only(bottom: 10, right: 10),
           title: Row(
             children: [
               Icon(
@@ -410,11 +415,11 @@ class _CourierProfileState extends State<CourierProfile> {
                     : Icons.add_circle_outline,
                 color: Colors.blueAccent,
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   visa != null || passport != null ? 'Edit $type' : 'Add $type',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
                   ),
@@ -427,10 +432,11 @@ class _CourierProfileState extends State<CourierProfile> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Country / Visa / Passport name field
                 TextFormField(
                   controller: countryController,
                   decoration: InputDecoration(
-                    hintText: 'Country',
+                    hintText: 'Country / $type Name',
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
@@ -439,22 +445,40 @@ class _CourierProfileState extends State<CourierProfile> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Country is required';
+                      return '$type name is required';
                     }
                     return null;
                   },
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
+
+                // Expiry Date field with calendar
                 TextFormField(
                   controller: expiryController,
+                  readOnly: true,
                   decoration: InputDecoration(
-                    hintText: 'Expiry Date DD/MM/YYY',
+                    hintText: 'Expiry Date DD/MM/YYYY',
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    suffixIcon: const Icon(Icons.calendar_today),
                   ),
+                  onTap: () async {
+                    final DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(), // prevent past dates
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      expiryController.text =
+                      "${pickedDate.day.toString().padLeft(2, '0')}/"
+                          "${pickedDate.month.toString().padLeft(2, '0')}/"
+                          "${pickedDate.year}";
+                    }
+                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Expiry Date is required';
@@ -518,6 +542,7 @@ class _CourierProfileState extends State<CourierProfile> {
       },
     );
   }
+
 
   void _showDeleteConfirmation({
     required String type,
@@ -752,37 +777,65 @@ class _CourierProfileState extends State<CourierProfile> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 30), // Add spacing before the button
+                    const SizedBox(height: 20), // Add spacing before the button
                     // Save Button at the bottom
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: double.infinity,
-                        height: 50, // Height of the button
-                        decoration: BoxDecoration(
-                          color: Colors.blue, // Blue background
-                          borderRadius:
-                              BorderRadius.circular(8), // Rounded corners
-                        ),
-                        child: TextButton(
-                          onPressed:
-                              _updateFireStore, // Add your save profile method
-                          child: const Text(
-                            'Save',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 30), // spacing
+
+                          // Save Button
+                          Container(
+                            width: double.infinity,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TextButton(
+                              onPressed: _updateFireStore, // Save profile method
+                              child: const Text(
+                                'Save',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+
+                          const SizedBox(height: 12),
+
+                          // Logout Button
+                          Container(
+                            width: double.infinity,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TextButton(
+                              onPressed: () => _logoutUser(context), // ✅ Correct
+                              child: const Text(
+                                'Logout',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    )
+
                   ],
                 ),
               ),
       ),
     );
   }
+
 
   // Build a field for displaying a profile entry (e.g., Name, ID, etc.)
   Widget _buildProfileField(String title, String value) {
@@ -835,11 +888,13 @@ class _CourierProfileState extends State<CourierProfile> {
 
   Widget _buildVisaList() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Visas',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ListView.builder(
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(), // ✅ fix
           itemCount: visas.length,
           itemBuilder: (context, index) {
             final visa = visas[index];
@@ -865,31 +920,22 @@ class _CourierProfileState extends State<CourierProfile> {
         ),
         ElevatedButton.icon(
           onPressed: () => _showEditDialog(type: 'Visa'),
-          icon: const Icon(
-            Icons.add,
-            color: Colors.white, // Set the icon color to white
-          ),
-          label: const Text(
-            'Add Visa',
-            style:
-                TextStyle(color: Colors.white), // Set the text color to white
-          ),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text('Add Visa', style: TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue, // Set the background color to blue
-            minimumSize: const Size(150, 40), // Set fixed width and height
+            backgroundColor: Colors.blue,
+            minimumSize: const Size(150, 40),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                  10), // Set rounded corners with a radius
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         ),
       ],
     );
   }
-
-// Builds the list of passports and displays the expiry date with a date picker
   Widget _buildPassportList() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Passports',
@@ -897,36 +943,23 @@ class _CourierProfileState extends State<CourierProfile> {
         ),
         ListView.builder(
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(), // ✅ fix
           itemCount: passports.length,
           itemBuilder: (context, index) {
             final passport = passports[index];
             return ListTile(
               title: Text(passport.countryName),
-              subtitle: GestureDetector(
-                onTap: () async {
-                  // Open DatePicker when the expiry date is tapped
-                  DateTime? selectedDate =
-                      await _selectExpiryDate(context, passport.expiryDate);
-                  if (selectedDate != null) {
-                    setState(() {
-                      passport.expiryDate = selectedDate
-                          .toString()
-                          .split(' ')[0]; // Update expiry date
-                    });
-                  }
-                },
-                child: Text('Expiry: ${passport.expiryDate}'),
-              ),
+              subtitle: Text('Expiry: ${passport.expiryDate}'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: Icon(Icons.edit),
+                    icon: const Icon(Icons.edit),
                     onPressed: () =>
                         _showEditDialog(type: 'Passport', passport: passport),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete),
+                    icon: const Icon(Icons.delete),
                     onPressed: () => _showDeleteConfirmation(
                         type: 'Passport', passport: passport),
                   ),
@@ -937,21 +970,13 @@ class _CourierProfileState extends State<CourierProfile> {
         ),
         ElevatedButton.icon(
           onPressed: () => _showEditDialog(type: 'Passport'),
-          icon: const Icon(
-            Icons.add,
-            color: Colors.white, // Set the icon color to white
-          ),
-          label: const Text(
-            'Add Passport',
-            style:
-                TextStyle(color: Colors.white), // Set the text color to white
-          ),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text('Add Passport', style: TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue, // Set the background color to blue
-            minimumSize: const Size(60, 40), // Set fixed width and height
+            backgroundColor: Colors.blue,
+            minimumSize: const Size(150, 40),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                  10), // Set rounded corners with a radius
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         ),
@@ -1030,5 +1055,20 @@ class _CourierProfileState extends State<CourierProfile> {
         ],
       ),
     );
+  }
+
+    Future<void> _logoutUser(BuildContext context) async {
+      FirestoreService service = FirestoreService(context);
+      await service.setUserOffline();
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('email');
+      await prefs.remove('password');
+      await prefs.remove('rememberMe');
+      await prefs.remove('role');
+      // 3. Navigate to login
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginCard()),
+            (Route<dynamic> route) => false,
+      );
   }
 }

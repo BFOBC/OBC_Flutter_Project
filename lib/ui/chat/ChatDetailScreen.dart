@@ -218,13 +218,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       } catch (error) {
         print('ERROR sending message: $error');
 
-        ScaffoldMessenger.of(context).showSnackBar(
+/*        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Failed to send message: $error"),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
-        );
+        );*/
       }
     } else {
       print("DEBUG: Either message is empty or chatId is empty");

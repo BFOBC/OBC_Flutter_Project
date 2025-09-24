@@ -110,6 +110,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60.0),
         child: AppBar(
+          automaticallyImplyLeading: false, // 🔹 removes back button
           flexibleSpace: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(

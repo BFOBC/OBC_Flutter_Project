@@ -19,16 +19,16 @@ import '../ui/courier/models/CourierLocationStatus.dart';
 class FirestoreService {
   final BuildContext context;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final User _currentUser = FirebaseAuth.instance.currentUser!;
 
-
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
   bool _isDialogShown = false;
   final Connectivity _connectivity = Connectivity();
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
   FirestoreService(this.context) {
     _monitorConnectivity();
   }
+  User? get _currentUser => FirebaseAuth.instance.currentUser;
+
   /// Check internet connection
   Future<bool> _isConnected2(BuildContext context) async {
     var connectivityResult = await _connectivity.checkConnectivity();
@@ -48,45 +48,59 @@ class FirestoreService {
 // Monitor internet connectivity (WiFi & Mobile Data)
   void _monitorConnectivity() {
     _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-          print("onConnectivityChanged");
-          if (result == ConnectivityResult.wifi) {
-            print("Connected to WiFi");
-          } else if (result == ConnectivityResult.mobile) {
-            print("Connected to Mobile Data");
+        _connectivity.onConnectivityChanged.listen((ConnectivityResult result) {
+          print("onConnectivityChanged: $result");
+
+          if (result == ConnectivityResult.wifi ||
+              result == ConnectivityResult.mobile) {
+            print("✅ Internet Connected");
+
+            // Agar dialog open hai to close karo
+            if (_isDialogShown) {
+              Navigator.of(context, rootNavigator: true).pop();
+              _isDialogShown = false;
+            }
           } else if (result == ConnectivityResult.none) {
-            print("No Internet Connection");
+            print("🚨 No Internet Connection");
             _showNoInternetDialog();
           }
         });
   }
-
-
-  // Show alert dialog when no internet
+// Show alert dialog when no internet
   void _showNoInternetDialog() {
-    if (_isDialogShown) return; // Prevent duplicate dialogs
+    if (_isDialogShown) return; // prevent duplicate dialogs
 
     _isDialogShown = true;
+
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent closing dialog by tapping outside
+      barrierDismissible: false, // tap outside se dismiss na ho
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("No Internet Connection"),
-          content: Text("Please connect to the internet and try again."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _isDialogShown = false;
-                Navigator.pop(context);
-              },
-              child: Text("OK"),
+        return WillPopScope(
+          onWillPop: () async => false, // 🔒 back press disable
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
+            title: Row(
+              children: const [
+                Icon(Icons.wifi_off, color: Colors.red, size: 28),
+                SizedBox(width: 8),
+                Text("No Internet", style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: const Text(
+              "Please connect to WiFi or Mobile Data.\n\n"
+                  "This dialog will close automatically once internet is back.",
+              style: TextStyle(fontSize: 14),
+            ),
+          ),
         );
       },
     );
   }
+
+
 
   // Dispose listener when not needed
   void dispose() {
@@ -179,7 +193,7 @@ class FirestoreService {
       // request.endTimeDate = convertToUTCFromCustomFormat(request.endTimeDate.toString());
 
       // Create a notification
-      String msg = "Broker sent you New Job request ${_currentUser.email}";
+      String msg = "Broker sent you New Job request ${_currentUser?.email}";
       createNotification(
         brokerID: request.brokerID,
         courierID: request.courierID,
@@ -573,9 +587,9 @@ class FirestoreService {
       Query query;
 
       if (role == 'Courier') {
-        query = notifications.where('courierID', isEqualTo: _currentUser.uid);
+        query = notifications.where('courierID', isEqualTo: _currentUser?.uid);
       } else {
-        query = notifications.where('brokerID', isEqualTo: _currentUser.uid);
+        query = notifications.where('brokerID', isEqualTo: _currentUser?.uid);
       }
 
       QuerySnapshot querySnapshot = await query.get();
@@ -655,7 +669,7 @@ class FirestoreService {
     try {
       final querySnapshot = await _firestore
           .collection('emptyLegRequests')
-          .where('courierID', isEqualTo: _currentUser.uid)
+          .where('courierID', isEqualTo: _currentUser?.uid)
           .get();
 
       return querySnapshot.docs.map((doc) => doc.data()).toList();
@@ -670,7 +684,7 @@ class FirestoreService {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
       String filterField;
-      String filterValue = _currentUser.uid;
+      String filterValue = _currentUser!.uid;
 
       if (roleProvider.role == UserRole.courier) {
         filterField = 'courierID';
@@ -785,7 +799,7 @@ class FirestoreService {
       String collectionName = roleProvider.role == UserRole.broker ? 'courier' : 'broker';
 
       // Logged-in user's ID
-      String userID = _currentUser.uid;
+      String userID = _currentUser!.uid;
 
       // If broker is logged in, they rate a courier (assign courierID)
       if (roleProvider.role == UserRole.broker) {
@@ -902,13 +916,13 @@ class FirestoreService {
 
       if (isCurrent) {
         return {
-          'lat': data?['currentLocationLat']?.toDouble() ?? 51.1657,
-          'long': data?['currentLocationLong']?.toDouble() ?? 10.4515,
+          'lat': data?['currentLocationLat']?.toDouble() ?? 0,
+          'long': data?['currentLocationLong']?.toDouble() ?? 0,
         };
       } else {
         return {
-          'lat': data?['baseLocationLat']?.toDouble() ?? 51.1657,
-          'long': data?['baseLocationLong']?.toDouble() ?? 10.4515,
+          'lat': data?['baseLocationLat']?.toDouble() ?? 0,
+          'long': data?['baseLocationLong']?.toDouble() ?? 0,
         };
       }
     } catch (e) {
@@ -939,6 +953,75 @@ class FirestoreService {
       return null;
     }
   }
+  /// Update user's online status to false (offline)
+  Future<void> setUserOffline() async {
+    try {
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint("⚠️ No logged-in user found. Cannot set offline.");
+        return;
+      }
+      // Role check (String ya enum dono support)
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      String collectionName;
+      if (roleProvider.role == UserRole.broker){
+        collectionName='broker';
+      }else{
+        collectionName='courier';
+      }
+      final docRef = _firestore.collection(collectionName).doc(currentUser.uid);
 
+      // ye map hamesha "isOnline" false karega aur agar "lastSeen" exist nahi karta to add kar dega
+      final updateData = {
+        "isOnline": false,
+        "lastSeen": FieldValue.serverTimestamp(),
+      };
 
+      // Try update
+      try {
+        await docRef.update(updateData);
+        debugPrint("✅ User offline + lastSeen updated in '$collectionName'");
+      } catch (e) {
+        debugPrint("⚠️ Doc not found, using set(merge:true)");
+        await docRef.set(updateData, SetOptions(merge: true));
+        debugPrint("✅ User offline + lastSeen field added in '$collectionName'");
+      }
+      // Lastly, sign out
+      await FirebaseAuth.instance.signOut();
+      debugPrint("🚪 User signed out successfully.");
+    } catch (e) {
+      debugPrint("❌ Error in setUserOffline: $e");
+    }
+  }
+  /// Mark user as online
+  Future<void> setUserOnline() async {
+    try {
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint("⚠️ No logged-in user found. Cannot set online.");
+        return;
+      }
+
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      String collectionName = (roleProvider.role == UserRole.broker)
+          ? 'broker'
+          : 'courier';
+
+      final docRef = _firestore.collection(collectionName).doc(currentUser.uid);
+
+      final updateData = {
+        "isOnline": true
+      };
+
+      try {
+        await docRef.update(updateData);
+        debugPrint("✅ User set online in '$collectionName'");
+      } catch (e) {
+        await docRef.set(updateData, SetOptions(merge: true));
+        debugPrint("✅ User online + lastSeen created in '$collectionName'");
+      }
+    } catch (e) {
+      debugPrint("❌ Error in setUserOnline: $e");
+    }
+  }
 }
