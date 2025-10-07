@@ -400,7 +400,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                       ),*/
 
                                     // 🔴 Unread Badge
-                                    if (_unreadCount > 0)
+                                    if (/*_unreadCount > 0*/false )
                                       Positioned(
                                         right: 16,
                                         top: 12,

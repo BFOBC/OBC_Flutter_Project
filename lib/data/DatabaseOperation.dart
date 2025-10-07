@@ -88,4 +88,34 @@ class DatabaseOperation{
     final db = await database;
     return db.query('airports');
   }
+  Future<String?> getCountryCodeByLatLong(double latitude, double longitude) async {
+    try {
+      final db = await database;
+
+      // Latitude aur longitude ko string format mai convert kar rahe hain
+      final latStr = latitude.toString();
+      final lonStr = longitude.toString();
+
+      // Query jo exact match check karegi
+      final results = await db.query(
+        tableName,
+        where: 'lat = ? AND long = ?',
+        whereArgs: [latStr, lonStr],
+        limit: 1,
+      );
+
+      if (results.isNotEmpty) {
+        final airport = AirportModel.fromMap(results.first);
+        return airport.countryCode; // ✅ Return country code
+      } else {
+        print("No airport found for given coordinates");
+        return null;
+      }
+    } catch (e) {
+      print("Error in getCountryCodeByLatLong: $e");
+      return null;
+    }
+  }
+
+
 }

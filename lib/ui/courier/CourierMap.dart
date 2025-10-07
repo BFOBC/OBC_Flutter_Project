@@ -29,6 +29,7 @@ class CourierMap extends StatefulWidget {
 class _CourierMapState extends State<CourierMap>
     with SingleTickerProviderStateMixin {
   List<Widget> _filteredUsers = [];
+  final TextEditingController _searchController = TextEditingController();
 
   bool _isSearching = false;
   bool _isSearchBarVisible = false; // Visibility state for search bar
@@ -384,6 +385,7 @@ class _CourierMapState extends State<CourierMap>
   @override
   void dispose() {
     // _radarController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -446,8 +448,9 @@ class _CourierMapState extends State<CourierMap>
               ),
               onPressed: () {
                 // Your onPressed code here
-                Navigator.of(context).pop();
+                print("Base Location Marker tapped!");
                 _onMarkerTap(true);
+                Navigator.of(context).pop();
               },
               child: Text("Yes"),
             ),
@@ -458,6 +461,7 @@ class _CourierMapState extends State<CourierMap>
   }
 
   void _onSearchAirport(String query) async {
+
     setState(() {
       _searchText = query; // Update the search text
       _isSearching = true; // Show loading state
@@ -714,6 +718,13 @@ class _CourierMapState extends State<CourierMap>
       double lat, double long, bool isLocationUpdate) async {
     final courierRef =
         FirebaseFirestore.instance.collection('courier').doc(_currentUser.uid);
+
+    if(country.isEmpty){
+      final db = DatabaseOperation();
+      country= (await db.getCountryCodeByLatLong(lat, long))!; // Example lat/long
+      print("Country Code Base Location: $country");
+
+    }
 
     final data = isLocationUpdate
         ? {
@@ -1153,77 +1164,89 @@ class _CourierMapState extends State<CourierMap>
                   CircularProgressIndicator(), // Progress indicator in the center
             ),
 
-          if (_isSearchBarVisible) // Conditionally render the search bar
+          // ✅ Search Bar with Done button
+          if (_isSearchBarVisible)
             Positioned(
               top: 40.0,
-              left: 500.0,
-              right: 500.0,
+              left: 16.0,
+              right: 16.0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(2500.0),
+                  borderRadius: BorderRadius.circular(8.0),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
-                      spreadRadius: 2,
-                      blurRadius: 5,
+                      spreadRadius: 1,
+                      blurRadius: 6,
                     ),
                   ],
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
                         const Icon(Icons.search, color: Colors.grey),
-                        const SizedBox(width: 500.0),
+                        const SizedBox(width: 8.0),
                         Expanded(
                           child: TextField(
-                            maxLength: 3, // Max 3 characters allowed
+                            controller: _searchController,
+                            maxLength: 3,
                             inputFormatters: [
                               FilteringTextInputFormatter.allow(
                                   RegExp(r'[a-zA-Z]')),
-                              // Only alphabets
                               LengthLimitingTextInputFormatter(3),
-                              // Hard limit to 3 characters
                             ],
+                            decoration: const InputDecoration(
+                              hintText: 'Three Letter Airport Code',
+                              counterText: "",
+                              border: InputBorder.none,
+                            ),
                             onSubmitted: (value) {
                               _onSearchAirport(value);
                             },
-                            decoration: const InputDecoration(
-                              hintText: 'Change Base Location',
-                              counterText: "", // Hide character counter
-                              border: InputBorder.none,
-                            ),
                           ),
+                        ),
+
+                        // ✅ Done Button (on right)
+                        IconButton(
+                          icon: const Icon(Icons.send, color: Colors.blue),
+                          onPressed: () {
+                            final value = _searchController.text.trim();
+                            if (value.isNotEmpty) {
+                              _onSearchAirport(value);
+                            }
+                          },
                         ),
                       ],
                     ),
-                    // Suggest country codes based on the search
+
+                    // ✅ Search Result List
                     if (airportList.isNotEmpty)
-                      SingleChildScrollView(
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          // Avoid nested scrolling issues
-                          itemCount: airportList.length,
-                          itemBuilder: (context, index) {
-                            return ListTile(
-                              title: Text(airportList[index].name.toString()),
-                              onTap: () {
-                                print("Clicked on: ${airportList[index].name}");
-                                //_onCountrySelected(airportList[index]);
-                                _onMarkerTap(false);
-                                _onBaseLocationSelected(airportList[index]);
-                              },
-                            );
-                          },
-                        ),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: airportList.length,
+                        itemBuilder: (context, index) {
+                          return ListTile(
+                            title: Text(airportList[index].name.toString()),
+                            onTap: () {
+                              _searchController.text="";
+                              print("Clicked on: ${airportList[index].name}");
+                              _onMarkerTap(false);
+                              _onBaseLocationSelected(airportList[index]);
+                            },
+                          );
+                        },
                       ),
                   ],
                 ),
               ),
             ),
+
 
           if (_hasData)
             DraggableScrollableSheet(

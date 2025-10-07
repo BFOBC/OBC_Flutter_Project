@@ -205,16 +205,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           print("✅ ChatNotification sent!");
         }
 
-
-        // ✅ Show success snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Message sent successfully"),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
       } catch (error) {
         print('ERROR sending message: $error');
 
