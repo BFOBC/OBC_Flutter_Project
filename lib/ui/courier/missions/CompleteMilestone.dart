@@ -270,15 +270,16 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
                             );
                             print("DEBUG: Notification sent");
                           }
+                          final courierName = courierData?['name'] ?? 'Courier';
 
                           await firestoreService.createNotification(
                             brokerID: milestone.brokerID!,
                             courierID: currentUser.uid,
                             emptyLegRequestID: widget.task.emptyLegRequestID.toString(),
                             sentBy: "Courier",
-                            message: milestone.milestoneNodeID.toString(),
-                            milestoneID:
-                            "Your Milestone $milestoneID is Completed by $brokerData['name']",
+                            milestoneID: milestone.milestoneNodeID.toString(),
+                            message: "Your Milestone is Completed by $courierName",
+
                           );
 
                           Navigator.of(context).pop();
@@ -387,7 +388,8 @@ class _CompleteMilestoneState extends State<CompleteMilestone> {
       // Prepare notification message
       final User currentUser = FirebaseAuth.instance.currentUser!;
       final String email = currentUser.email ?? 'Unknown User';
-      final String message = "Your Job has been completed by $courierData['name']";
+
+      final String message = "Your Job has been completed by ${courierData?['name'] ?? 'Courier'}";
 
       // Create notification after job completion
       await service.createNotification(

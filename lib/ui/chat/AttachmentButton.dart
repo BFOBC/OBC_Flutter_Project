@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AttachmentButton extends StatelessWidget {
   final String chatId;
@@ -157,6 +158,12 @@ class AttachmentButton extends StatelessWidget {
           fileType = 'image';
         }
 
+        // ✅ Save file in local cache directory
+        final dir = await getApplicationDocumentsDirectory();
+        final fileName = file.path.split('/').last;
+        final localFilePath = '${dir.path}/$fileName';
+        final localFile = await file.copy(localFilePath);
+
         await FirebaseFirestore.instance
             .collection('chats')
             .doc(chatId)
@@ -169,6 +176,7 @@ class AttachmentButton extends StatelessWidget {
           'isRead': false,
           'isDownloaded': false,
           'fileType': fileType,
+          'localFilePathSender': localFile.path, // 👈 added local path
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

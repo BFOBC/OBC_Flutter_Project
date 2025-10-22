@@ -10,7 +10,7 @@ class PlaceNewJob extends StatefulWidget {
   final Task? data;
   final Function(Task) onSave;
 
-  const PlaceNewJob({super.key, this.data, required this.onSave, required String brokerKey, required String courierKey});
+  PlaceNewJob({super.key, this.data, required this.onSave, required String brokerKey, required String courierKey});
 
   @override
   PlaceNewJobState createState() => PlaceNewJobState();
@@ -277,7 +277,6 @@ class PlaceNewJobState extends State<PlaceNewJob> {
     _fieldBidController.clear();
     _field5Controller.clear();
   }
-
 
 
   Widget _buildTextField(TextEditingController controller, String label, bool isDateTime) {

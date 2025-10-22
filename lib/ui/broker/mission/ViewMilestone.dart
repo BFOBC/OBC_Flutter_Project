@@ -179,7 +179,7 @@ class _ViewMilestoneState extends State<ViewMilestone> {
                   courierID: currentUser.uid,
                   emptyLegRequestID: widget.task.emptyLegRequestID!,
                   sentBy: "Courier",
-                  message: "Your Milestone ${milestone.milestoneNodeID} is Completed by ${currentUser.email}",
+                  message: "Your Milestone is Completed by ${currentUser.email}",
                 );
 
                 Navigator.of(context).pop();

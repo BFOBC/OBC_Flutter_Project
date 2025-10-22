@@ -72,9 +72,9 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
         _isViewButtonEnabled = true;
       });
       _clearFormFields();
-      ScaffoldMessenger.of(context).showSnackBar(
+/*      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Milestone saved successfully!')),
-      );
+      );*/
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving milestone: $e')),

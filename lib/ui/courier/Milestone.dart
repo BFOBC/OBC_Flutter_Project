@@ -41,9 +41,9 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
       // Step 3: Update Firestore with the correct milestoneNodeID
       await docRef.update({'milestoneNodeID': docRef.id});
 
-      ScaffoldMessenger.of(context).showSnackBar(
+/*      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Milestone saved successfully!')),
-      );
+      );*/
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -289,47 +289,67 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final messageId = message.id;         // ✅ Get Firestore message ID
-                    final text = message['messageText'] ?? '';
-                    final isSender = message['senderId'] == FirebaseAuth.instance.currentUser?.uid;
-                    final isDownloaded = message['isDownloaded'] ?? false;
-                    final timestamp = (message['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+                    // 🧱 Always work with Map safely
+                    final messageDoc = messages[index];
+                    final data = (messageDoc.data() ?? {}) as Map<String, dynamic>;
+                    final messageId = messageDoc.id;
 
-                    // Compare minute-level timestamps to avoid repeating
+                    // 🧩 Safely extract values with fallback
+                    final text = data['messageText']?.toString() ?? '';
+                    final senderId = data['senderId']?.toString() ?? '';
+                    final isSender = senderId == (FirebaseAuth.instance.currentUser?.uid ?? '');
+                    final isDownloaded = data['isDownloaded'] is bool ? data['isDownloaded'] : false;
+
+                    final timestamp = (data['timestamp'] is Timestamp)
+                        ? (data['timestamp'] as Timestamp).toDate()
+                        : DateTime.now();
+
+                    // 🕒 Compare minute-level timestamps
                     bool showTime = true;
                     if (lastShownTime != null) {
-                      Duration diff = lastShownTime!.difference(timestamp).abs();
-                      if (diff.inMinutes < 1) {
-                        showTime = false;
-                      }
+                      final diff = lastShownTime!.difference(timestamp).abs();
+                      if (diff.inMinutes < 1) showTime = false;
                     }
-
                     lastShownTime = timestamp;
 
-                    final fileUrl = message['fileUrl'] ?? '';
+                    // 📁 Safe file path check
+                    String fileUrl = '';
+                    if (isSender) {
+                      fileUrl = data['localFilePathSender']?.toString() ?? '';
+                    } else {
+                      fileUrl = data['fileUrl']?.toString() ?? '';
+                    }
+
+                    // fallback agar dono empty hon
+                    if (fileUrl.isEmpty) {
+                      fileUrl = data['fileUrl']?.toString() ?? '';
+                    }
+
                     print('fileUrl: $fileUrl');
                     print('isSender: $isSender');
                     print('isDownloaded: $isDownloaded');
 
-                    // ✅ Auto download file if needed
-                    if (fileUrl.isNotEmpty && !isSender && !isDownloaded) {
-                      _downloadFileAndUpdate(message, context);
+                    // 🧠 Auto-download safely (avoid crash)
+                    if (!isSender && !isDownloaded && (data['fileUrl']?.toString().isNotEmpty ?? false)) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _downloadFileAndUpdate(messageDoc, context);
+                      });
                     }
 
-                    // ✅ Pass chatId and messageId to ChatBubble
+                    // 💬 Safe ChatBubble creation
                     return ChatBubble(
-                      senderId: message['senderId'],
-                      chatId: chatId,               // ← make sure chatId is available in this widget
+                      senderId: senderId,
+                      chatId: chatId,
                       messageId: messageId,
                       isSender: isSender,
                       text: text,
                       fileUrl: fileUrl,
-                      timestamp: message['timestamp'],
+                      timestamp: data['timestamp'] ?? Timestamp.now(),
                       showTimestamp: showTime,
                     );
                   },
                 );
+
 
               },
             ),
@@ -378,8 +398,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  void _downloadFileAndUpdate(QueryDocumentSnapshot message,
-      BuildContext context) async {
+  void _downloadFileAndUpdate(QueryDocumentSnapshot message, BuildContext context) async {
     try {
       final ctx = context;
       final fileUrl = message['fileUrl'];
@@ -454,7 +473,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       print('📥 Status: ${response.statusCode}');
       print('📥 Body: $respStr');
 
-      if (response.statusCode == 200) {
+/*      if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('✅ Deleted: ${respStr}')),
         );
@@ -462,7 +481,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Failed: ${response.statusCode}')),
         );
-      }
+      }*/
     } catch (e) {
       print('🚨 Exception: $e');
       ScaffoldMessenger.of(context).showSnackBar(

@@ -23,7 +23,8 @@ class SubmissionScreen extends StatefulWidget {
   final Function(Task task) onSave;
   AirportModel? selectedFromAirport;
   AirportModel? selectedToAirport;
-   SubmissionScreen({
+
+  SubmissionScreen({
     super.key,
     this.data,
     required this.brokerKey,
@@ -36,20 +37,29 @@ class SubmissionScreen extends StatefulWidget {
 }
 
 class _SubmissionScreenState extends State<SubmissionScreen> {
-  final TextEditingController _submissionStartDateController = TextEditingController();
-  final TextEditingController _submissionEndDateController = TextEditingController();
-  final TextEditingController _submissionDepartureController = TextEditingController();
-  final TextEditingController _submissionArrivalController = TextEditingController();
-  final TextEditingController _submissionBidController = TextEditingController();
-  final TextEditingController _submissionCourierController = TextEditingController();
+  final TextEditingController _submissionStartDateController =
+      TextEditingController();
+  final TextEditingController _submissionEndDateController =
+      TextEditingController();
+  final TextEditingController _submissionDepartureController =
+      TextEditingController();
+  final TextEditingController _submissionArrivalController =
+      TextEditingController();
+  final TextEditingController _submissionBidController =
+      TextEditingController();
+  final TextEditingController _submissionCourierController =
+      TextEditingController();
 
   final ScrollController _scrollController = ScrollController();
   List<MilestoneFormData> milestoneForms = [];
   String emptyLegRequestID = "";
   late List<String> milestoneNodeID = [];
 
-  List<AirportModel> fromAirportSuggestions = []; // Suggestions for "From Location"
+  List<AirportModel> fromAirportSuggestions =
+      []; // Suggestions for "From Location"
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
+  String? _selectedUnit;
+  final List<String> _units = ['kg', 'g', 'lb', 'ton'];
 
   @override
   void initState() {
@@ -63,17 +73,19 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _submissionBidController.text = widget.data!.bid ?? '';
     }
   }
+
   Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
     final dbHelper = DatabaseOperation();
     try {
       List<AirportModel> airports =
-      await dbHelper.fetchAirportsFromDatabase(query);
+          await dbHelper.fetchAirportsFromDatabase(query);
       return airports;
     } catch (e) {
       print('Error _fetchAirports $e');
       return [];
     }
   }
+
   // Fetch airports that match the query for From Location
   Future<void> _fetchFromAirportData(String query) async {
     if (query.isNotEmpty) {
@@ -111,6 +123,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       });
     }
   }
+
   void _addMilestoneForm() {
     setState(() {
       milestoneForms.add(MilestoneFormData());
@@ -139,9 +152,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       }
 
       setState(() {
-        final nodeID = (index < milestoneNodeID.length)
-            ? milestoneNodeID[index]
-            : null;
+        final nodeID =
+            (index < milestoneNodeID.length) ? milestoneNodeID[index] : null;
 
         milestoneForms.removeAt(index);
 
@@ -173,12 +185,47 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         msg: "Please fill all fields correctly.",
         backgroundColor: Colors.red,
         textColor: Colors.white,
-        gravity: ToastGravity.TOP, // 👈 This moves it to the top
+        gravity: ToastGravity.TOP,
       );
       return false;
     }
 
-    // Date validation
+    // ✅ Capacity validation
+    final capacityText = _submissionBidController.text.trim();
+    final capacity = double.tryParse(capacityText);
+
+    if (capacity == null) {
+      Fluttertoast.showToast(
+        msg: "Please enter a valid courier capacity.",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+      );
+      return false;
+    }
+
+    if (capacity > 5000) {
+      Fluttertoast.showToast(
+        msg: "Courier capacity cannot exceed 5000.",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+      );
+      return false;
+    }
+
+    // ✅ Unit validation
+    if (_selectedUnit == null || _selectedUnit!.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please select a capacity unit.",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+      );
+      return false;
+    }
+
+    // ✅ Date validation
     try {
       final start = DateTime.parse(_submissionStartDateController.text);
       final end = DateTime.parse(_submissionEndDateController.text);
@@ -188,7 +235,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
           msg: "Start date must be before end date.",
           backgroundColor: Colors.red,
           textColor: Colors.white,
-          gravity: ToastGravity.TOP, // 👈 This moves it to the top
+          gravity: ToastGravity.TOP,
         );
         return false;
       }
@@ -201,27 +248,28 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       return false;
     }
 
-    // Milestone presence check
+    // ✅ Milestone presence check
     if (milestoneForms.isEmpty) {
       Fluttertoast.showToast(
         msg: "At least one milestone is required.",
         backgroundColor: Colors.red,
         textColor: Colors.white,
-        gravity: ToastGravity.TOP, // 👈 This moves it to the top
+        gravity: ToastGravity.TOP,
       );
       return false;
     }
 
     return true;
   }
+
   Widget _buildTextField2(
-      TextEditingController controller,
-      String labelText, {
-        ValueChanged<String>? onChanged,
-        ValueChanged<String>? onFieldSubmitted,
-        List<TextInputFormatter>? inputFormatters,
-        TextInputType keyboardType = TextInputType.text, // ✅ Default to text
-      }) {
+    TextEditingController controller,
+    String labelText, {
+    ValueChanged<String>? onChanged,
+    ValueChanged<String>? onFieldSubmitted,
+    List<TextInputFormatter>? inputFormatters,
+    TextInputType keyboardType = TextInputType.text, // ✅ Default to text
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
@@ -241,6 +289,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       },
     );
   }
+
   Widget _buildTextField(
       TextEditingController controller, String label, bool readOnly) {
     final isNumberField = controller == _submissionCourierController ||
@@ -259,34 +308,33 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
         onTap: readOnly
             ? () async {
-          DateTime? pickedDate = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2100),
-          );
-          if (pickedDate != null) {
-            TimeOfDay? pickedTime = await showTimePicker(
-              context: context,
-              initialTime: TimeOfDay.now(),
-            );
-            if (pickedTime != null) {
-              final dt = DateTime(
-                pickedDate.year,
-                pickedDate.month,
-                pickedDate.day,
-                pickedTime.hour,
-                pickedTime.minute,
-              );
-              controller.text = dt.toString();
-            }
-          }
-        }
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                );
+                if (pickedDate != null) {
+                  TimeOfDay? pickedTime = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.now(),
+                  );
+                  if (pickedTime != null) {
+                    final dt = DateTime(
+                      pickedDate.year,
+                      pickedDate.month,
+                      pickedDate.day,
+                      pickedTime.hour,
+                      pickedTime.minute,
+                    );
+                    controller.text = dt.toString();
+                  }
+                }
+              }
             : null,
       ),
     );
   }
-
 
   @override
   void dispose() {
@@ -314,9 +362,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
         backgroundColor: Colors.lightGreen,
         iconTheme: const IconThemeData(color: Colors.white),
-        foregroundColor: Colors.white, // Ensures status bar icons/text are white
+        foregroundColor:
+            Colors.white, // Ensures status bar icons/text are white
       ),
-
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -330,12 +378,15 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               DateTime? submissionEnd;
 
               try {
-                submissionStart = DateTime.parse(_submissionStartDateController.text);
-                submissionEnd = DateTime.parse(_submissionEndDateController.text);
+                submissionStart =
+                    DateTime.parse(_submissionStartDateController.text);
+                submissionEnd =
+                    DateTime.parse(_submissionEndDateController.text);
 
                 if (submissionStart.isAfter(submissionEnd)) {
                   Fluttertoast.showToast(
-                    msg: "Submission start date must be before or equal to end date.",
+                    msg:
+                        "Submission start date must be before or equal to end date.",
                     backgroundColor: Colors.red,
                     textColor: Colors.white,
                     gravity: ToastGravity.TOP,
@@ -374,15 +425,17 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
                   // Validate milestone dates
                   try {
-                    final milestoneStart = DateTime.parse(form.startController.text);
-                    final milestoneEnd = DateTime.parse(form.endController.text);
+                    final milestoneStart =
+                        DateTime.parse(form.startController.text);
+                    final milestoneEnd =
+                        DateTime.parse(form.endController.text);
 
                     if (milestoneStart.isBefore(submissionStart!) ||
                         milestoneEnd.isAfter(submissionEnd!)) {
                       allMilestonesValid = false;
                       Fluttertoast.showToast(
                         msg:
-                        "Milestone #${i + 1} (${title}) dates must be within submission date range.",
+                            "Milestone #${i + 1} (${title}) dates must be within submission date range.",
                         backgroundColor: Colors.red,
                         textColor: Colors.white,
                         gravity: ToastGravity.TOP,
@@ -402,6 +455,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 }
               }
 
+              String finalCapacity =
+                  "${_submissionBidController.text.trim()} ${_selectedUnit ?? ''}";
 
               if (allMilestonesValid) {
                 Task task = Task(
@@ -410,7 +465,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                   departureFrom: _submissionDepartureController.text,
                   arriveAt: _submissionArrivalController.text,
                   bid: _submissionCourierController.text,
-                  courierCapacity: _submissionBidController.text,
+                  courierCapacity: finalCapacity, // 👈 updated field
                 );
 
                 widget.onSave(task);
@@ -431,7 +486,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                   _saveMilestoneToFirebase(newMilestone);
                 }
                 sendEmptyLegRequest(context);
-               // Navigator.pop(context);
+                // Navigator.pop(context);
               }
             },
             style: TextButton.styleFrom(
@@ -465,8 +520,10 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             const SizedBox(height: 10),
 
 // Start & End Date/Time
-            _buildTextField(_submissionStartDateController, 'Start Time And Date', true),
-            _buildTextField(_submissionEndDateController, 'End Time And Date', true),
+            _buildTextField(
+                _submissionStartDateController, 'Start Time And Date', true),
+            _buildTextField(
+                _submissionEndDateController, 'End Time And Date', true),
 
 // From Location
             _buildStyledField(
@@ -483,7 +540,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 ],
               ),
             ),
-            _buildSuggestionList(fromAirportSuggestions, _submissionDepartureController, isFrom: true),
+            _buildSuggestionList(
+                fromAirportSuggestions, _submissionDepartureController,
+                isFrom: true),
 // To Location
             _buildStyledField(
               child: _buildTextField2(
@@ -499,11 +558,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 ],
               ),
             ),
-            _buildSuggestionList(toAirportSuggestions, _submissionArrivalController,
+            _buildSuggestionList(
+                toAirportSuggestions, _submissionArrivalController,
                 isFrom: false),
             _buildTextField(_submissionCourierController, 'Bid', false),
-            _buildTextField(_submissionBidController, 'Courier Capacity', false),
+            //_buildTextField(_submissionBidController, 'Courier Capacity', false),
+            _buildCapacityField(),
+            // 👈 yeh naya method use kia
+
             const SizedBox(height: 10),
+
             /// Add Milestone Button (centered + rectangular)
             Center(
               child: ElevatedButton.icon(
@@ -555,7 +619,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                             form.startController.text.isEmpty ||
                             form.endController.text.isEmpty) {
                           Fluttertoast.showToast(
-                            msg: "Please complete all required fields for milestone #${i + 1}.",
+                            msg:
+                                "Please complete all required fields for milestone #${i + 1}.",
                             backgroundColor: Colors.red,
                             textColor: Colors.white,
                             gravity: ToastGravity.TOP,
@@ -572,20 +637,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                       onDelete: () {
                         print("🗑️ Delete tapped on index: $i");
                         _removeMilestoneForm(i);
-
                       },
                     ),
                   );
                 }).toList(),
               ),
             ),
-
-
           ],
         ),
       ),
     );
-
   }
 
   Widget _buildSuggestionList(
@@ -616,6 +677,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       },
     );
   }
+
   Future<void> _saveMilestoneToFirebase(Milestone milestone) async {
     try {
       final CollectionReference milestonesCollection =
@@ -624,7 +686,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       DocumentReference docRef = milestonesCollection.doc();
       milestone.milestoneNodeID = docRef.id;
       milestone.milestoneStatus = "pending";
-      milestoneNodeID.add( docRef.id);
+      milestoneNodeID.add(docRef.id);
       milestone.milestoneStartDateTime = convertToUTCFromStandardFormat(
           milestone.milestoneStartDateTime.toString());
       milestone.milestoneEndDateTime = convertToUTCFromStandardFormat(
@@ -632,12 +694,12 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
       await docRef.set(milestone.toMap()); // Make sure Milestone has toMap()
 
-      Fluttertoast.showToast(
+/*      Fluttertoast.showToast(
         msg: "Milestone '${milestone.title}' saved.",
         backgroundColor: Colors.green,
         textColor: Colors.white,
         gravity: ToastGravity.TOP,
-      );
+      );*/
     } catch (e) {
       Fluttertoast.showToast(
         msg: "Error saving milestone: $e",
@@ -646,12 +708,12 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
     }
   }
+
   Future<void> deleteMilestoneByID(String milestoneID) async {
     try {
       // Reference to the document in the milestones collection
-      DocumentReference docRef = FirebaseFirestore.instance
-          .collection('milestones')
-          .doc(milestoneID);
+      DocumentReference docRef =
+          FirebaseFirestore.instance.collection('milestones').doc(milestoneID);
 
       // Delete the document
       await docRef.delete();
@@ -662,33 +724,84 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     }
   }
 
+  Widget _buildCapacityField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          // --- Capacity Field ---
+          Expanded(
+            flex: 2,
+            child: TextField(
+              controller: _submissionBidController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Courier Capacity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // --- Unit Dropdown ---
+          Expanded(
+            flex: 1,
+            child: DropdownButtonFormField<String>(
+              value: _selectedUnit,
+              hint: const Text('Unit'),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+              ),
+              items: _units.map((String unit) {
+                return DropdownMenuItem<String>(
+                  value: unit,
+                  child: Text(unit),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedUnit = value;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> sendEmptyLegRequest(BuildContext context) async {
     // Clear milestone list from provider
     Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
     Provider.of<RoleProvider>(context, listen: false).clearTask();
     FirestoreService firestoreService = FirestoreService(context);
     // Create a new EmptyLegRequest with nodeID initially null
+    String finalCapacity =
+        "${_submissionBidController.text.trim()} ${_selectedUnit ?? ''}";
 
     EmptyLegRequest newRequest = EmptyLegRequest(
-        brokerID: widget.brokerKey,
-        courierID: widget.courierKey,
-        emptyLegRequestID: emptyLegRequestID,
-        // Will be updated when saving
-        requestDateTime: DateTime.now().toIso8601String(),
-        status: 'pending',// Now using a list
-        milestoneNodeIDs: milestoneNodeID,
-        startTimeDate: _submissionStartDateController.text,
-        endTimeDate:_submissionEndDateController.text,
-        departureLocation: _submissionDepartureController.text,
-        arrivalLocation: _submissionArrivalController.text,
-        bid: _submissionBidController.text,
-        isCourierRated: 'false',
-        isBrokerRated: 'false',
-        courierCapacity:_submissionCourierController.text
-
+      brokerID: widget.brokerKey,
+      courierID: widget.courierKey,
+      emptyLegRequestID: emptyLegRequestID,
+      // Will be updated when saving
+      requestDateTime: DateTime.now().toIso8601String(),
+      status: 'pending',
+      // Now using a list
+      milestoneNodeIDs: milestoneNodeID,
+      startTimeDate: _submissionStartDateController.text,
+      endTimeDate: _submissionEndDateController.text,
+      departureLocation: _submissionDepartureController.text,
+      arrivalLocation: _submissionArrivalController.text,
+      bid: _submissionBidController.text,
+      isCourierRated: 'false',
+      isBrokerRated: 'false',
+      courierCapacity: finalCapacity, // 👈 now includes unit
     );
-    newRequest.startTimeDate=convertToUTCFromStandardFormat(newRequest.startTimeDate.toString());
-    newRequest.endTimeDate=convertToUTCFromStandardFormat(newRequest.endTimeDate.toString());
+    newRequest.startTimeDate =
+        convertToUTCFromStandardFormat(newRequest.startTimeDate.toString());
+    newRequest.endTimeDate =
+        convertToUTCFromStandardFormat(newRequest.endTimeDate.toString());
     // Save the request to Firestore
     print(newRequest.startTimeDate.toString());
 
@@ -705,9 +818,11 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     }*/
     //send broker request notification to the courier
     final User currentUser = FirebaseAuth.instance.currentUser!;
-  //  final userInfo = await NotificationService.getUserFcmInfo(context);
-    final courierData = await NotificationService.getCourierNameAndTokenById(widget.courierKey);
-    final brokerData = await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
+    //  final userInfo = await NotificationService.getUserFcmInfo(context);
+    final courierData =
+        await NotificationService.getCourierNameAndTokenById(widget.courierKey);
+    final brokerData =
+        await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
     //final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
 
     print("User FCM Info: $courierData");
@@ -723,16 +838,14 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       print("DEBUG: Notification sent");
     }
 
-
-    String? requestId = await firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID);
+    String? requestId =
+        await firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID);
 
     if (requestId != null) {
       print("EmptyLegRequest ID: $requestId");
     } else {
       print("Failed to save request.");
     }
-
-
 
     showDialog(
       context: context,
@@ -790,11 +903,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       }
     });
   }
+
   void _navigateToDrawerPage() {
     Navigator.of(context).popUntil((route) => route.isFirst);
     Navigator.of(context).pushNamed('/DrawerScreen');
   }
 }
+
 Widget _buildStyledField({required Widget child}) {
   return Container(
     margin: const EdgeInsets.only(bottom: 12),

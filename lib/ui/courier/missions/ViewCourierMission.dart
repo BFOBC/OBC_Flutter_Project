@@ -115,7 +115,7 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
                   courierID: currentUser.uid,
                   emptyLegRequestID: widget.task!.emptyLegRequestID!,
                   sentBy: "Courier",
-                  message: "Your Job $taskID is started by $email",
+                  message: "Your Job is started by $email",
                 );
 
                 ScaffoldMessenger.of(context).showSnackBar(
