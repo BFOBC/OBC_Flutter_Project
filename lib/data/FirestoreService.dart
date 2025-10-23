@@ -1024,4 +1024,38 @@ class FirestoreService {
       debugPrint("❌ Error in setUserOnline: $e");
     }
   }
+   Future<String?> getCourierProfilePicture(String courierID) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('courier')
+          .doc(courierID)
+          .get(const GetOptions(source: Source.server));
+
+      if (!doc.exists) return null;
+
+      final data = doc.data();
+      return data?['profilePictureUrl'] as String?;
+    } catch (e) {
+      print('❌ Error fetching courier profile picture: $e');
+      return null;
+    }
+  }
+
+   Future<String?> getBrokerProfilePicture(String brokerID) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('broker')
+          .doc(brokerID)
+          .get(const GetOptions(source: Source.server));
+
+      if (!doc.exists) return null;
+
+      final data = doc.data();
+      return data?['profilePictureUrl'] as String?;
+    } catch (e) {
+      print('❌ Error fetching broker profile picture: $e');
+      return null;
+    }
+  }
+
 }

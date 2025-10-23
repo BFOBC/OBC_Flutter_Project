@@ -60,6 +60,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
   String? _selectedUnit;
   final List<String> _units = ['kg', 'g', 'lb', 'ton'];
+  String? _selectedCurrency; // for dropdown selection
 
   @override
   void initState() {
@@ -69,7 +70,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _submissionEndDateController.text = widget.data!.endDateTime ?? '';
       _submissionDepartureController.text = widget.data!.departureFrom ?? '';
       _submissionArrivalController.text = widget.data!.arriveAt ?? '';
-      _submissionCourierController.text = widget.data!.bid ?? '';
+      _submissionCourierController.text = widget.data!.courierCapacity ?? '';
       _submissionBidController.text = widget.data!.bid ?? '';
     }
   }
@@ -178,9 +179,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     if (_submissionStartDateController.text.isEmpty ||
         _submissionEndDateController.text.isEmpty ||
         _submissionDepartureController.text.isEmpty ||
-        _submissionArrivalController.text.isEmpty ||
-        _submissionCourierController.text.isEmpty ||
-        _submissionBidController.text.isEmpty) {
+        _submissionArrivalController.text.isEmpty ){
       Fluttertoast.showToast(
         msg: "Please fill all fields correctly.",
         backgroundColor: Colors.red,
@@ -190,11 +189,35 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       return false;
     }
 
+    // ✅ Bid amount validation
+    final bidText = _submissionBidController.text.trim();
+    final bidValue = double.tryParse(bidText);
+
+    if (bidValue == null || bidValue <= 0) {
+      Fluttertoast.showToast(
+        msg: "Please enter a valid bid amount.",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+      );
+      return false;
+    }
+    // ✅ Currency validation
+    if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please select a currency.",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+      );
+      return false;
+    }
+
     // ✅ Capacity validation
-    final capacityText = _submissionBidController.text.trim();
+    final capacityText = _submissionCourierController.text.trim();
     final capacity = double.tryParse(capacityText);
 
-    if (capacity == null) {
+    if (capacity == null  || capacity <= 0) {
       Fluttertoast.showToast(
         msg: "Please enter a valid courier capacity.",
         backgroundColor: Colors.red,
@@ -214,16 +237,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       return false;
     }
 
-    // ✅ Unit validation
-    if (_selectedUnit == null || _selectedUnit!.isEmpty) {
-      Fluttertoast.showToast(
-        msg: "Please select a capacity unit.",
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        gravity: ToastGravity.TOP,
-      );
-      return false;
-    }
+
+
 
     // ✅ Date validation
     try {
@@ -456,7 +471,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               }
 
               String finalCapacity =
-                  "${_submissionBidController.text.trim()} ${_selectedUnit ?? ''}";
+                  "${_submissionCourierController.text.trim()} ${_selectedUnit ?? ''}";
+              String finalBid =
+                  "${_submissionBidController.text.trim()} ${_selectedCurrency ?? ''}";
 
               if (allMilestonesValid) {
                 Task task = Task(
@@ -464,7 +481,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                   endDateTime: _submissionEndDateController.text,
                   departureFrom: _submissionDepartureController.text,
                   arriveAt: _submissionArrivalController.text,
-                  bid: _submissionCourierController.text,
+                  bid: finalBid,
                   courierCapacity: finalCapacity, // 👈 updated field
                 );
 
@@ -485,6 +502,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
                   _saveMilestoneToFirebase(newMilestone);
                 }
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(
+                    child: CircularProgressIndicator(color: Colors.green),
+                  ),
+                );
                 sendEmptyLegRequest(context);
                 // Navigator.pop(context);
               }
@@ -561,7 +585,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             _buildSuggestionList(
                 toAirportSuggestions, _submissionArrivalController,
                 isFrom: false),
-            _buildTextField(_submissionCourierController, 'Bid', false),
+            //_buildTextField(_submissionCourierController, 'Bid', false),
+            _buildBidField(),
             //_buildTextField(_submissionBidController, 'Courier Capacity', false),
             _buildCapacityField(),
             // 👈 yeh naya method use kia
@@ -723,6 +748,63 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       print('Error deleting milestone: $e');
     }
   }
+// --- Bid Field Widget ---
+  Widget _buildBidField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- Bid Amount Field ---
+          Expanded(
+            flex: 2,
+            child: TextField(
+              controller: _submissionBidController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Bid Amount',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // --- Currency Dropdown ---
+          Expanded(
+            flex: 1,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButtonFormField<String>(
+                value: _selectedCurrency,
+                isExpanded: true, // 👈 important fix
+                hint: const Text('Currency'),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'USD',
+                    child: Text('USD (\$)', overflow: TextOverflow.ellipsis),
+                  ),
+                  DropdownMenuItem(
+                    value: 'EUR',
+                    child: Text('EUR (€)', overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCurrency = value;
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCapacityField() {
     return Padding(
@@ -733,7 +815,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
           Expanded(
             flex: 2,
             child: TextField(
-              controller: _submissionBidController,
+              controller: _submissionCourierController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Courier Capacity',
@@ -778,7 +860,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     FirestoreService firestoreService = FirestoreService(context);
     // Create a new EmptyLegRequest with nodeID initially null
     String finalCapacity =
-        "${_submissionBidController.text.trim()} ${_selectedUnit ?? ''}";
+        "${_submissionCourierController.text.trim()} ${_selectedUnit ?? ''}";
+    String finalBid =
+        "${_submissionBidController.text.trim()} ${_selectedCurrency ?? ''}";
 
     EmptyLegRequest newRequest = EmptyLegRequest(
       brokerID: widget.brokerKey,
@@ -793,7 +877,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       endTimeDate: _submissionEndDateController.text,
       departureLocation: _submissionDepartureController.text,
       arrivalLocation: _submissionArrivalController.text,
-      bid: _submissionBidController.text,
+      bid: finalBid,
       isCourierRated: 'false',
       isBrokerRated: 'false',
       courierCapacity: finalCapacity, // 👈 now includes unit
@@ -827,7 +911,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
     print("User FCM Info: $courierData");
 
-    if (courierData != null) {
+/*    if (courierData != null) {
       await NotificationService.sendNotification(
         title: "New Request",
         toToken: courierData['token']!,
@@ -836,10 +920,20 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         extraData: {"senderName": brokerData?['name']},
       );
       print("DEBUG: Notification sent");
-    }
-
+    }*/
+    await Future.wait([
+      firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID),
+      NotificationService.sendNotification(  title: "New Request",
+        toToken: courierData!['token']!,
+        type: "broker_request",
+        screen: "DrawerScreen",
+        extraData: {"senderName": brokerData?['name']},),
+    ]);
     String? requestId =
         await firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID);
+
+    // Step 3: Hide loading dialog
+    Navigator.of(context).pop();
 
     if (requestId != null) {
       print("EmptyLegRequest ID: $requestId");

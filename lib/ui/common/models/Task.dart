@@ -4,6 +4,7 @@ import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 
 class Task {
   String? brokerId;
+  String? courierId;
   String? flightNumber;
   String? departureFrom;
   String? arriveAt;
@@ -23,6 +24,7 @@ class Task {
   String? courierCapacity;
   Task({
     this.brokerId,
+    this.courierId,
     this.flightNumber,
     this.departureFrom,
     this.arriveAt,
