@@ -183,7 +183,7 @@ class ChatBubble extends StatelessWidget {
                 children: const [
                   Icon(Icons.picture_as_pdf, color: Colors.red),
                   SizedBox(width: 8),
-                  Text('View PDF (Local)'),
+                  Text('View PDF'),
                 ],
               ),
             );

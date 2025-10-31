@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/widgets/NoLeadingZeroFormatter.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
-import '../../../data/DatabaseHelper.dart';
+import '../../../data/sqflitelocal/DatabaseHelper.dart';
 import '../../common/utils/CustomDialog.dart';
 import '../../common/utils/DateTimePicker.dart';
 import 'EmptyLegMainScreen.dart';
@@ -53,7 +53,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
   final DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ");
   final DateFormat outputFormat = DateFormat("yyyy-MM-dd HH:mm");
-
+  String? _selectedUnit;
+  final List<String> _units = ['kg', 'g', 'lb', 'ton'];
   @override
   void initState() {
     super.initState();
@@ -94,6 +95,8 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       String toDateTime =
           (convertToUTCFromCustomFormat(_toDateTimeController.text.toString()));
       String courierID = getCurrentUserId();
+      String finalCapacity =
+          "${_capacityController.text.trim()} ${_selectedUnit ?? 'selected unit no empty'}";
       final docRef =
           await FirebaseFirestore.instance.collection('emptyLegs').add({
         'fromLocation': _fromLocationController.text,
@@ -101,7 +104,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
         'fromDateTime': fromDateTime,
         'toDateTime': toDateTime,
         'flightNumber': _flightNumberController.text,
-        'capacity': _capacityController.text,
+        'capacity': finalCapacity,
         'createdAt': DateTime.now().toIso8601String(),
         'courierID': courierID,
         'status': 'new'
@@ -256,6 +259,53 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
       },
     );
   }*/
+
+  Widget _buildCapacityField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          // --- Capacity Field ---
+          Expanded(
+            flex: 2,
+            child: TextField(
+              controller: _capacityController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Courier Capacity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // --- Unit Dropdown ---
+          Expanded(
+            flex: 1,
+            child: DropdownButtonFormField<String>(
+              value: _selectedUnit,
+              hint: const Text('Unit'),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+              ),
+              items: _units.map((String unit) {
+                return DropdownMenuItem<String>(
+                  value: unit,
+                  child: Text(unit),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedUnit = value;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildTextField(
     TextEditingController controller,
     String labelText, {
@@ -386,18 +436,7 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
                         _buildStyledField(
                             child: _buildTextField(
                                 _flightNumberController, 'Flight Number')),
-                        _buildStyledField(
-                          child: _buildTextField(
-                            _capacityController,
-                            'Capacity',
-                            keyboardType: TextInputType.number,
-                            // ✅ Set numeric keyboard
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              NoLeadingZeroFormatter(),
-                            ],
-                          ),
-                        ),
+                        _buildCapacityField(),
 
                         const SizedBox(height: 20),
 
@@ -492,7 +531,6 @@ class _FlightDetailsDialogState extends State<FlightDetailsDialog> {
   Widget _buildStyledField({required Widget child}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [

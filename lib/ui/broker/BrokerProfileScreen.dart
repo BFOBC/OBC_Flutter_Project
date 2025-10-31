@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/CountryDialCode.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';

@@ -5,7 +5,7 @@ class FlightData {
   final String toLocation;
   final String flightNumber;
   final String emptyLegTBLNodeID;
-  final int capacity;
+  final String capacity;
 
   FlightData({
     required this.fromDateTime,

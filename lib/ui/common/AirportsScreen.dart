@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/DatabaseHelper.dart';
+import '../../data/sqflitelocal/DatabaseHelper.dart';
 
 class AirportsScreen extends StatelessWidget {
   final DatabaseHelper dbHelper = DatabaseHelper();

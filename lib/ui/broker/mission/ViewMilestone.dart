@@ -1,9 +1,8 @@
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
-import 'package:broker_flutter_pp/data/FirestoreService.dart';
-import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/CustomDialog.dart';

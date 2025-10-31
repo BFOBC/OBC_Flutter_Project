@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:broker_flutter_pp/data/AirportService.dart';
-import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/data/bridges/AirportService.dart';
+import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
@@ -12,8 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../data/DatabaseHelper.dart';
+import '../../../data/sqflitelocal/DatabaseHelper.dart';
 import '../AirportsScreen.dart';
 import '../utils/RoleProvider.dart';
 
@@ -43,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
         MaterialPageRoute(builder: (_) => const DataSyncScreen()),
       );
     } else {
-      checkRememberMe(context); // ✅ function now declared properly
+      checkRememberMe(context);
     }
   }
 
@@ -64,8 +63,8 @@ class _SplashScreenState extends State<SplashScreen> {
       print("Remember Me: ${prefs.getBool('rememberMe')}");
 
       try {
-        // 🔐 Sign in
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
@@ -73,28 +72,28 @@ class _SplashScreenState extends State<SplashScreen> {
         final user = userCredential.user;
         if (user == null) throw Exception("User is null");
 
-        // ✅ Set role
         if (roleStr != null) {
-          final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-          final role = roleStr == 'Broker' ? UserRole.broker : UserRole.courier;
+          final roleProvider =
+          Provider.of<RoleProvider>(context, listen: false);
+          final role =
+          roleStr == 'Broker' ? UserRole.broker : UserRole.courier;
           roleProvider.setRole(role);
 
-          // 🔍 Choose correct collection
-          final collectionName = role == UserRole.broker ? 'broker' : 'courier';
+          final collectionName =
+          role == UserRole.broker ? 'broker' : 'courier';
 
-          // 📄 Fetch user profile document from the respective collection
-          final docRef = FirebaseFirestore.instance.collection(collectionName).doc(user.uid);
+          final docRef = FirebaseFirestore.instance
+              .collection(collectionName)
+              .doc(user.uid);
           final docSnap = await docRef.get();
 
           if (!docSnap.exists) {
-            // No profile yet → navigate to profile screen
             _navigateToProfileScreen(context, role);
             return;
           }
 
           final data = docSnap.data() as Map<String, dynamic>;
 
-          // ✅ Ensure isProfileCompleted exists
           if (!data.containsKey('isProfileCompleted')) {
             await docRef.update({'isProfileCompleted': false});
           }
@@ -109,7 +108,6 @@ class _SplashScreenState extends State<SplashScreen> {
             _navigateToProfileScreen(context, role);
           }
         } else {
-          // Role was null or missing
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const LoginCard()),
           );
@@ -120,19 +118,21 @@ class _SplashScreenState extends State<SplashScreen> {
           MaterialPageRoute(builder: (_) => const LoginCard()),
         );
       }
-
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginCard()),
       );
     }
   }
+
   void _navigateToProfileScreen(BuildContext context, UserRole role) {
-    final brokerProfile = Provider.of<RoleProvider>(context, listen: false).brokerProfile;
+    final brokerProfile =
+        Provider.of<RoleProvider>(context, listen: false).brokerProfile;
 
     if (role == UserRole.broker) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) =>  BrokerProfileScreen(brokerProfile: brokerProfile)),
+        MaterialPageRoute(
+            builder: (_) => BrokerProfileScreen(brokerProfile: brokerProfile)),
       );
     } else {
       Navigator.of(context).pushReplacement(
@@ -141,27 +141,25 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: Colors.white, // optional
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundImage: AssetImage('assets/broker.jpg'),
+            /// 🌀 GIF Animation (add your file in assets)
+            Image.asset(
+              'assets/splash_animation_slow.gif',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
             ),
-            SizedBox(height: 16.0),
-            Text(
-              'OBC',
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-            ),
+
           ],
         ),
       ),
     );
   }
 }
-

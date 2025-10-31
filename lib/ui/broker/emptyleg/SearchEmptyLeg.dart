@@ -1,4 +1,4 @@
-import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/broker/emptyleg/AddNewMilestoneEmptLeg.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
@@ -124,9 +124,11 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               ? (data['toDateTime'] as Timestamp).toDate()
               : DateTime.parse(data['toDateTime']);
 
-          final capacity = data['capacity'] is int
+/*          final capacity = data['capacity'] is int
               ? data['capacity']
-              : int.tryParse(data['capacity'].toString()) ?? 0;
+              : int.tryParse(data['capacity'].toString()) ?? 0;*/
+
+          final capacity = data['capacity'].toString();
 
           return FlightData(
             fromDateTime: fromDateTime,

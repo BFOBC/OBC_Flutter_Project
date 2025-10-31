@@ -10,7 +10,7 @@ import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../data/AirportService.dart';
+import '../../../data/bridges/AirportService.dart';
 
 
 class DataSyncScreen extends StatefulWidget {

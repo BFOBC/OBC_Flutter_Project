@@ -1,5 +1,5 @@
-import 'package:broker_flutter_pp/data/DatabaseOperation.dart';
-import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
@@ -858,6 +858,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
     Provider.of<RoleProvider>(context, listen: false).clearTask();
     FirestoreService firestoreService = FirestoreService(context);
+
     // Create a new EmptyLegRequest with nodeID initially null
     String finalCapacity =
         "${_submissionCourierController.text.trim()} ${_selectedUnit ?? ''}";
@@ -868,10 +869,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       brokerID: widget.brokerKey,
       courierID: widget.courierKey,
       emptyLegRequestID: emptyLegRequestID,
-      // Will be updated when saving
       requestDateTime: DateTime.now().toIso8601String(),
       status: 'pending',
-      // Now using a list
       milestoneNodeIDs: milestoneNodeID,
       startTimeDate: _submissionStartDateController.text,
       endTimeDate: _submissionEndDateController.text,
@@ -880,67 +879,53 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       bid: finalBid,
       isCourierRated: 'false',
       isBrokerRated: 'false',
-      courierCapacity: finalCapacity, // 👈 now includes unit
+      courierCapacity: finalCapacity,
     );
     newRequest.startTimeDate =
         convertToUTCFromStandardFormat(newRequest.startTimeDate.toString());
     newRequest.endTimeDate =
         convertToUTCFromStandardFormat(newRequest.endTimeDate.toString());
-    // Save the request to Firestore
+
     print(newRequest.startTimeDate.toString());
 
-    // Broker sending a request to courier
-/*    final userInfo = await NotificationService.getUserFcmInfo(context);
-    if (userInfo != null) {
-      await NotificationService.sendNotification(
-        title: "New Request",
-        toToken:  userInfo['token']!,
-        type: "broker_request",
-        screen: "DrawerScreen",
-        extraData: {"senderName":  userInfo['name']},
-      );
-    }*/
-    //send broker request notification to the courier
+    // Get courier and broker data for notification
     final User currentUser = FirebaseAuth.instance.currentUser!;
-    //  final userInfo = await NotificationService.getUserFcmInfo(context);
     final courierData =
-        await NotificationService.getCourierNameAndTokenById(widget.courierKey);
+    await NotificationService.getCourierNameAndTokenById(widget.courierKey);
     final brokerData =
-        await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
-    //final token = await NotificationService.getUserFcmTokenById(currentUser.uid);
+    await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
 
     print("User FCM Info: $courierData");
 
-/*    if (courierData != null) {
-      await NotificationService.sendNotification(
-        title: "New Request",
-        toToken: courierData['token']!,
-        type: "broker_request",
-        screen: "DrawerScreen",
-        extraData: {"senderName": brokerData?['name']},
-      );
-      print("DEBUG: Notification sent");
-    }*/
+    // Save the request and send notification concurrently
+    String? requestId;
     await Future.wait([
-      firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID),
-      NotificationService.sendNotification(  title: "New Request",
-        toToken: courierData!['token']!,
-        type: "broker_request",
-        screen: "DrawerScreen",
-        extraData: {"senderName": brokerData?['name']},),
+      // Save the request and capture the requestId
+      firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID).then((id) {
+        requestId = id; // Store the requestId
+      }),
+      // Send notification
+      if (courierData != null)
+        NotificationService.sendNotification(
+          title: "New Request",
+          toToken: courierData['token']!,
+          type: "broker_request",
+          screen: "DrawerScreen",
+          extraData: {"senderName": brokerData?['name']},
+        ),
     ]);
-    String? requestId =
-        await firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID);
 
     // Step 3: Hide loading dialog
     Navigator.of(context).pop();
 
+    // Check if request was saved successfully
     if (requestId != null) {
       print("EmptyLegRequest ID: $requestId");
     } else {
       print("Failed to save request.");
     }
 
+    // Show success dialog
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -990,6 +975,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       },
     );
 
+    // Navigate back after 10 seconds
     Future.delayed(const Duration(seconds: 10), () {
       if (Navigator.canPop(context)) {
         Navigator.of(context).popUntil((route) => route.isFirst);

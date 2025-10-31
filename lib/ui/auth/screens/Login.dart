@@ -1,4 +1,5 @@
 
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/auth/SignIn.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierProfile.dart';
@@ -11,7 +12,6 @@ import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/dialog_utils.dart';
 import 'package:broker_flutter_pp/ui/common/utils/validator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../data/FirestoreService.dart';
 import '../../common/screens/DrawerScreen.dart';
 import '../../common/utils/RoleProvider.dart';
 import '../widgets/PasswordField.dart';

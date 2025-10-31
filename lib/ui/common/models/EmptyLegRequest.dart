@@ -20,6 +20,7 @@ class EmptyLegRequest {
   final String? isBrokerRated;
   final String? isCourierRated;
   final String? emptyLegTBLNodeID;
+
   // Constructor
   EmptyLegRequest({
     required this.brokerID,
@@ -36,20 +37,30 @@ class EmptyLegRequest {
     this.courierCapacity,
     this.isBrokerRated,
     this.isCourierRated,
-    this.emptyLegTBLNodeID
+    this.emptyLegTBLNodeID,
   });
 
-  // Convert model to a map for Firestore
+  // ✅ Convert model to a map for Firestore
   Map<String, dynamic> toJson() {
+    dynamic _stringOrTimestamp(String? isoString) {
+      if (isoString == null || isoString.isEmpty) return null;
+      try {
+        final dt = DateTime.parse(isoString);
+        return Timestamp.fromDate(dt);
+      } catch (e) {
+        return isoString;
+      }
+    }
+
     return {
       'brokerID': brokerID,
       'courierID': courierID,
-      'emptyLegRequestID': emptyLegRequestID ?? '', // Save as empty string if null
-      'requestDateTime': requestDateTime,
+      'emptyLegRequestID': emptyLegRequestID ?? '',
+      'requestDateTime': _stringOrTimestamp(requestDateTime),
       'status': status,
-      'milestoneNodeIDs': milestoneNodeIDs, // Store list of milestoneNodeIDs
-      'startTimeDate': startTimeDate,
-      'endTimeDate': endTimeDate,
+      'milestoneNodeIDs': milestoneNodeIDs,
+      'startTimeDate': _stringOrTimestamp(startTimeDate),
+      'endTimeDate': _stringOrTimestamp(endTimeDate),
       'departureLocation': departureLocation,
       'arrivalLocation': arrivalLocation,
       'bid': bid,
@@ -60,27 +71,59 @@ class EmptyLegRequest {
     };
   }
 
-  // Create an object from a map
+  // ✅ Create an object from a map
   static EmptyLegRequest fromMap(Map<String, dynamic> map) {
+    String? _asIsoString(dynamic value) {
+      if (value == null) return null;
+      if (value is Timestamp) {
+        return value.toDate().toIso8601String();
+      } else if (value is DateTime) {
+        return value.toIso8601String();
+      } else {
+        return value.toString();
+      }
+    }
+
+    bool _asBool(dynamic value) {
+      if (value == null) return false;
+      if (value is bool) return value;
+      final s = value.toString().toLowerCase();
+      return s == 'true' || s == '1';
+    }
+
+    List<String> _asStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) {
+        return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+      }
+      if (value is String) {
+        return value.split(',').map((e) => e.trim()).where((s) => s.isNotEmpty).toList();
+      }
+      return [];
+    }
+
+    print('🟢 Mapping EmptyLegRequest from Firestore data: $map');
+
     return EmptyLegRequest(
       brokerID: map['brokerID'] ?? '',
       courierID: map['courierID'] ?? '',
-      emptyLegRequestID: map['emptyLegRequestID'], // Nullable, don't default to empty string
-      requestDateTime: map['requestDateTime'] ?? '',
+      emptyLegRequestID: map['emptyLegRequestID'],
+      requestDateTime: _asIsoString(map['requestDateTime']) ?? '',
       status: map['status'] ?? 'status',
-      milestoneNodeIDs: List<String?>.from(map['milestoneNodeIDs'] ?? []), // Convert to List<String?>
-      startTimeDate: map['startTimeDate'],
-      endTimeDate: map['endTimeDate'],
+      milestoneNodeIDs: _asStringList(map['milestoneNodeIDs']),
+      startTimeDate: _asIsoString(map['startTimeDate']),
+      endTimeDate: _asIsoString(map['endTimeDate']),
       departureLocation: map['departureLocation'],
       arrivalLocation: map['arrivalLocation'],
-      bid: map['bid'],
-      courierCapacity: map['courierCapacity'],
-      isBrokerRated: map['isBrokerRated'],
-      isCourierRated: map['isCourierRated'],
+      bid: map['bid']?.toString(),
+      courierCapacity: map['courierCapacity']?.toString(),
+      isBrokerRated: _asBool(map['isBrokerRated']).toString(),
+      isCourierRated: _asBool(map['isCourierRated']).toString(),
       emptyLegTBLNodeID: map['emptyLegTBLNodeID'],
     );
   }
-  // Getters for local time conversion
+
+  // ✅ Getters for local time conversion
   String get localStartDateTime => convertUTCToLocal(startTimeDate ?? '');
   String get localEndDateTime => convertUTCToLocal(endTimeDate ?? '');
 }

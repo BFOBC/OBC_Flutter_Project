@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,7 +13,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../data/DatabaseOperation.dart';
+import '../../data/sqflitelocal/DatabaseOperation.dart';
 import '../common/models/AirportModel.dart';
 import '../common/widgets/ConfirmLocationChangeDialog.dart';
 

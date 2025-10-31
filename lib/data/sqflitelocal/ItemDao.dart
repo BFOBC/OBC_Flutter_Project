@@ -1,5 +1,5 @@
 import 'DatabaseHelper.dart';
-import 'Item.dart';
+import '../Item.dart';
 
 
 class ItemDao {

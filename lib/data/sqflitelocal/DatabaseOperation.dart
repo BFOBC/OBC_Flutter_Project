@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../ui/common/models/AirportModel.dart';
+import '../../ui/common/models/AirportModel.dart';
 
 class DatabaseOperation{
   static final DatabaseOperation _instance = DatabaseOperation._internal();

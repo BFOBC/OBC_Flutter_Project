@@ -1,9 +1,10 @@
 import 'dart:io';
 
-import 'package:broker_flutter_pp/data/FirestoreService.dart';
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatListScreen.dart';
+import 'package:broker_flutter_pp/ui/common/screens/FAQSScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationsScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/courier/CourierMap.dart';
@@ -208,6 +209,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
         case AppStrings.history:
         case AppStrings.inviteFriends:
         case AppStrings.faq:
+        _selectedWidget=const  FAQSScreen();
         case AppStrings.logout:
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _logout(context);

@@ -1,4 +1,5 @@
-import 'package:broker_flutter_pp/data/FirestoreService.dart';
+
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

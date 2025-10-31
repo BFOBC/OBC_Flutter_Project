@@ -6,15 +6,13 @@ import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:broker_flutter_pp/ui/courier/models/CourierLocationStatus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-
-import '../ui/common/utils/DateTimePicker.dart';
-import '../ui/courier/models/CourierLocationStatus.dart';
 
 class FirestoreService {
   final BuildContext context;
@@ -250,24 +248,75 @@ class FirestoreService {
   // Method to fetch data from the emptyLegRequests collection
   Future<List<EmptyLegRequest>> getEmptyLegRequests({required String courierID}) async {
     try {
-      QuerySnapshot querySnapshot = await _firestore
-          .collection('emptyLegRequests')
-          .where('status', isEqualTo: 'pending') // Filter: status = "pending"
-          .where('courierID', isEqualTo: courierID) // Filter: courierID match
-          .get();
+      print('➡️ Fetching EmptyLegRequests for courierID: $courierID');
 
-      List<EmptyLegRequest> requestsList = querySnapshot.docs.map((doc) {
-        print('Document data: ${doc.data()}');
-        return EmptyLegRequest.fromMap(doc.data() as Map<String, dynamic>);
-      }).toList();
+      Query query = _firestore.collection('emptyLegRequests')
+          .where('status', isEqualTo: 'pending')
+          .where('courierID', isEqualTo: courierID);
 
-      print('Filtered emptyLegRequests count: ${requestsList.length}');
+      print('🔎 Running Firestore query: $query');
+
+      QuerySnapshot querySnapshot = await query.get();
+      print('✅ Query executed. Total docs returned: ${querySnapshot.docs.length}');
+
+      if (querySnapshot.docs.isEmpty) {
+        print('⚠️ No documents found for courierID: $courierID with status=pending');
+        return [];
+      }
+
+      List<EmptyLegRequest> requestsList = [];
+
+      for (var i = 0; i < querySnapshot.docs.length; i++) {
+        var doc = querySnapshot.docs[i];
+        print('\n--- Document #${i + 1} ---');
+        print('Doc ID: ${doc.id}');
+
+        final rawData = doc.data();
+        print('Raw data type: ${rawData.runtimeType}');
+        print('Raw data content: $rawData');
+
+        if (rawData == null) {
+          print('⚠️ doc.data() is null for doc id: ${doc.id} — skipping');
+          continue;
+        }
+
+        // Try cast safely
+        Map<String, dynamic>? mapData;
+        try {
+          mapData = (rawData as Map<String, dynamic>);
+        } catch (castErr) {
+          print('❌ Failed to cast doc.data() to Map<String, dynamic> for doc ${doc.id}: $castErr');
+          continue;
+        }
+
+        // Optional: inspect important fields before mapping
+        print('-> status: ${mapData['status']} (${mapData['status']?.runtimeType})');
+        print('-> courierID: ${mapData['courierID']} (${mapData['courierID']?.runtimeType})');
+        print('-> brokerID: ${mapData['brokerID']} (${mapData['brokerID']?.runtimeType})');
+        print('-> milestoneNodeIDs: ${mapData['milestoneNodeIDs']} (${mapData['milestoneNodeIDs']?.runtimeType})');
+
+        // Convert to model with try/catch so one bad doc doesn't crash all
+        try {
+          final request = EmptyLegRequest.fromMap(mapData);
+          print('✔️ Mapped EmptyLegRequest: emptyLegRequestID=${request.emptyLegRequestID}, brokerID=${request.brokerID}, courierID=${request.courierID}, status=${request.status}, milestoneCount=${request.milestoneNodeIDs.length}');
+          requestsList.add(request);
+        } catch (mapErr, mapStack) {
+          print('❌ Error mapping doc ${doc.id} to EmptyLegRequest: $mapErr');
+          print(mapStack);
+          // Continue with next doc
+        }
+      }
+
+      print('\n🔚 Completed mapping. Total mapped requests: ${requestsList.length}');
       return requestsList;
-    } catch (e) {
-      print('Error fetching empty leg requests: $e');
+    } catch (e, stack) {
+      print('🔥 Error fetching empty leg requests: $e');
+      print(stack);
       return [];
     }
   }
+
+
   // Method to fetch brokers by brokerIDs using the BrokerProfileData model
   Future<List<BrokerProfileData>> getBrokersByBrokerID(
       List<String> brokerIDs) async {
@@ -608,7 +657,41 @@ class FirestoreService {
       return [];
     }
   }
+  Future<List<Map<String, dynamic>>> readFAQs(String role) async {
+    try {
+      // Get the document for the specific role (broker/courier)
+      DocumentSnapshot roleDoc =
+      await _firestore.collection('faqs').doc(role.toLowerCase()).get();
 
+      // Get the general FAQs as well (common to both)
+      DocumentSnapshot generalDoc =
+      await _firestore.collection('faqs').doc('general').get();
+
+      List<Map<String, dynamic>> faqList = [];
+
+      // Add general FAQs if available
+      if (generalDoc.exists) {
+        final generalData = generalDoc.data() as Map<String, dynamic>;
+        final generalQuestions =
+        List<Map<String, dynamic>>.from(generalData['questions'] ?? []);
+        faqList.addAll(generalQuestions);
+      }
+
+      // Add role-specific FAQs if available
+      if (roleDoc.exists) {
+        final roleData = roleDoc.data() as Map<String, dynamic>;
+        final roleQuestions =
+        List<Map<String, dynamic>>.from(roleData['questions'] ?? []);
+        faqList.addAll(roleQuestions);
+      }
+
+      print('✅ FAQs retrieved for $role: ${faqList.length}');
+      return faqList;
+    } catch (e) {
+      print('❌ Error reading FAQs: $e');
+      return [];
+    }
+  }
 
   // Method to delete a notification by its ID
   Future<void> deleteNotification(String notificationID) async {
