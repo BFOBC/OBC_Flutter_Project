@@ -8,6 +8,7 @@ import 'package:broker_flutter_pp/ui/common/widgets/UserAvatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart'; // Correct LatLng import
@@ -208,7 +209,8 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
           courierData.add({
             'key': doc.id, // 🔑 Firestore doc ID
             'name': data.containsKey('name') ? data['name'] ?? 'N/A' : 'N/A',
-            'number': data.containsKey('number') ? data['number'] ?? 'N/A' : 'N/A',
+            'phoneNumber': data.containsKey('phoneNumber') ? data['phoneNumber'] ?? 'N/A' : 'N/A',
+            'phoneNumber': data.containsKey('phoneNumber') ? data['phoneNumber'] ?? 'N/A' : 'N/A',
             'distance': distance,
             'searchCode': searchCode,
             'profilePictureUrl': data.containsKey('profilePictureUrl') ? data['profilePictureUrl'] ?? 'N/A' : 'N/A',
@@ -295,7 +297,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
         );
       } else {
         print('✅ Found ${courierData.length} couriers.');
-        ScaffoldMessenger.of(context).showSnackBar(
+/*        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${courierData.length} Courier(s) found at $searchCode'),
             action: SnackBarAction(
@@ -313,8 +315,16 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
             ),
             margin: EdgeInsets.all(16),
           ),
+        );*/
+        Fluttertoast.showToast(
+          msg: '${courierData.length} Courier(s) found at $searchCode',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.TOP, // 👈 show at top
+          backgroundColor: Colors.green.shade600,
+          textColor: Colors.white,
+          fontSize: 14.0,
         );
-
+        showCouriersBottomSheet(context, courierData); // 👈 open sheet on tap
 
       }
     } catch (e, stackTrace) {
@@ -504,7 +514,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
                                                 const Icon(Icons.phone, size: 16, color: Colors.grey),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  courier['number'] ?? 'N/A',
+                                                  courier['phoneNumber'] ?? 'N/AAA',
                                                   style: const TextStyle(fontSize: 14, color: Colors.black87),
                                                 ),
                                               ],

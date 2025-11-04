@@ -174,216 +174,231 @@ class _SearchCourierState extends State<SearchCourier> {
         title: Text(userName),
       ),
       body: _isLoading
-          ? Center(
+          ? const Center(
         child: CircularProgressIndicator(), // Show progress bar while loading
       )
-          : Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                UserAvatar(imageUrl: userImage),
-
-                const SizedBox(height: 5),
-                Center(
-                  child: RatingBarIndicator(
-                    rating: rating,
-                    itemBuilder: (context, index) => const Icon(
-                      Icons.star,
-                      color: Colors.amber,
-                    ),
-                    itemCount: 5,
-                    itemSize: 25.0,
-                    direction: Axis.horizontal,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ToggleButtons(
-                        isSelected: _selectedToggle,
-                        onPressed: _onTogglePressed,
-                        borderRadius: BorderRadius.circular(10),
-                        selectedBorderColor: Colors.grey,
-                        selectedColor: Colors.white,
-                        fillColor: Palette.primaryColor,
-                        color: Colors.black,
-                        constraints: const BoxConstraints(minHeight: 40.0, minWidth: 100.0),
-                        children: _toggleText.map((text) => Text(text)).toList(),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Conditionally show Profile, Passports, Visas, or Pie Chart
-                if (_showProfile && courierProfile != null)
-                  BasicInfo(courierProfileData: courierProfile!),
-                if (_showPassports)
-                  Passports(passports: passports),
-                if (_showVisas)
-                  Visas(visas: visas),
-                if (_showPieChart)
-                  Padding(
-                    padding:
-                    const EdgeInsets.symmetric(vertical: 10),
-                    child: CircularRating(
-                      dataMap: calculateRatingDistribution(
-                          courierProfile!.ratings ?? []),
-                      colorList: _colorList,
-                    ),
-                  ),
-
-                if (_showPieChart) ...[
-                  courierProfile!.ratings != null &&
-                      courierProfile!.ratings!.isNotEmpty
-                      ? ListView.builder(
-                    shrinkWrap: true,
-                    physics:
-                    const NeverScrollableScrollPhysics(),
-                    itemCount: courierProfile!.ratings!.length,
-                    itemBuilder: (context, index) {
-                      var ratingItem =
-                      courierProfile!.ratings![index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 5, horizontal: 15),
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(10),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                ratingItem.from ??
-                                    "Anonymous",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              RatingBarIndicator(
-                                rating: ratingItem.rating
-                                    ?.toDouble() ??
-                                    0.0,
-                                itemBuilder: (context,
-                                    index) =>
-                                const Icon(Icons.star,
-                                    color:
-                                    Colors.amber),
-                                itemCount: 5,
-                                itemSize: 20.0,
-                                direction: Axis.horizontal,
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                ratingItem.comment ??
-                                    "No comment provided.",
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color:
-                                    Colors.grey[700]),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                      : const Text("No rating available",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
-                ],
-
-              ],
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
+          : SafeArea(
+        child: Column(
+          children: [
+            // 🔹 Scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Chat button
-                    SizedBox(
-                      width: 150,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ChatDetailScreen(userID: widget.courierKey),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.chat, color: Colors.white),
-                        label: const Text("Chat"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[500],
-                          foregroundColor: Colors.white,
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
+                    UserAvatar(imageUrl: userImage),
+
+                    const SizedBox(height: 5),
+                    Center(
+                      child: RatingBarIndicator(
+                        rating: rating,
+                        itemBuilder: (context, index) => const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                        ),
+                        itemCount: 5,
+                        itemSize: 25.0,
+                        direction: Axis.horizontal,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+
+                    // 🔹 Toggle buttons
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ToggleButtons(
+                            isSelected: _selectedToggle,
+                            onPressed: _onTogglePressed,
+                            borderRadius: BorderRadius.circular(10),
+                            selectedBorderColor: Colors.grey,
+                            selectedColor: Colors.white,
+                            fillColor: Palette.primaryColor,
+                            color: Colors.black,
+                            constraints: const BoxConstraints(
+                                minHeight: 40.0, minWidth: 100.0),
+                            children: _toggleText
+                                .map((text) => Text(text))
+                                .toList(),
                           ),
                         ),
                       ),
                     ),
 
-                    const SizedBox(width: 16), // horizontal spacing
+                    const SizedBox(height: 10),
 
-                    // Place the Job button
-                    SizedBox(
-                      width: 150,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SubmissionScreen(
-                                brokerKey: AuthUtils.getCurrentUserId2().toString(),
-                                courierKey: widget.courierKey,
-                                onSave: (Task) {},
+                    // 🔹 Conditional sections
+                    if (_showProfile && courierProfile != null)
+                      BasicInfo(courierProfileData: courierProfile!),
+                    if (_showPassports) Passports(passports: passports),
+                    if (_showVisas) Visas(visas: visas),
+                    if (_showPieChart)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: CircularRating(
+                          dataMap: calculateRatingDistribution(
+                              courierProfile!.ratings ?? []),
+                          colorList: _colorList,
+                        ),
+                      ),
+
+                    if (_showPieChart) ...[
+                      courierProfile!.ratings != null &&
+                          courierProfile!.ratings!.isNotEmpty
+                          ? ListView.builder(
+                        shrinkWrap: true,
+                        physics:
+                        const NeverScrollableScrollPhysics(),
+                        itemCount:
+                        courierProfile!.ratings!.length,
+                        itemBuilder: (context, index) {
+                          var ratingItem =
+                          courierProfile!.ratings![index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 5, horizontal: 15),
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                              BorderRadius.circular(10),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    ratingItem.from ??
+                                        "Anonymous",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight:
+                                      FontWeight.bold,
+                                    ),
+                                  ),
+                                  RatingBarIndicator(
+                                    rating: ratingItem.rating
+                                        ?.toDouble() ??
+                                        0.0,
+                                    itemBuilder: (context, index) =>
+                                    const Icon(Icons.star,
+                                        color: Colors.amber),
+                                    itemCount: 5,
+                                    itemSize: 20.0,
+                                    direction:
+                                    Axis.horizontal,
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    ratingItem.comment ??
+                                        "No comment provided.",
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color:
+                                        Colors.grey[700]),
+                                  ),
+                                ],
                               ),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.work, color: Colors.white),
-                        label: const Text("Place Job"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Palette.secondaryColor,
-                          foregroundColor: Colors.white,
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
-                        ),
+                      )
+                          : const Text(
+                        "No rating available",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
-                    ),
+                    ],
+
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
-          ),
 
-        ],
+            // 🔹 Fixed bottom buttons
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Chat button
+                  SizedBox(
+                    width: 150,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatDetailScreen(
+                                userID: widget.courierKey),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.chat, color: Colors.white),
+                      label: const Text("Chat"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[500],
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Place Job button
+                  SizedBox(
+                    width: 150,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SubmissionScreen(
+                              brokerKey:
+                              AuthUtils.getCurrentUserId2()
+                                  .toString(),
+                              courierKey: widget.courierKey,
+                              onSave: (Task) {},
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.work, color: Colors.white),
+                      label: const Text("Place Job"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Palette.secondaryColor,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+
   Map<String, double> calculateRatingDistribution(List<Rating> ratings) {
     double negativeCount = 0;
     double neutralCount = 0;

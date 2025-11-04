@@ -4,6 +4,7 @@ import 'package:broker_flutter_pp/ui/chat/VideoPlayerWidget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -53,12 +54,20 @@ class ChatBubble extends StatelessWidget {
       ),
       confirmDismiss: (direction) async {
         if (senderId != currentUserId) {
-          ScaffoldMessenger.of(context).showSnackBar(
+/*          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("You can only delete your own messages."),
               duration: Duration(seconds: 2),
               backgroundColor: Colors.redAccent,
             ),
+          );*/
+          Fluttertoast.showToast(
+            msg: 'You can only delete your own messages.',
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.TOP, // 👈 show at top
+            backgroundColor: Colors.redAccent,
+            textColor: Colors.white,
+            fontSize: 13.0,
           );
           return false; // Cancel the dismiss
         }        return await showDeleteConfirmationDialog(context);
