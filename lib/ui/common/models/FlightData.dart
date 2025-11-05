@@ -6,6 +6,7 @@ class FlightData {
   final String flightNumber;
   final String emptyLegTBLNodeID;
   final String capacity;
+  final String courierID;
 
   FlightData({
     required this.fromDateTime,
@@ -15,5 +16,6 @@ class FlightData {
     required this.flightNumber,
     required this.emptyLegTBLNodeID,
     required this.capacity,
+    required this.courierID,
   });
 }

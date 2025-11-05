@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../courier/models/CourierProfileData.dart';
 
@@ -66,7 +68,6 @@ class BasicInfo extends StatelessWidget {
     }
   }
 
-
   Widget _buildInfoCard(String label, String value) {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -92,11 +93,35 @@ class BasicInfo extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16.0,
-            ),
+
+          // 👉 Value + Copy icon (for Phone or Email only)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16.0,
+                ),
+              ),
+              if (label.toLowerCase() == 'phone' || label.toLowerCase() == 'email') ...[
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () async {
+                    await Clipboard.setData(ClipboardData(text: value));
+                    Fluttertoast.showToast(
+                      msg: "$label copied!",
+                      toastLength: Toast.LENGTH_SHORT,
+                      gravity: ToastGravity.BOTTOM,
+                      backgroundColor: Colors.black87,
+                      textColor: Colors.white,
+                      fontSize: 14.0,
+                    );
+                  },
+                  child: const Icon(Icons.copy_rounded, size: 18, color: Colors.grey),
+                ),
+              ],
+            ],
           ),
         ],
       ),

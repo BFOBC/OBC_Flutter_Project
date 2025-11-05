@@ -106,50 +106,67 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 
       FirebaseFirestore.instance
           .collection('emptyLegs')
-          .where('status', isEqualTo: 'new') // ✅ Filter only "new" status
+          .where('status', isEqualTo: 'new')
           .snapshots()
           .listen((snapshot) {
-        final List<FlightData> flightList = snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        final List<FlightData> flightList = [];
 
-          courierID = data['courierID'] is String
-              ? (data['courierID'] as String)
-              : data['courierID'].toString();
+        for (var doc in snapshot.docs) {
+          try {
+            final data = doc.data() as Map<String, dynamic>;
 
-          final fromDateTime = data['fromDateTime'] is Timestamp
-              ? (data['fromDateTime'] as Timestamp).toDate()
-              : DateTime.parse(data['fromDateTime']);
+            // Defensive null checks
+            if (!data.containsKey('fromDateTime') ||
+                !data.containsKey('toDateTime') ||
+                data['fromDateTime'] == null ||
+                data['toDateTime'] == null) {
+              print('⛔ Skipped invalid record: missing date field');
+              continue; // skip invalid flight
+            }
 
-          final toDateTime = data['toDateTime'] is Timestamp
-              ? (data['toDateTime'] as Timestamp).toDate()
-              : DateTime.parse(data['toDateTime']);
+            final fromDateTime = data['fromDateTime'] is Timestamp
+                ? (data['fromDateTime'] as Timestamp).toDate()
+                : DateTime.tryParse(data['fromDateTime'].toString());
 
-/*          final capacity = data['capacity'] is int
-              ? data['capacity']
-              : int.tryParse(data['capacity'].toString()) ?? 0;*/
+            final toDateTime = data['toDateTime'] is Timestamp
+                ? (data['toDateTime'] as Timestamp).toDate()
+                : DateTime.tryParse(data['toDateTime'].toString());
 
-          final capacity = data['capacity'].toString();
+            if (fromDateTime == null || toDateTime == null) {
+              print('⚠️ Skipped invalid datetime parse for doc: ${doc.id}');
+              continue;
+            }
 
-          return FlightData(
-            fromDateTime: fromDateTime,
-            toDateTime: toDateTime,
-            fromLocation: data['fromLocation'],
-            toLocation: data['toLocation'],
-            flightNumber: data['flightNumber'],
-            emptyLegTBLNodeID: data['emptyLegNodeID'],
-            capacity: capacity,
-          );
-        }).toList();
+            final capacity = data['capacity']?.toString() ?? "N/A";
+            final courierID2 = data['courierID']?.toString() ?? "N/A";
+
+            flightList.add(FlightData(
+              fromDateTime: fromDateTime,
+              toDateTime: toDateTime,
+              fromLocation: data['fromLocation'] ?? '',
+              toLocation: data['toLocation'] ?? '',
+              flightNumber: data['flightNumber'] ?? '',
+              emptyLegTBLNodeID: data['emptyLegNodeID'] ?? '',
+              capacity: capacity,
+              courierID: courierID2,
+            ));
+          } catch (innerError, st) {
+            print('⚠️ Error parsing doc ${doc.id}: $innerError');
+            print(st);
+          }
+        }
 
         setState(() {
           flights = flightList;
-          filteredFlights = flightList; // Initially, show all "new" flights
+          filteredFlights = flightList;
         });
       });
-    } catch (e) {
-      print("Error fetching flights: $e");
+    } catch (e, st) {
+      print("❌ Error fetching flights: $e");
+      print(st);
     }
   }
+
 
   void _filterFlights() {
     final departureQuery = _searchController1.text.toLowerCase();
@@ -167,14 +184,47 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
   }
 
   double _calculateProgress(DateTime start, DateTime end) {
-    final DateTime now = DateTime.now().toUtc();
+    try {
+      // 🔹 Convert UTC → Local time for proper comparison
+      final DateTime localStart = start.toLocal();
+      final DateTime localEnd = end.toLocal();
+      final DateTime now = DateTime.now();
 
-    if (now.isBefore(start)) {
-      return 0.0;
-    } else if (now.isAfter(end)) {
-      return 1.0;
+      // 🔹 Grace buffer (5 min) to avoid false early completion
+      final DateTime bufferedEnd = localEnd.add(const Duration(minutes: 5));
+
+      // 🛑 Invalid or same datetimes
+      if (localEnd.isBefore(localStart) || localEnd.isAtSameMomentAs(localStart)) {
+        return 0.0;
+      }
+
+      // 🔹 Before start
+      if (now.isBefore(localStart)) {
+        return 0.0;
+      }
+
+      // 🔹 After end (with grace period)
+      if (now.isAfter(bufferedEnd)) {
+        return 1.0;
+      }
+
+      // 🔹 Use milliseconds for precision
+      final totalDuration = localEnd.difference(localStart).inMilliseconds;
+      final elapsed = now.difference(localStart).inMilliseconds;
+
+      // 🔹 Avoid divide-by-zero errors
+      if (totalDuration <= 0) return 0.0;
+
+      // 🔹 Compute progress safely
+      double progress = elapsed / totalDuration;
+
+      // 🔹 Clamp 0–1 range
+      return progress.clamp(0.0, 1.0);
+    } catch (e, st) {
+      print('⚠️ Error in _calculateProgress: $e');
+      print(st);
+      return 0.0; // Safe fallback
     }
-    return (now.difference(start).inMinutes / end.difference(start).inMinutes);
   }
 
   void _showFlightDialog(BuildContext context, FlightData flight) {
@@ -274,12 +324,14 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                               mini: true,
                               backgroundColor: Colors.blue,
                               onPressed: () {
+                                print('Chatttttttttttt');
+                                print(flight.courierID);
                                 Navigator.pop(context);
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        ChatDetailScreen(userID: courierID),
+                                        ChatDetailScreen(userID: flight.courierID),
                                   ),
                                 );
                               },
@@ -486,7 +538,6 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
             // Search Button
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
-              // بٹن دائیں طرف رکھنے کے لیے
               children: [
                 SizedBox(
                   width: 120,
@@ -526,7 +577,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
               ],
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 5),
 
             // Filtered Items List
             // Filtered Items List
@@ -550,73 +601,119 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       ],
                     ))
                   : ListView.builder(
-                      itemCount: filteredFlights.length,
-                      itemBuilder: (context, index) {
-                        final flight = filteredFlights[index];
-                        double progress = _calculateProgress(
-                            flight.fromDateTime, flight.toDateTime);
+                itemCount: filteredFlights.length,
+                itemBuilder: (context, index) {
+                  final flight = filteredFlights[index];
 
-                        return GestureDetector(
-                          onTap: () => _showFlightDialog(context, flight),
-                          child: Card(
-                            color: Colors.white,
-                            margin: const EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 16.0),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
+                  // 🕒 Convert UTC → Local
+                  final DateTime startLocal = flight.fromDateTime.toLocal();
+                  final DateTime endLocal = flight.toDateTime.toLocal();
+                  final DateTime now = DateTime.now();
+
+                  // ❌ Skip expired flights (end time passed)
+                  if (now.isAfter(endLocal)) {
+                    return const SizedBox.shrink();
+                  }
+
+                  // 🔹 Calculate progress
+                  double progress = _calculateProgress(startLocal, endLocal);
+
+                  // 🔹 Format dates for UI
+                  String startDate = DateFormat('dd MMM yyyy, hh:mm a').format(startLocal);
+                  String endDate = DateFormat('dd MMM yyyy, hh:mm a').format(endLocal);
+
+                  return GestureDetector(
+                    onTap: () => _showFlightDialog(context, flight),
+                    child: Card(
+                      color: Colors.white,
+                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Blue Vertical Line
+                            Container(
+                              width: 4,
+                              height: 190,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(width: 10),
+
+                            // Flight Info
+                            Expanded(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Blue Vertical Line on Left
-                                  Container(
-                                    width: 8,
-                                    height: 120,
-                                    color: Colors.blue,
+                                  Text(
+                                    'Arrival:',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                   ),
-                                  const SizedBox(width: 12),
+                                  Text(
+                                    flight.toLocation,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
 
-                                  // Flight Details
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Arrival:',
-                                            style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(flight.toLocation,
-                                            style:
-                                                const TextStyle(fontSize: 16)),
+                                  const SizedBox(height: 8),
 
-                                        const SizedBox(height: 8),
+                                  Text(
+                                    'Departure:',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    flight.fromLocation,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
 
-                                        Text('Departure:',
-                                            style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold)),
-                                        Text(flight.fromLocation,
-                                            style:
-                                                const TextStyle(fontSize: 16)),
+                                  const SizedBox(height: 8),
 
-                                        const SizedBox(height: 8),
+                                  // Progress Bar
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey[300],
+                                    color: Colors.red,
+                                  ),
 
-                                        // Progress Bar
-                                        LinearProgressIndicator(
-                                          value: progress,
-                                          backgroundColor: Colors.grey[300],
-                                          color: Colors.blueAccent,
-                                        ),
-                                      ],
-                                    ),
+                                  const SizedBox(height: 10),
+
+                                  // 🗓️ Start Date
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today,
+                                          size: 18, color: Colors.green),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Start: $startDate',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  // 🗓️ End Date
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.calendar_month,
+                                          size: 18, color: Colors.red),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'End: $endDate',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          ],
+                        ),
+                      ),
                     ),
+                  );
+                },
+              ),
+
             ),
           ],
         ),

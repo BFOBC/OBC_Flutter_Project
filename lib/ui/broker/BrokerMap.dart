@@ -209,12 +209,14 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
           courierData.add({
             'key': doc.id, // 🔑 Firestore doc ID
             'name': data.containsKey('name') ? data['name'] ?? 'N/A' : 'N/A',
-            'phoneNumber': data.containsKey('phoneNumber') ? data['phoneNumber'] ?? 'N/A' : 'N/A',
-            'phoneNumber': data.containsKey('phoneNumber') ? data['phoneNumber'] ?? 'N/A' : 'N/A',
+            'phoneNumber': (data.containsKey('countryCode') && data.containsKey('phoneNumber'))
+                ? '${data['countryCode'] ?? ''}${data['phoneNumber'] ?? ''}'
+                : 'N/A',
             'distance': distance,
             'searchCode': searchCode,
             'profilePictureUrl': data.containsKey('profilePictureUrl') ? data['profilePictureUrl'] ?? 'N/A' : 'N/A',
           });
+
         } catch (e) {
           print('❌ Error processing courier ${doc.id}: $e');
         }
@@ -514,7 +516,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
                                                 const Icon(Icons.phone, size: 16, color: Colors.grey),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  courier['phoneNumber'] ?? 'N/AAA',
+                                                  courier['phoneNumber'] ?? 'N/A',
                                                   style: const TextStyle(fontSize: 14, color: Colors.black87),
                                                 ),
                                               ],

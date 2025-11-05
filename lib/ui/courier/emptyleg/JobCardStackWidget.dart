@@ -407,7 +407,7 @@ class _JobCardStackWidgetState extends State<JobCardStackWidget> {
                   _buildInfo("🕒 From Time", formatTime(job['fromDateTime'])),
                   _buildInfo("📅 To Date", formatDate(job['toDateTime'])),
                   _buildInfo("🕒 To Time", formatTime(job['toDateTime'])),
-                  _buildInfo("🚛 Capacity", job['capacity']),
+                  _buildInfo("🧳 Capacity", job['capacity']),
                 ],
               ),
             ],

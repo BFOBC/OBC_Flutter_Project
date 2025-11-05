@@ -2,7 +2,9 @@ import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/AuthUtils.dart';
 import 'package:broker_flutter_pp/ui/courier/missions/ViewCourierMission.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import '../../common/models/Milestone.dart';
@@ -76,35 +78,35 @@ class _BrokerMissionsState extends State<BrokerMissions> {
       endDateTime: "30-9-2024",
       bid: "3000",
     ));*/
-
-    final taskViewModel = Provider.of<TaskViewModel>(context, listen: false);
-
     try {
-      // Set loading to true while fetching data
       setState(() {
         isLoading = true;
       });
 
-      // Fetch jobs and milestones data from Firestore
       final jobsWithMilestones = await _fetchJobsWithMilestones();
       debugPrint("Found Courier Mission $jobsWithMilestones");
 
-      // Clear existing tasks before populating new ones
+      final taskViewModel = Provider.of<TaskViewModel>(context, listen: false);
       taskViewModel.clearTasks();
 
-      // Populate TaskViewModel with the fetched data
       for (var job in jobsWithMilestones) {
         debugPrint("Job: $job");
+
+        // ✅ Convert start & end datetime safely
+        String startDateTime = _safeDateToString(job['startTimeDate']);
+        String endDateTime = _safeDateToString(job['endTimeDate']);
+
         taskViewModel.addTask(Task(
           brokerId: job['brokerID'] ?? 'N/A',
           flightNumber: job['flightNumber'] ?? 'Unknown',
           departureFrom: job['departureLocation'] ?? 'Unknown',
           arriveAt: job['arrivalLocation'] ?? 'Unknown',
           status: job['status'] ?? 'Unknown',
-          rating: job['rating'] != null ? double.tryParse(
-              job['rating'].toString()) ?? 0.0 : 0.0,
-          startDateTime: job['startTimeDate'] ?? 'Unknown',
-          endDateTime: job['endTimeDate'] ?? 'Unknown',
+          rating: job['rating'] != null
+              ? double.tryParse(job['rating'].toString()) ?? 0.0
+              : 0.0,
+          startDateTime: startDateTime,
+          endDateTime: endDateTime,
           bid: job['bid'] ?? 'N/A',
           title: job['milestones'] != null && job['milestones'].isNotEmpty
               ? job['milestones'][0]['title'] ?? 'N/A'
@@ -118,27 +120,28 @@ class _BrokerMissionsState extends State<BrokerMissions> {
               : 'N/A',
           emptyLegRequestID: job['emptyLegRequestID'] ?? 'Unknown',
         ));
-        // Add milestones to milestone list
+
+        // ✅ Add milestones safely
         if (job['milestones'] != null && job['milestones'].isNotEmpty) {
           for (var milestone in job['milestones']) {
             taskViewModel.addMilestone(Milestone(
               milestoneNodeID: milestone['milestoneNodeID'] ?? 'Unknown',
               brokerID: milestone['brokerID'] ?? 'Unknown',
-              milestoneEndDateTime: milestone['milestoneEndDateTime'] ??
-                  'Unknown',
+              milestoneEndDateTime:
+              _safeDateToString(milestone['milestoneEndDateTime']),
               description: milestone['description'] ?? 'N/A',
               courierID: milestone['courierID'] ?? 'Unknown',
               title: milestone['title'] ?? 'N/A',
-              milestoneStartDateTime: milestone['milestoneStartDateTime'] ??
-                  'Unknown',
+              milestoneStartDateTime:
+              _safeDateToString(milestone['milestoneStartDateTime']),
               milestoneStatus: milestone['milestoneStatus'] ?? 'Unknown',
               emptyLegRequestID: milestone['emptyLegRequestID'] ?? 'Unknown',
             ));
           }
         }
       }
-      debugPrint("Total Milestones");
-      debugPrint(taskViewModel.milestoneList.length.toString());
+
+      debugPrint("Total Milestones: ${taskViewModel.milestoneList.length}");
     } catch (e) {
       debugPrint("Error in _loadTasks: $e");
       if (mounted) {
@@ -147,12 +150,30 @@ class _BrokerMissionsState extends State<BrokerMissions> {
         );
       }
     } finally {
-      // Set loading to false when data has been fetched
       if (mounted) {
         setState(() {
           isLoading = false;
         });
       }
+    }
+
+  }
+  String _safeDateToString(dynamic dateField) {
+    try {
+      if (dateField == null) return "Unknown";
+
+      if (dateField is Timestamp) {
+        return DateFormat('dd MMM yyyy, hh:mm a').format(dateField.toDate().toLocal());
+      } else if (dateField is DateTime) {
+        return DateFormat('dd MMM yyyy, hh:mm a').format(dateField.toLocal());
+      } else if (dateField is String) {
+        return dateField; // already a string
+      } else {
+        return "Unknown";
+      }
+    } catch (e) {
+      debugPrint("Date conversion error: $e");
+      return "Unknown";
     }
   }
 
