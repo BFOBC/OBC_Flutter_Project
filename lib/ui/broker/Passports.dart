@@ -56,7 +56,7 @@ class Passports extends StatelessWidget {
               fontSize: 16.0,
             ),
           ),
-          Text(
+/*          Text(
             'Passport Number: ${passport.passportNumber}',
             style: const TextStyle(
               fontSize: 16.0,
@@ -67,7 +67,7 @@ class Passports extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16.0,
             ),
-          ),
+          ),*/
           Text(
             'Expiry Date: ${passport.expiryDate}',
             style: const TextStyle(

@@ -26,7 +26,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     print('userId in initState: ${widget.userId}');
 
     // Example: Snackbar dikhana jab screen open ho
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+/*    WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("⚠️ Your chats will be deleted in 3 days."),
@@ -34,7 +34,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           duration: Duration(seconds: 3),
         ),
       );
-    });
+    });*/
   }
 
   Future<Map<String, String>> _getUserDetails(

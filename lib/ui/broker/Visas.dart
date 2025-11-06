@@ -70,12 +70,12 @@ class Visas extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
+/*          Text(
             'Visa Issue Date: ${visa.expiryDate}',
             style: const TextStyle(
               fontSize: 16.0,
             ),
-          ),
+          ),*/
         ],
       ),
     );

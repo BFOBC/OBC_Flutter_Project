@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-import '../../../data/NotificationService.dart';
+import '../../../data/notification/NotificationService.dart';
 import 'milestoneinputform.dart'; // make sure this is the correct path
 
 class SubmissionScreen extends StatefulWidget {

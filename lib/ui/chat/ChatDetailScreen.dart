@@ -1,6 +1,7 @@
 
 import 'dart:io';
-import 'package:broker_flutter_pp/data/NotificationService.dart';
+import 'package:broker_flutter_pp/data/notification/NotificationService.dart';
+import 'package:broker_flutter_pp/ui/broker/SearchCourier.dart';
 import 'package:broker_flutter_pp/ui/chat/AttachmentButton.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatBubble.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -236,7 +237,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         automaticallyImplyLeading: true,
         backgroundColor: Palette.googleBackground,
         iconTheme: const IconThemeData(
-          color: Colors.white, // Back button ka color white karne ke liye
+          color: Colors.white, // Back button white
         ),
         title: FutureBuilder<Map<String, String>>(
           future: _getUserDetails(widget.userID, context),
@@ -257,9 +258,31 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
             String userName = snapshot.data!['name'] ?? 'Unknown User';
 
-            return Text(
-              userName,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+            // 🔹 Get current user role
+            final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+            final isBroker = roleProvider.role == UserRole.broker;
+
+            // 🔹 Clickable only if broker is logged in
+            return GestureDetector(
+              onTap: isBroker
+                  ? () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        SearchCourier(courierKey: widget.userID),
+                  ),
+                );
+              }
+                  : null, // 🚫 No redirection if courier logged in
+              child: Text(
+                userName,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             );
           },
         ),

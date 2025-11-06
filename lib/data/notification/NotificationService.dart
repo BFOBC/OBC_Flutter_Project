@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import '../ui/common/utils/RoleProvider.dart';
+import '../../ui/common/utils/RoleProvider.dart';
 
 // Aur main.dart ka import karo
 import 'package:broker_flutter_pp/main.dart';

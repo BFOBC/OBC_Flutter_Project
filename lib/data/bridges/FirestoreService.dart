@@ -1036,31 +1036,28 @@ class FirestoreService {
       return null;
     }
   }
-  /// Update user's online status to false (offline)
+/// Update user's online status to false (offline)
   Future<void> setUserOffline() async {
     try {
-      final User? currentUser = FirebaseAuth.instance.currentUser;
+      final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         debugPrint("⚠️ No logged-in user found. Cannot set offline.");
         return;
       }
-      // Role check (String ya enum dono support)
+
+      // 🔹 Determine user collection based on role
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      String collectionName;
-      if (roleProvider.role == UserRole.broker){
-        collectionName='broker';
-      }else{
-        collectionName='courier';
-      }
+      final collectionName =
+      roleProvider.role == UserRole.broker ? 'broker' : 'courier';
       final docRef = _firestore.collection(collectionName).doc(currentUser.uid);
 
-      // ye map hamesha "isOnline" false karega aur agar "lastSeen" exist nahi karta to add kar dega
+      // 🔹 Prepare update data
       final updateData = {
         "isOnline": false,
         "lastSeen": FieldValue.serverTimestamp(),
       };
 
-      // Try update
+      // 🔹 Step 1: Update status first
       try {
         await docRef.update(updateData);
         debugPrint("✅ User offline + lastSeen updated in '$collectionName'");
@@ -1069,13 +1066,29 @@ class FirestoreService {
         await docRef.set(updateData, SetOptions(merge: true));
         debugPrint("✅ User offline + lastSeen field added in '$collectionName'");
       }
-      // Lastly, sign out
+
+      // 🔹 Step 2: Clear FCM token (delete or empty)
+      try {
+        await docRef.update({
+          "fcm_token": FieldValue.delete(),
+        });
+        debugPrint("✅ FCM token DELETED successfully.");
+      } catch (e) {
+        debugPrint("⚠️ FCM delete failed, setting empty instead: $e");
+        await docRef.set({
+          "fcm_token": "",
+        }, SetOptions(merge: true));
+        debugPrint("✅ FCM token set to empty string instead.");
+      }
+
+      // 🔹 Step 3: Finally sign out
       await FirebaseAuth.instance.signOut();
       debugPrint("🚪 User signed out successfully.");
     } catch (e) {
       debugPrint("❌ Error in setUserOffline: $e");
     }
   }
+
   /// Mark user as online
   Future<void> setUserOnline() async {
     try {

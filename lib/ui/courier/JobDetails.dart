@@ -1,5 +1,5 @@
 
-import 'package:broker_flutter_pp/data/NotificationService.dart';
+import 'package:broker_flutter_pp/data/notification/NotificationService.dart';
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/main.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';

@@ -1,60 +1,111 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 
-class NotificationDetailScreen extends StatelessWidget {
+class NotificationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> notification;
 
   const NotificationDetailScreen({super.key, required this.notification});
 
   @override
+  State<NotificationDetailScreen> createState() => _NotificationDetailScreenState();
+}
+
+class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
+  late String role;
+  late String cardTitle;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    role = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
+
+    // 🔹 If Broker logged in → show "Courier Detail" on card
+    // 🔹 If Courier logged in → show "Broker Detail" on card
+    cardTitle = role == "Broker" ? "Courier" : "Broker";
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final notification = widget.notification;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Notification Detail"),
         backgroundColor: Colors.blueAccent,
+        iconTheme: const IconThemeData(color: Colors.white), // 🔹 back arrow white
+        title: const Text(
+          "Notification Detail",
+          style: TextStyle(
+            color: Colors.white, // 🔹 title white
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView( // Added scroll view just in case
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: IntrinsicHeight( // Makes the Card wrap only as much as needed
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notification['title'] ?? 'Notification',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  height: 260, // 🔹 fixed height for consistent card size
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 🔹 Dynamic card title here
+                      Text(
+                        cardTitle,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      notification['message'] ?? 'No message content available',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      "Sent By: ${notification['sentBy'] ?? 'N/A'}",
-                      style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Date: ${_formatDate(notification['currentDateTime'])}",
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: Text(
+                          notification['message'] ?? 'No message content available',
+                          style: const TextStyle(fontSize: 16, color: Colors.black87),
+                          overflow: TextOverflow.fade,
+                          softWrap: true,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Sent By: ${notification['sentBy'] ?? 'N/A'}",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Date: ${_formatDate(notification['currentDateTime'])}",
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
+
   String _formatDate(String dateStr) {
     try {
       final dateTime = DateTime.parse(dateStr).toLocal();
@@ -81,5 +132,4 @@ class NotificationDetailScreen extends StatelessWidget {
   String _formatMinute(int minute) {
     return minute.toString().padLeft(2, '0');
   }
-
 }

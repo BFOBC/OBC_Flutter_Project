@@ -1,6 +1,5 @@
 
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
-import 'package:broker_flutter_pp/res/strings.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
@@ -34,27 +33,61 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     try {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      String selectedRole = roleProvider.role == UserRole.broker ? "Broker" : "Courier";
+      String selectedRole =
+      roleProvider.role == UserRole.broker ? "Broker" : "Courier";
+      String oppositeRole = selectedRole == 'Broker' ? 'Courier' : 'Broker';
 
-      print('🔵 Selected Role: $selectedRole');
-
-      // Fetch all notifications based on userID (courierID/brokerID)
       List<Map<String, dynamic>> fetchedNotifications =
       await FirestoreService(context).readNotifications(selectedRole);
 
-      print('📥 Total fetched: ${fetchedNotifications.length}');
+      // 🔹 Filter only notifications sent by the opposite role
+      List<Map<String, dynamic>> filteredNotifications = fetchedNotifications
+          .where((n) => n['sentBy'] == oppositeRole)
+          .toList();
 
-      // Determine the opposite role (whose notifications we want to see)
-      String oppositeRole = selectedRole == 'Broker' ? 'Courier' : 'Broker';
-      print('🟣 Filtering for sentBy == $oppositeRole');
+      FirestoreService service = FirestoreService(context);
 
-      // Filter notifications sent by the opposite role
-      List<Map<String, dynamic>> filteredNotifications = fetchedNotifications.where((notification) {
-        print('🔍 Checking notification sentBy: ${notification['sentBy']}');
-        return notification['sentBy'] == oppositeRole;
-      }).toList();
+      // ✅ Step 1: Collect unique IDs
+      Set<String> brokerIDs = {};
+      Set<String> courierIDs = {};
 
-      print('✅ Filtered notifications count: ${filteredNotifications.length}');
+      for (var n in filteredNotifications) {
+        if (n['sentBy'] == 'Broker' && n['brokerID'] != null) {
+          brokerIDs.add(n['brokerID']);
+        } else if (n['sentBy'] == 'Courier' && n['courierID'] != null) {
+          courierIDs.add(n['courierID']);
+        }
+      }
+
+      // ✅ Step 2: Fetch names in parallel
+      Map<String, String> brokerNames = {};
+      Map<String, String> courierNames = {};
+
+      await Future.wait([
+        ...brokerIDs.map((id) async {
+          brokerNames[id] = await service.getBrokerName(id);
+        }),
+        ...courierIDs.map((id) async {
+          courierNames[id] = await service.getCourierName(id);
+        }),
+      ]);
+
+      // ✅ Step 3: Replace names + job ID in notifications
+      for (var n in filteredNotifications) {
+        String name = '';
+        if (n['sentBy'] == 'Broker') {
+          name = brokerNames[n['brokerID']] ?? 'Unknown Broker';
+        } else if (n['sentBy'] == 'Courier') {
+          name = courierNames[n['courierID']] ?? 'Unknown Courier';
+        }
+
+        // 🆕 Get readable job ID
+        final jobID = n['emptyLegRequestID'] ?? '';
+        final readableJobID = getReadableJobID(jobID);
+
+        // 🆕 Add to message
+        n['message'] = "Your job $readableJobID is started by $name";
+      }
 
       setState(() {
         notifications = filteredNotifications;
@@ -67,6 +100,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     }
   }
+
+  /// 🧩 Helper function to make job IDs readable
+  String getReadableJobID(String firestoreID) {
+    if (firestoreID.isEmpty) return "number-UNKNOWN";
+    final shortPart = firestoreID.length > 6
+        ? firestoreID.substring(firestoreID.length - 6).toUpperCase()
+        : firestoreID.toUpperCase();
+    return "number-$shortPart";
+  }
+
 
 
   // Show confirmation dialog when trying to delete a notification
