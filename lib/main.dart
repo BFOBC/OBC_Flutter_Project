@@ -29,6 +29,7 @@ void main() async {
 
   // 🔹 Register background handler BEFORE runApp
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  setupFCM();
 
   initializeWorkManager();
   notificationListner();
@@ -149,6 +150,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     body: message.data['body'] ?? "No Body",
     payload: jsonEncode(message.data), // important for tap navigation
   );
+}
+
+Future<void> setupFCM() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    // Request permission (iOS)
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Get APNs token (iOS only)
+    String? apnsToken = await messaging.getAPNSToken();
+    print('APNS TOKEN: $apnsToken');
+
+    // Get FCM token
+    String? fcmToken = await messaging.getToken();
+    print('FCM TOKEN: $fcmToken');
 }
 
 class MyApp extends StatelessWidget {

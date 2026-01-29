@@ -1,13 +1,33 @@
 import UIKit
 import Flutter
+import Firebase
+import GoogleMaps
+import FirebaseMessaging
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate {
-  override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
+    override func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        
+        // Initialize Firebase
+        FirebaseApp.configure()
+        GMSServices.provideAPIKey("AIzaSyCLcyGgsW8TKi_oX0leXaFfBUVTlQQdn5Q")
+        UNUserNotificationCenter.current().delegate = self
+        
+        
+        GeneratedPluginRegistrant.register(with: self)
+        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+    
+    override func userNotificationCenter(
+      _ center: UNUserNotificationCenter,
+      willPresent notification: UNNotification,
+      withCompletionHandler completionHandler:
+      @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+      completionHandler([.banner, .sound, .badge])
+    }
+    
 }
