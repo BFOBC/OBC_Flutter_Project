@@ -2,6 +2,7 @@
 import 'package:broker_flutter_pp/data/notification/NotificationService.dart';
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
@@ -76,8 +77,8 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
           arriveAt: job['arrivalLocation'] ?? 'Unknown',
           status: job['status'] ?? 'Unknown',
           rating: job['rating'] != null ? double.tryParse(job['rating'].toString()) ?? 0.0 : 0.0,
-          startDateTime: job['startTimeDate'] ?? 'Unknown',
-          endDateTime: job['endTimeDate'] ?? 'Unknown',
+            startDateTime: _timestampToString(job['startTimeDate']),
+            endDateTime: _timestampToString(job['endTimeDate']),
           bid: job['bid'] ?? 'N/A',
           title: job['milestones'] != null && job['milestones'].isNotEmpty
               ? job['milestones'][0]['title'] ?? 'N/A'
@@ -127,7 +128,15 @@ class _CourierMissionsState extends State<CourierMissions> with WidgetsBindingOb
       }
     }
   }
-
+  String _timestampToString(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown';
+    if (timestamp is Timestamp) {
+      // Convert to DateTime and format
+      final dt = timestamp.toDate();
+      return "${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute}";
+    }
+    return timestamp.toString();
+  }
   Future<List<Map<String, dynamic>>> _fetchJobsWithMilestones() async {
     try {
       final service = FirestoreService(context);
