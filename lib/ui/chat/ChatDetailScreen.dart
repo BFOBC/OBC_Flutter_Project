@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:broker_flutter_pp/data/notification/NotificationService.dart';
 import 'package:broker_flutter_pp/ui/broker/SearchCourier.dart';
@@ -37,6 +36,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _getChatId();
     markMessagesAsReadWithoutIndex();
   }
+
   Future<void> markMessagesAsReadWithoutIndex() async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -48,14 +48,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       // Filter locally for messages sent by other user
       final otherUserMessages = snapshot.docs.where(
-            (doc) => doc['senderId'] != widget.userID,
+        (doc) => doc['senderId'] != widget.userID,
       );
 
       for (var doc in otherUserMessages) {
         await doc.reference.update({'isRead': true});
       }
 
-      print("✅ All unread messages marked as read (without index) for chatId: $chatId");
+      print(
+          "✅ All unread messages marked as read (without index) for chatId: $chatId");
     } catch (e) {
       print("❌ Error marking messages as read: $e");
     }
@@ -82,8 +83,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Future<Map<String, String>> _getUserDetails(String userId,
-      BuildContext context) async {
+  Future<Map<String, String>> _getUserDetails(
+      String userId, BuildContext context) async {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
     print("_getUserDetails $userId");
 
@@ -162,12 +163,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         print("DEBUG: Chat metadata updated");
 
         final userInfo = await NotificationService.getUserFcmInfo(context);
-        final token = await NotificationService.getUserFcmTokenById(widget.userID);
+        final token =
+            await NotificationService.getUserFcmTokenById(widget.userID);
         print("Opposite role FCM Token: $token");
         print("FCM Token: $token");
         print("DEBUG: User FCM Info: $userInfo");
-
-
 
         if (userInfo != null) {
           final params = {
@@ -205,7 +205,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           print("✅ ChatNotification sent!");
         }
-
       } catch (error) {
         print('ERROR sending message: $error');
 
@@ -228,7 +227,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -259,21 +257,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             String userName = snapshot.data!['name'] ?? 'Unknown User';
 
             // 🔹 Get current user role
-            final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+            final roleProvider =
+                Provider.of<RoleProvider>(context, listen: false);
             final isBroker = roleProvider.role == UserRole.broker;
 
             // 🔹 Clickable only if broker is logged in
             return GestureDetector(
               onTap: isBroker
                   ? () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        SearchCourier(courierKey: widget.userID),
-                  ),
-                );
-              }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              SearchCourier(courierKey: widget.userID),
+                        ),
+                      );
+                    }
                   : null, // 🚫 No redirection if courier logged in
               child: Text(
                 userName,
@@ -288,146 +287,152 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
       ),
       body: chatId
-          .isEmpty // Add check to show loading state until chatId is available
+              .isEmpty // Add check to show loading state until chatId is available
           ? const Center(
-          child: CircularProgressIndicator()) // Show a loading spinner
+              child: CircularProgressIndicator()) // Show a loading spinner
           : Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('chats')
-                  .doc(chatId)
-                  .collection('messages')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final messages = snapshot.data!.docs;
+              children: [
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('chats')
+                        .doc(chatId)
+                        .collection('messages')
+                        .orderBy('timestamp', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final messages = snapshot.data!.docs;
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  reverse: true,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    // 🧱 Always work with Map safely
-                    final messageDoc = messages[index];
-                    final data = (messageDoc.data() ?? {}) as Map<String, dynamic>;
-                    final messageId = messageDoc.id;
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(10),
+                        reverse: true,
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          // 🧱 Always work with Map safely
+                          final messageDoc = messages[index];
+                          final data =
+                              (messageDoc.data() ?? {}) as Map<String, dynamic>;
+                          final messageId = messageDoc.id;
 
-                    // 🧩 Safely extract values with fallback
-                    final text = data['messageText']?.toString() ?? '';
-                    final senderId = data['senderId']?.toString() ?? '';
-                    final isSender = senderId == (FirebaseAuth.instance.currentUser?.uid ?? '');
-                    final isDownloaded = data['isDownloaded'] is bool ? data['isDownloaded'] : false;
+                          // 🧩 Safely extract values with fallback
+                          final text = data['messageText']?.toString() ?? '';
+                          final senderId = data['senderId']?.toString() ?? '';
+                          final isSender = senderId ==
+                              (FirebaseAuth.instance.currentUser?.uid ?? '');
+                          final isDownloaded = data['isDownloaded'] is bool
+                              ? data['isDownloaded']
+                              : false;
 
-                    final timestamp = (data['timestamp'] is Timestamp)
-                        ? (data['timestamp'] as Timestamp).toDate()
-                        : DateTime.now();
+                          final timestamp = (data['timestamp'] is Timestamp)
+                              ? (data['timestamp'] as Timestamp).toDate()
+                              : DateTime.now();
 
-                    // 🕒 Compare minute-level timestamps
-                    bool showTime = true;
-                    if (lastShownTime != null) {
-                      final diff = lastShownTime!.difference(timestamp).abs();
-                      if (diff.inMinutes < 1) showTime = false;
-                    }
-                    lastShownTime = timestamp;
+                          // 🕒 Compare minute-level timestamps
+                          bool showTime = true;
+                          if (lastShownTime != null) {
+                            final diff =
+                                lastShownTime!.difference(timestamp).abs();
+                            if (diff.inMinutes < 1) showTime = false;
+                          }
+                          lastShownTime = timestamp;
 
-                    // 📁 Safe file path check
-                    String fileUrl = '';
-                    if (isSender) {
-                      fileUrl = data['localFilePathSender']?.toString() ?? '';
-                    } else {
-                      fileUrl = data['fileUrl']?.toString() ?? '';
-                    }
+                          // 📁 Safe file path check
+                          String fileUrl = '';
+                          if (isSender) {
+                            fileUrl =
+                                data['localFilePathSender']?.toString() ?? '';
+                          } else {
+                            fileUrl = data['fileUrl']?.toString() ?? '';
+                          }
 
-                    // fallback agar dono empty hon
-                    if (fileUrl.isEmpty) {
-                      fileUrl = data['fileUrl']?.toString() ?? '';
-                    }
+                          // fallback agar dono empty hon
+                          if (fileUrl.isEmpty) {
+                            fileUrl = data['fileUrl']?.toString() ?? '';
+                          }
 
-                    print('fileUrl: $fileUrl');
-                    print('isSender: $isSender');
-                    print('isDownloaded: $isDownloaded');
+                          print('fileUrl: $fileUrl');
+                          print('isSender: $isSender');
+                          print('isDownloaded: $isDownloaded');
 
-                    // 🧠 Auto-download safely (avoid crash)
-                    if (!isSender && !isDownloaded && (data['fileUrl']?.toString().isNotEmpty ?? false)) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _downloadFileAndUpdate(messageDoc, context);
-                      });
-                    }
+                          // 🧠 Auto-download safely (avoid crash)
+                          if (!isSender &&
+                              !isDownloaded &&
+                              (data['fileUrl']?.toString().isNotEmpty ??
+                                  false)) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _downloadFileAndUpdate(messageDoc, context);
+                            });
+                          }
 
-                    // 💬 Safe ChatBubble creation
-                    return ChatBubble(
-                      senderId: senderId,
-                      chatId: chatId,
-                      messageId: messageId,
-                      isSender: isSender,
-                      text: text,
-                      fileUrl: fileUrl,
-                      timestamp: data['timestamp'] ?? Timestamp.now(),
-                      showTimestamp: showTime,
-                    );
-                  },
-                );
-
-
-              },
-            ),
-          ),
-          SafeArea(
-            bottom: true,
-            child: Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Enter message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: const BorderSide(
-                            color: Colors.grey,
+                          // 💬 Safe ChatBubble creation
+                          return ChatBubble(
+                            senderId: senderId,
+                            chatId: chatId,
+                            messageId: messageId,
+                            isSender: isSender,
+                            text: text,
+                            fileUrl: fileUrl,
+                            timestamp: data['timestamp'] ?? Timestamp.now(),
+                            showTimestamp: showTime,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                SafeArea(
+                  bottom: true,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _textController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter message...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: const BorderSide(
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
+                              prefixIcon: AttachmentButton(
+                                  chatId: chatId), // 👈 inside input
+                            ),
                           ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        prefixIcon: AttachmentButton(
-                            chatId: chatId), // 👈 inside input
-                      ),
+                        const SizedBox(width: 8),
+                        FloatingActionButton(
+                          onPressed: _sendMessage,
+                          backgroundColor: Palette.primaryColor,
+                          mini: true,
+                          child: const Icon(
+                            Icons.send,
+                            color: Colors.white, // 👈 white color set
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  FloatingActionButton(
-                    onPressed: _sendMessage,
-                    backgroundColor: Palette.primaryColor,
-                    mini: true,
-                    child: const Icon(
-                      Icons.send,
-                      color: Colors.white, // 👈 white color set
-                    ),
-                  ),
-                ],
-              ),
+                )
+              ],
             ),
-          )
-        ],
-      ),
     );
   }
 
-  void _downloadFileAndUpdate(QueryDocumentSnapshot message, BuildContext context) async {
+  void _downloadFileAndUpdate(
+      QueryDocumentSnapshot message, BuildContext context) async {
     try {
       final ctx = context;
       final fileUrl = message['fileUrl'];
-      final fileName = fileUrl
-          .split('/')
-          .last;
+      final fileName = fileUrl.split('/').last;
 
       final dir = await getApplicationDocumentsDirectory();
       final filePath = '${dir.path}/$fileName';
@@ -474,7 +479,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  Future<void> deleteFileFromServer(BuildContext context, String fileUrl) async {
+  Future<void> deleteFileFromServer(
+      BuildContext context, String fileUrl) async {
     if (fileUrl.isEmpty) {
       print("🚨 fileUrl is empty");
       return;
@@ -482,7 +488,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     final cleanPath = Uri.parse(fileUrl).path; // /uploads/abc.jpg
 
-    final uri = Uri.parse('https://mopogotechnologies.com/api/delete_file_by_url.php');
+    final uri =
+        Uri.parse('https://mopogotechnologies.com/api/delete_file_by_url.php');
 
     try {
       var request = http.MultipartRequest('POST', uri);
@@ -512,6 +519,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
     }
   }
+
   @override
   void dispose() {
     print("ChatDetailScreen:dispose");
@@ -519,5 +527,4 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     NotificationService.currentRoute = null;
     super.dispose();
   }
-
 }

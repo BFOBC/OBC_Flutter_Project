@@ -98,6 +98,7 @@ class _BrokerMissionsState extends State<BrokerMissions> {
 
         taskViewModel.addTask(Task(
           brokerId: job['brokerID'] ?? 'N/A',
+          courierId: job['courierID'] ?? 'N/A',
           flightNumber: job['flightNumber'] ?? 'Unknown',
           departureFrom: job['departureLocation'] ?? 'Unknown',
           arriveAt: job['arrivalLocation'] ?? 'Unknown',

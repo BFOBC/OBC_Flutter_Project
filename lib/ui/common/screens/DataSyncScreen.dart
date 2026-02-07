@@ -77,8 +77,8 @@ class _DataSyncScreenState extends State<DataSyncScreen> {
         MaterialPageRoute(builder: (_) => const SplashScreen()),
       );*/
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission is required.')));
+      showLocationDialog();
+      //ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permission is required.')));
       // Optionally retry or stay on screen
     }
   }
@@ -128,34 +128,183 @@ class _DataSyncScreenState extends State<DataSyncScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0), // responsive padding
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // content centered vertically
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Lottie.asset(
-                'assets/syncing.json',
-                width: 200,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 30),
-              Text(
-                statusMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF4A90E2),
+              Color(0xFF6FB1FC),
             ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.96),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 25,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  /// Premium Circular Loader (Native)
+                  Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue.withOpacity(0.06),
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 70,
+                        height: 70,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 6,
+                          valueColor: AlwaysStoppedAnimation(Color(0xFF4A90E2)),
+                        ),
+                      ),
+                    ),
+
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  /// Title
+                  const Text(
+                    "Hang tight!",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  /// Dynamic Status Message
+                  Text(
+                    statusMessage,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.black54,
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  /// Linear Progress (Secondary indicator)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: const SizedBox(
+                      width: 180,
+                      child: LinearProgressIndicator(
+                        minHeight: 6,
+                        valueColor: AlwaysStoppedAnimation(Color(0xFF4A90E2)),
+                        backgroundColor: Color(0xFFE3F2FD),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// Info Text
+                  const Text(
+                    "Slow network connections may take a bit longer.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
+  void showLocationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.location_off,
+                  size: 50,
+                  color: Colors.redAccent,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Location Permission Required",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "This app requires location permission to work properly. Please enable location to continue.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          handleLocationPermission(); // Retry
+                        },
+                        child: const Text("Retry"),
+                      ),
+                    ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          openAppSettings();
+                        },
+                        child: const Text("Open Settings"),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 
 }

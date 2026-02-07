@@ -179,7 +179,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKeyMain, // 👈 Add this line
       navigatorObservers: [loggingObserver],
-      title: 'OBC App',
+      title: 'OBC SMART',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
