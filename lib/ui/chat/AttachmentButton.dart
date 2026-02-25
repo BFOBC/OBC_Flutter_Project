@@ -92,7 +92,11 @@ class AttachmentButton extends StatelessWidget {
       final picker = ImagePicker();
       final media = isVideoCapture
           ? await picker.pickVideo(source: ImageSource.camera)
-          : await picker.pickImage(source: ImageSource.camera);
+          : await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 60,
+        maxWidth: 1280,
+      );
       if (media != null) {
         file = File(media.path);
       }
