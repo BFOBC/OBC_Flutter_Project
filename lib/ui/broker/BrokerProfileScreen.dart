@@ -80,8 +80,14 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
       if (isoCode != null) {
         setState(() {
+          countryCode=apiDialCode;
           initialCountryCode = isoCode;
           // You can also store maxLength and use it in validator if needed
+        });
+      }else{
+        setState(() {
+          countryCode=apiDialCode;
+          initialCountryCode = apiDialCode;
         });
       }
 
@@ -190,7 +196,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         websiteController: _websiteController,
         companyNameController: _companyNameController,
         countryController: _countryController,
-        phoneNumberController: _selectedPhoneNumber,
+        phoneNumberController: _phoneController.text.toString(),
         paymentTermsController: _paymentTermsController,
         licenseControllers: _licenseControllers,
       );
@@ -230,10 +236,18 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     try {
       final url =
           Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
-      final request = http.MultipartRequest('POST', url);
+/*      final request = http.MultipartRequest('POST', url);
       request.fields['user_id'] = userId;
       request.files
-          .add(await http.MultipartFile.fromPath('image', _image!.path));
+          .add(await http.MultipartFile.fromPath('image', _image!.path));*/
+
+      final request = http.MultipartRequest('POST', url)
+        ..headers['User-Agent'] = 'PostmanRuntime/7.36.0'
+        ..fields['user_id'] = userId
+        ..files.add(
+          await http.MultipartFile.fromPath('image', _image!.path),
+        );
+
 
       final response = await request.send();
       final resBody = await response.stream.bytesToString();
@@ -587,6 +601,11 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           onChanged(phone.number); // Callback to get full number
           countryCode=phone.countryCode;
           print('countryCode$countryCode');
+        },
+        // Country change listener
+        onCountryChanged: (country) {
+          countryCode = country.code;
+          print("Country changed: ${country.name} ${country.dialCode}");
         },
       ),
     );

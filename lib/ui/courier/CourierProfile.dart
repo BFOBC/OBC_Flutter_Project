@@ -119,9 +119,16 @@ class _CourierProfileState extends State<CourierProfile> {
 
     try {
       final url = Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
-      final request = http.MultipartRequest('POST', url);
+/*      final request = http.MultipartRequest('POST', url);
       request.fields['user_id'] = userId;
-      request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+      request.files.add(await http.MultipartFile.fromPath('image', _image!.path));*/
+
+      final request = http.MultipartRequest('POST', url)
+        ..headers['User-Agent'] = 'PostmanRuntime/7.36.0'
+        ..fields['user_id'] = userId
+        ..files.add(
+          await http.MultipartFile.fromPath('image', _image!.path),
+        );
 
       final response = await request.send();
       final resBody = await response.stream.bytesToString();
@@ -187,7 +194,13 @@ class _CourierProfileState extends State<CourierProfile> {
 
           if (isoCode != null) {
             setState(() {
+              countryCode=apiDialCode;
               initialCountryCode = isoCode;
+            });
+          }else{
+            setState(() {
+              countryCode=apiDialCode;
+              initialCountryCode = apiDialCode;
             });
           }
         }
@@ -364,6 +377,8 @@ class _CourierProfileState extends State<CourierProfile> {
       ),
       child: IntlPhoneField(
         controller: controller,
+        initialCountryCode: initialCountryCode,
+
         decoration: const InputDecoration(
           labelText: 'Phone Number',
           labelStyle: TextStyle(
@@ -372,11 +387,16 @@ class _CourierProfileState extends State<CourierProfile> {
           ),
           border: InputBorder.none,
         ),
-        initialCountryCode: initialCountryCode, // Default country
+
+        // Phone number change
         onChanged: (phone) {
-          onChanged(phone.completeNumber); // Callback to get full number
-          countryCode=phone.countryCode;
-          print('countryCoddddde$countryCode');
+          onChanged(phone.completeNumber);
+        },
+
+        // Country change listener
+        onCountryChanged: (country) {
+          countryCode = country.code;
+          print("Country changed: ${country.name} ${country.dialCode}");
         },
       ),
     );

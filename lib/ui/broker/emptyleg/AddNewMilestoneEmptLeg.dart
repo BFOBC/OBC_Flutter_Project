@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../data/notification/NotificationService.dart';
 import '../../common/models/Task.dart';
 
 class AddNewMilestoneEmptyLeg extends StatefulWidget {
@@ -565,6 +566,28 @@ void selectDateTime(BuildContext context, TextEditingController controller) asyn
           .update({'status': 'pending'});
 
       showCustomDialog2(context, "Request Successfully");
+
+      //Notification
+      // Get courier and broker data for notification
+      final User currentUser = FirebaseAuth.instance.currentUser!;
+      final courierData =
+      await NotificationService.getCourierNameAndTokenById(widget.flightData!.courierID.toString());
+      final brokerData =
+      await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
+
+      print("User FCM Info: $courierData");
+
+      // Save the request and send notification concurrently
+        // Send notification
+        if (courierData != null)
+          NotificationService.sendNotification(
+            title: "New Request",
+            toToken: courierData['token']!,
+            type: "broker_request",
+            screen: "DrawerScreen",
+            extraData: {"senderName": brokerData?['name']},
+          );
+
     } catch (e) {
       CustomDialog.showCustomDialog2(context, "Error: ${e.toString()}");
     }

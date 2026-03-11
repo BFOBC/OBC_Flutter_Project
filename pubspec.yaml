@@ -71,6 +71,7 @@ dependencies:
   chewie: ^1.7.4 # not using
   device_info_plus: ^10.0.1
   android_intent_plus: ^4.0.3
+  dio: ^5.3.2
 
 
 
