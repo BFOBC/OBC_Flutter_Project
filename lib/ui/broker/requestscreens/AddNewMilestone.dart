@@ -210,7 +210,7 @@ class AddNewMilestoneScreenState extends State<AddNewMilestone> {
         description: _descriptionController.text,
         milestoneStartDateTime: _startTimeAndDateController.text,
         milestoneEndDateTime: _endTimeAndDateController.text,
-        courierID: widget.courierKey,
+        courierID: widget.data?.courierId.toString(),
         milestoneNodeID: null,
         brokerID: widget.brokerKey,
       );

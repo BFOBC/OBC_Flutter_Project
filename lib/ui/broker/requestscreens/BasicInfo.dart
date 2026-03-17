@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+import '../../common/models/CountryDialCode.dart';
 import '../../courier/models/CourierProfileData.dart';
 
 class BasicInfo extends StatelessWidget {
@@ -52,9 +53,16 @@ class BasicInfo extends StatelessWidget {
         (number == null || number.trim().isEmpty)) {
       return 'N/A';
     }
-    return '${code ?? ''}${number ?? ''}';
+
+    final isoCode = getCountryCode(code);
+
+    return '${isoCode ?? ''}${number ?? ''}';
   }
 
+  String? getCountryCode(String? apiDialCode) {
+    if (apiDialCode == null || apiDialCode.trim().isEmpty) return null;
+    return CountryDialCodeData.getDialCode(apiDialCode);
+  }
   String _boolToYesNo(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'No';

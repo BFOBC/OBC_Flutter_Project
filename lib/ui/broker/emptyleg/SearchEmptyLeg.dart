@@ -139,6 +139,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
 
             final capacity = data['capacity']?.toString() ?? "N/A";
             final courierID2 = data['courierID']?.toString() ?? "N/A";
+            courierID = data['courierID']?.toString() ?? "N/A";
 
             flightList.add(FlightData(
               fromDateTime: fromDateTime,

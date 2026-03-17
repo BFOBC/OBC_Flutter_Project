@@ -72,7 +72,16 @@ class CountryDialCodeData {
         .isoCode
         : null;
   }
+  static String? getDialCode(String isoCode) {
+    if (isoCode.isEmpty) return null;
 
+    final country = countryList.firstWhere(
+          (c) => c.isoCode.toUpperCase() == isoCode.toUpperCase(),
+      orElse: () => const CountryDialCode(dialCode: '', isoCode: '', maxLength: 0),
+    );
+
+    return country.dialCode.isNotEmpty ? country.dialCode : null;
+  }
   static int? getMaxLength(String dialCode) {
     return countryList
         .firstWhere(
