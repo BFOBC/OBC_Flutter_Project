@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
@@ -55,72 +56,60 @@ class _FAQSScreenState extends State<FAQSScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60.0),
-        child: AppBar(
-          automaticallyImplyLeading: true,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.green, Colors.blueAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          title: const Text(
-            'FAQs',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          centerTitle: true,
-        ),
+      appBar: AppBar(
+        backgroundColor: Palette.primaryColor,
+        elevation: 0,
+        title: const Text('FAQs', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
+      backgroundColor: Palette.backgroundLight,
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(12.0),
         child: isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Palette.primaryColor))
             : faqs.isEmpty
-            ? const Center(
-          child: Text(
-            'No FAQs available',
-            style:
-            TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        )
-            : ListView.builder(
-          itemCount: faqs.length,
-          itemBuilder: (context, index) {
-            final faq = faqs[index];
-            return Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: ExpansionTile(
-                leading: const Icon(Icons.help_outline,
-                    color: Colors.blueAccent),
-                title: Text(
-                  faq['question'] ?? 'No Question',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      faq['answer'] ?? '',
-                      style: const TextStyle(fontSize: 15),
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(color: Palette.primaryColor.withOpacity(0.08), shape: BoxShape.circle),
+                      child: const Icon(Icons.help_outline_rounded, size: 40, color: Palette.primaryColor),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    const Text('No FAQs available', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Palette.textPrimary)),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                itemCount: faqs.length,
+                itemBuilder: (context, index) {
+                  final faq = faqs[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: Palette.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [BoxShadow(color: Palette.primaryColor.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+                    ),
+                    child: ExpansionTile(
+                      leading: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(color: Palette.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.help_outline_rounded, color: Palette.primaryColor, size: 20),
+                      ),
+                      title: Text(faq['question'] ?? 'No Question', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Palette.textPrimary)),
+                      iconColor: Palette.primaryColor,
+                      collapsedIconColor: Palette.textSecondary,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      children: [
+                        Text(faq['answer'] ?? '', style: const TextStyle(fontSize: 13, color: Palette.textSecondary, height: 1.5)),
+                      ],
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
     );
   }

@@ -1,12 +1,12 @@
 import 'dart:io';
 
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart'; // Import the BrokerProfileScreen
-import 'package:path/path.dart';
+import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart';
 import 'package:provider/provider.dart';
 import '../../courier/CourierProfile.dart';
 import '../utils/AuthUtils.dart';
@@ -18,160 +18,160 @@ class CustomDrawerHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final brokerProfile = Provider.of<RoleProvider>(context).brokerProfile;
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final isBroker = roleProvider.role == UserRole.broker;
 
-    return DrawerHeader(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green, Colors.blueAccent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 30),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: () async {
-                              if (await _handleOfflineOrNoInternet(context)) {
-                                if (roleProvider.role == UserRole.broker) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => BrokerProfileScreen(
-                                        brokerProfile: brokerProfile,
-                                      ),
-                                    ),
-                                  );
-                                } else if (roleProvider.role ==
-                                    UserRole.courier) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CourierProfile(),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            child: FutureBuilder<String?>(
-                              future: _getProfileImageUrl(roleProvider.role),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const SizedBox(
-                                    height: 60,
-                                    width: 60,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  );
-                                }
-
-                                final imageUrl = snapshot.data;
-                                return CircleAvatar(
-                                  backgroundColor: Colors.white,
-                                  radius: 35,
-                                  backgroundImage: (imageUrl != null &&
-                                          imageUrl.isNotEmpty)
-                                      ? NetworkImage(
-                                          "$imageUrl?${DateTime.now().millisecondsSinceEpoch}")
-                                      : const AssetImage(
-                                              'assets/place_holder_man.png')
-                                          as ImageProvider,
-                                );
-                              },
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(gradient: Palette.heroGradient),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Avatar + online switch row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile avatar
+                  GestureDetector(
+                    onTap: () async {
+                      if (await _handleOfflineOrNoInternet(context)) {
+                        if (isBroker) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BrokerProfileScreen(brokerProfile: brokerProfile),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => CourierProfile()),
+                          );
+                        }
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        FutureBuilder<String?>(
+                          future: _getProfileImageUrl(roleProvider.role),
+                          builder: (context, snapshot) {
+                            final imageUrl = snapshot.data;
+                            return Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.6), width: 2.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 34,
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                                    ? NetworkImage("$imageUrl?${DateTime.now().millisecondsSinceEpoch}")
+                                    : const AssetImage('assets/place_holder_man.png') as ImageProvider,
+                              ),
+                            );
+                          },
+                        ),
+                        Positioned(
+                          right: 2,
+                          bottom: 2,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: Palette.success,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          FutureBuilder<String>(
-                            future: getUserName(roleProvider.role),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Text(
-                                  'Loading...',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                );
-                              } else if (snapshot.hasError) {
-                                return const Text(
-                                  'Error loading name',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                );
-                              } else {
-                                return Text(
-                                  snapshot.data ?? 'N/A',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                );
-                              }
-                            },
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    FutureBuilder<String?>(
-                      future: AuthUtils.getCurrentUserId(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const CircularProgressIndicator();
-                        }
+                  ),
 
-                        if (snapshot.hasError || !snapshot.hasData) {
-                          return Text(
-                              'Error: ${snapshot.error ?? "No user ID found"}');
-                        }
+                  const Spacer(),
 
-                        String? userId = snapshot.data;
-                        if (userId == null) {
-                          return const Text("No user logged in");
-                        }
+                  // Online/Offline switch
+                  FutureBuilder<String?>(
+                    future: AuthUtils.getCurrentUserId(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const SizedBox.shrink();
+                      final userId = snapshot.data!;
+                      return SwitchWithOnlineStatus(userId: userId);
+                    },
+                  ),
+                ],
+              ),
 
-                        return Align(
-                          alignment: Alignment.bottomRight,
-                          child: SwitchWithOnlineStatus(userId: userId),
-                        );
-                      },
+              const SizedBox(height: 14),
+
+              // Name
+              FutureBuilder<String>(
+                future: getUserName(roleProvider.role),
+                builder: (context, snapshot) {
+                  final name = snapshot.data ?? '...';
+                  return Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 4),
+
+              // Role badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isBroker ? Icons.business_center_rounded : Icons.local_shipping_rounded,
+                      color: Colors.white,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isBroker ? 'Broker' : 'Courier',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Future<bool> _handleOfflineOrNoInternet(BuildContext context) async {
-    final onlineStatus =
-        Provider.of<OnlineStatusProvider>(context, listen: false);
+    final onlineStatus = Provider.of<OnlineStatusProvider>(context, listen: false);
 
     String? message;
     IconData? icon;
@@ -179,12 +179,12 @@ class CustomDrawerHeader extends StatelessWidget {
 
     if (!await isInternetAvailable()) {
       message = 'No Internet Connection, Try again';
-      icon = Icons.wifi_off;
-      backgroundColor = Colors.redAccent;
+      icon = Icons.wifi_off_rounded;
+      backgroundColor = Palette.errorColor;
     } else if (!onlineStatus.isOnline) {
       message = 'You are currently offline';
-      icon = Icons.cancel;
-      backgroundColor = Colors.orange;
+      icon = Icons.cancel_rounded;
+      backgroundColor = Palette.warning;
     }
 
     if (message != null) {
@@ -192,26 +192,22 @@ class CustomDrawerHeader extends StatelessWidget {
         SnackBar(
           content: Row(
             children: [
-              Icon(icon, color: Colors.white),
-              const SizedBox(width: 8),
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
               Text(message),
             ],
           ),
           backgroundColor: backgroundColor,
           duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
         ),
       );
-
       Navigator.pop(context);
       return false;
     }
-
-    return true; // ✅ Continue only if everything is okay
+    return true;
   }
 
   Future<bool> isInternetAvailable() async {
@@ -226,51 +222,39 @@ class CustomDrawerHeader extends StatelessWidget {
   Future<String?> _getProfileImageUrl(UserRole role) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
-
-    final firestore = FirebaseFirestore.instance;
     try {
-      final doc = await firestore
+      final doc = await FirebaseFirestore.instance
           .collection(role == UserRole.broker ? 'broker' : 'courier')
           .doc(uid)
           .get();
-
       if (doc.exists) {
         return doc.data()?['profilePictureUrl'] as String?;
       }
     } catch (e) {
       print("Error fetching profile image: $e");
     }
-
     return null;
   }
 }
 
 Future<String> getUserName(UserRole role) async {
   final userId = await AuthUtils.getCurrentUserId();
-
   if (userId == null) return 'Unknown';
-
   final collection = (role == UserRole.courier) ? 'courier' : 'broker';
-
-  final docSnapshot =
-      await FirebaseFirestore.instance.collection(collection).doc(userId).get();
-
+  final docSnapshot = await FirebaseFirestore.instance.collection(collection).doc(userId).get();
   if (docSnapshot.exists) {
     return docSnapshot.data()?['name'] ?? 'N/A';
-  } else {
-    return 'User Not Found';
   }
+  return 'User Not Found';
 }
+
+// ─── Online/Offline Switch ────────────────────────────────────────────────────
 
 class CustomSwitch extends StatefulWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const CustomSwitch({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const CustomSwitch({super.key, required this.value, required this.onChanged});
 
   @override
   _CustomSwitchState createState() => _CustomSwitchState();
@@ -286,64 +270,50 @@ class _CustomSwitchState extends State<CustomSwitch> {
   }
 
   void _toggleSwitch(BuildContext context) {
-    setState(() {
-      _value = !_value;
-    });
-    final BuildContext ctx = context; // ⬅️ Force cast to BuildContext
-    final onlineStatus = Provider.of<OnlineStatusProvider>(ctx, listen: false);
+    setState(() => _value = !_value);
+    final onlineStatus = Provider.of<OnlineStatusProvider>(context, listen: false);
     onlineStatus.setOnline(_value);
     widget.onChanged(_value);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: SizedBox(
-        height: 50, // Height remains optimal
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return GestureDetector(
+      onTap: () => _toggleSwitch(context),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        width: 88,
+        height: 34,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(17),
+          color: _value ? Palette.success.withOpacity(0.85) : Colors.white.withOpacity(0.25),
+          border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            // Wider Switch
-            GestureDetector(
-              onTap: () => _toggleSwitch(context),
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              alignment: _value ? const Alignment(0.75, 0) : const Alignment(-0.75, 0),
               child: Container(
-                width: 100.0, // ⬅️ Increased from 60 → 70
-                height: 28.0,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20.0),
-                  color: _value ? Colors.green : Colors.grey,
-                ),
-                child: Stack(
-                  children: [
-                    AnimatedAlign(
-                      duration: const Duration(milliseconds: 200),
-                      alignment:
-                          _value ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        width: 35.0,
-                        height: 35.0,
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 2, horizontal: 2),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
               ),
             ),
-
-            // Text
-            Text(
-              _value ? 'Online' : 'Offline',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold, // 💪 Fully bold
-                color:
-                    _value ? Colors.white : Colors.grey[700], // ✅ Status color
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              alignment: _value ? const Alignment(-0.6, 0) : const Alignment(0.6, 0),
+              child: Text(
+                _value ? 'ON' : 'OFF',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: _value ? Colors.white : Colors.white70,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],
@@ -365,31 +335,21 @@ class SwitchWithOnlineStatus extends StatefulWidget {
 class _SwitchWithOnlineStatusState extends State<SwitchWithOnlineStatus> {
   String table = "";
 
-  // Fetch user model from Firestore
   Future<bool> _fetchUserStatus(BuildContext context) async {
     try {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      if (roleProvider.role == UserRole.broker) {
-        table = "broker";
-      } else {
-        table = "courier";
-      }
-
+      table = roleProvider.role == UserRole.broker ? "broker" : "courier";
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection(table)
           .doc(widget.userId)
           .get();
-
       if (userDoc.exists) {
-        // Assuming 'isOnline' is a boolean field in Firestore
-        return userDoc['isOnline'] ??
-            false; // Default to false if 'isOnline' is not found
-      } else {
-        return false; // Default to false if user doesn't exist
+        return userDoc['isOnline'] ?? false;
       }
+      return false;
     } catch (e) {
       print('Error fetching user status: $e');
-      return false; // Default to false in case of an error
+      return false;
     }
   }
 
@@ -399,31 +359,22 @@ class _SwitchWithOnlineStatusState extends State<SwitchWithOnlineStatus> {
       future: _fetchUserStatus(context),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator(); // Loading indicator
-        }
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}'); // Display error if any
-        }
-        if (snapshot.hasData) {
-          bool isOnline = snapshot.data ?? false;
-
-          return Align(
-            alignment: Alignment.bottomRight,
-            child: CustomSwitch(
-              value: isOnline,
-              onChanged: (value) {
-                print('widget.userId: ${widget.userId}');
-                print('Table: $table');
-                // Here, you can update the Firestore document if needed
-                FirebaseFirestore.instance
-                    .collection(table)
-                    .doc(widget.userId)
-                    .update({'isOnline': value});
-              },
-            ),
+          return const SizedBox(
+            width: 88,
+            height: 34,
+            child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54))),
           );
         }
-        return Text('No model found');
+        final isOnline = snapshot.data ?? false;
+        return CustomSwitch(
+          value: isOnline,
+          onChanged: (value) {
+            FirebaseFirestore.instance
+                .collection(table)
+                .doc(widget.userId)
+                .update({'isOnline': value});
+          },
+        );
       },
     );
   }

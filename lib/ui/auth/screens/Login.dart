@@ -1,4 +1,3 @@
-
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/auth/SignIn.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart';
@@ -23,18 +22,70 @@ class LoginCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.green, Colors.blueAccent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: const Center(
+        decoration: const BoxDecoration(gradient: Palette.heroGradient),
+        child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CardView(),
+              // Top branding area
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                        ),
+                        child: const Icon(Icons.flight_takeoff_rounded, color: Colors.white, size: 44),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'OBC SMART',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Logistics Courier Platform',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Login card
+              Expanded(
+                flex: 3,
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Palette.backgroundLight,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                  ),
+                  child: const SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(24, 32, 24, 24),
+                    child: CardView(),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -49,14 +100,10 @@ class CardView extends StatefulWidget {
   @override
   _CardViewState createState() => _CardViewState();
 }
-/*TextEditingController(text: 'broker@gmail.com');
-final TextEditingController _passwordController =
-TextEditingController(text: '123456');*/
+
 class _CardViewState extends State<CardView> {
-  final TextEditingController _emailController =
-      TextEditingController(text: '');
-  final TextEditingController _passwordController =
-      TextEditingController(text: '');
+  final TextEditingController _emailController = TextEditingController(text: '');
+  final TextEditingController _passwordController = TextEditingController(text: '');
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _rememberMe = false;
 
@@ -77,7 +124,7 @@ class _CardViewState extends State<CardView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Please fix the errors in the form"),
-            backgroundColor: Colors.orange,
+            backgroundColor: Palette.warning,
           ),
         );
       }
@@ -88,7 +135,6 @@ class _CardViewState extends State<CardView> {
     showProgressDialog(context);
 
     try {
-      // Set role based on tab selection
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
       final role = _selectedIndex == 0 ? UserRole.broker : UserRole.courier;
       roleProvider.setRole(role);
@@ -96,10 +142,8 @@ class _CardViewState extends State<CardView> {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
 
-      // Attempt login and retrieve result
       final result = await signInAndSaveUser(email, password, _selectedIndex);
 
-      // Save or clear shared preferences based on Remember Me
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setString('email', email);
@@ -115,7 +159,6 @@ class _CardViewState extends State<CardView> {
 
       if (context.mounted) hideProgressDialog(context);
 
-      // Handle login error response
       if (result != null && result.containsKey('error')) {
         final errorMessage = result['error'];
 
@@ -126,7 +169,7 @@ class _CardViewState extends State<CardView> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),
-                backgroundColor: Colors.red,
+                backgroundColor: Palette.errorColor,
               ),
             );
           }
@@ -134,12 +177,10 @@ class _CardViewState extends State<CardView> {
         return;
       }
 
-      // Login successful, check profile completion
       final isProfileCompleted = result?['isProfileCompleted'] ?? false;
 
       if (!isProfileCompleted) {
         if (context.mounted) {
-          // Navigate to BrokerProfileScreen or CourierProfile based on role
           if (role == UserRole.broker) {
             final brokerProfile = Provider.of<RoleProvider>(context, listen: false).brokerProfile;
             Navigator.of(context).pushReplacement(
@@ -154,7 +195,6 @@ class _CardViewState extends State<CardView> {
       } else {
         FirestoreService service = FirestoreService(context);
         service.setUserOnline();
-        // Profile is completed, move to home screen
         if (context.mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const DrawerScreen()),
@@ -164,125 +204,18 @@ class _CardViewState extends State<CardView> {
 
     } catch (e) {
       if (context.mounted) hideProgressDialog(context);
-
       print("Exception occurred: $e");
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Something went wrong. Please try again."),
-            backgroundColor: Colors.red,
+            backgroundColor: Palette.errorColor,
           ),
         );
       }
     }
   }
 
-/*  Future<Map<String, dynamic>?> signInAndSaveUser(String email, String password, int selectedIndex) async {
-    try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
-
-      print("✅ Login successful: ${userCredential.user?.uid}");
-
-      String uid = userCredential.user!.uid;
-
-      // Selected role user ne UI se choose kiya (e.g., index 0 = broker, 1 = courier)
-      String selectedRole = selectedIndex == 0 ? 'broker' : 'courier';
-
-      // 🔍 First check both collections to find correct role
-      DocumentSnapshot brokerDoc = await FirebaseFirestore.instance
-          .collection('broker')
-          .doc(uid)
-          .get();
-
-      DocumentSnapshot courierDoc = await FirebaseFirestore.instance
-          .collection('courier')
-          .doc(uid)
-          .get();
-
-      String? actualRole;
-      DocumentSnapshot? userDoc;
-      if (brokerDoc.exists) {
-        actualRole = 'broker';
-        userDoc = brokerDoc;
-      } else if (courierDoc.exists) {
-        actualRole = 'courier';
-        userDoc = courierDoc;
-      }
-
-      // ❌ Mismatch in selected role vs actual
-      if (actualRole != null && actualRole != selectedRole) {
-        await FirebaseAuth.instance.signOut();
-        return {'error': "This email is registered as a $actualRole. Please login using the correct role."};
-      }
-
-      // ❌ Check blockUser flag (Safely!)
-      if (userDoc != null && userDoc.exists) {
-        final data = userDoc.data() as Map<String, dynamic>;
-
-        final isBlocked = data.containsKey('blockUser') && data['blockUser'] == true;
-        if (isBlocked) {
-          await FirebaseAuth.instance.signOut();
-          return {'error': "Blocked user"};
-        }
-
-        // ✅ Also make sure isProfileCompleted key exists
-        if (!data.containsKey('isProfileCompleted')) {
-          await userDoc.reference.update({'isProfileCompleted': false});
-          data['isProfileCompleted'] = false;
-        }
-
-        return data; // ✅ Return full data with isProfileCompleted
-      }
-
-      // ✅ If role not set yet (first-time login), create new doc
-      if (actualRole == null) {
-        String collectionName = selectedRole;
-        DocumentReference userDocRef =
-        FirebaseFirestore.instance.collection(collectionName).doc(uid);
-
-        Map<String, dynamic> userData = {
-          'blockedUser': false,
-          'email': email,
-          'role': selectedRole,
-          'createdAt': FieldValue.serverTimestamp(),
-          'id': uid,
-          'name': selectedRole == 'courier' ? 'Test Courier' : 'Test Broker',
-          'isProfileCompleted': false,
-          'isOnline': false
-        };
-
-        if (selectedRole == 'courier') {
-          userData.addAll({
-            'courierID': uid,
-            'baseLocationLat': 0.0,
-            'baseLocationLong': 0.0,
-            'currentLocationLat': 0.0,
-            'currentLocationLong': 0.0,
-          });
-        } else {
-          userData['brokerID'] = uid;
-          userData['isOnline'] = false;
-        }
-
-        await userDocRef.set(userData);
-        print("📝 New $selectedRole record created.");
-
-        // Fetch newly created user doc and return it
-        DocumentSnapshot newUserDoc = await userDocRef.get();
-        return newUserDoc.data() as Map<String, dynamic>? ?? {};
-      }
-
-      return {'error': "User data not found"};
-    } on FirebaseAuthException catch (e) {
-      print("❌ Firebase Auth Error: ${e.code} - ${e.message}");
-      return {'error': e.message ?? "Authentication failed."};
-    } catch (e) {
-      print("❌ Unknown error: $e");
-      return {'error': "Something went wrong. Please try again."};
-    }
-  }*/
   Future<Map<String, dynamic>?> signInAndSaveUser(String email, String password, int selectedIndex) async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
@@ -291,10 +224,8 @@ class _CardViewState extends State<CardView> {
       String uid = userCredential.user!.uid;
       print("✅ Login successful: $uid");
 
-      // UI selection
       String selectedRole = selectedIndex == 0 ? 'broker' : 'courier';
 
-      // Fetch both docs (partial or full)
       DocumentSnapshot brokerDoc = await FirebaseFirestore.instance.collection('broker').doc(uid).get();
       DocumentSnapshot courierDoc = await FirebaseFirestore.instance.collection('courier').doc(uid).get();
 
@@ -309,7 +240,6 @@ class _CardViewState extends State<CardView> {
         userDoc = courierDoc;
       }
 
-      // ❌ Mismatch in selected vs actual
       if (actualRole != null && actualRole != selectedRole) {
         await FirebaseAuth.instance.signOut();
         return {'error': "This email is registered as a $actualRole. Please login using the correct role."};
@@ -318,7 +248,6 @@ class _CardViewState extends State<CardView> {
       if (userDoc != null && userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
 
-        // ✅ Auto-complete missing fields on first login
         Map<String, dynamic> updates = {};
 
         if (!data.containsKey('id')) updates['id'] = uid;
@@ -330,7 +259,6 @@ class _CardViewState extends State<CardView> {
         if (!data.containsKey('name')) updates['name'] = actualRole == 'courier' ? 'Test Courier' : 'Test Broker';
         if (!data.containsKey('isOnline')) updates['isOnline'] = true;
         if (!data.containsKey('profilePictureUrl')) updates['profilePictureUrl'] = 'https://mopogotechnologies.com/assets/images/profiles/place_holder_man.png';
-        // For courier-specific fields
         if (actualRole == 'courier') {
           if (!data.containsKey('courierID')) updates['courierID'] = uid;
           if (!data.containsKey('baseLocationLat')) updates['baseLocationLat'] = 51.1657;
@@ -342,7 +270,6 @@ class _CardViewState extends State<CardView> {
           if (!data.containsKey('current')) updates['current'] = false;
         }
 
-        // For broker-specific fields
         if (actualRole == 'broker' && !data.containsKey('brokerID')) {
           updates['brokerID'] = uid;
         }
@@ -350,11 +277,9 @@ class _CardViewState extends State<CardView> {
         if (updates.isNotEmpty) {
           await userDoc.reference.set(updates, SetOptions(merge: true));
           print("✅ Auto-filled missing fields for $actualRole.");
-          // Also update local `data` with new fields for return
           data.addAll(updates);
         }
 
-        // ✅ Blocked check
         if (data['blockedUser'] == true) {
           await FirebaseAuth.instance.signOut();
           return {'error': "Blocked user"};
@@ -363,7 +288,6 @@ class _CardViewState extends State<CardView> {
         return data;
       }
 
-      // ❌ If user doesn't exist even partially (unexpected)
       await FirebaseAuth.instance.signOut();
       return {'error': "No role assigned to this account. Please contact support."};
 
@@ -381,26 +305,24 @@ class _CardViewState extends State<CardView> {
       context: context,
       barrierLabel: "Account Blocked",
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5), // Dim background
+      barrierColor: Colors.black.withOpacity(0.5),
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, anim1, anim2) {
-        return const SizedBox.shrink(); // Required placeholder
-      },
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return ScaleTransition(
           scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
           child: Center(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -409,37 +331,46 @@ class _CardViewState extends State<CardView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.block, color: Colors.redAccent, size: 50),
-                    const SizedBox(height: 16),
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Palette.errorColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.block_rounded, color: Palette.errorColor, size: 36),
+                    ),
+                    const SizedBox(height: 20),
                     const Text(
-                      "Account Deactivate",
+                      "Account Deactivated",
                       style: TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                        color: Palette.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     const Text(
                       "Your account is not active.\nPlease contact support +923065000660.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.black54, fontSize: 16),
+                      style: TextStyle(color: Palette.textSecondary, fontSize: 14, height: 1.5),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        FirebaseAuth.instance.signOut();
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text("Ok"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          FirebaseAuth.instance.signOut();
+                        },
+                        icon: const Icon(Icons.logout_rounded, size: 18),
+                        label: const Text("Understood"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Palette.errorColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       ),
                     ),
                   ],
@@ -452,111 +383,157 @@ class _CardViewState extends State<CardView> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(25.0),
-        child: IntrinsicWidth(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ToggleButtons(
-                  isSelected: _selectedToggle,
-                  onPressed: (int index) {
-                    setState(() {
-                      _selectedIndex = index;
-                      _selectedToggle[index] = true;
-                      _selectedToggle[1 - index] = false;
-                      if (_selectedIndex == 0) {
-                        _emailController.text = '';
-                      } else {
-                        _emailController.text = '';
-                      }
-                    });
-                  },
-/*    _emailController.text = 'broker@gmail.com';
-    } else {
-  _emailController.text = 'courier@gmail.com';*/
-                  borderRadius: BorderRadius.circular(10),
-                  selectedBorderColor: Colors.grey,
-                  selectedColor: Colors.white,
-                  fillColor: Palette.primaryColor,
-                  color: Colors.black,
-                  constraints:
-                      const BoxConstraints(minHeight: 40.0, minWidth: 120.0),
-                  children: _toggleText.map((text) => Text(text)).toList(),
-                ),
-                const SizedBox(height: 20.0),
-                const Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Sign In',
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: emailHint,
-                          prefixIcon: const Icon(Icons.email),
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          return Validator.validateEmail(email: value ?? '');
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8.0),
-                PasswordField(controller: _passwordController),
-                CheckboxListTile(
-                  value: _rememberMe,
-                  onChanged: (newValue) {
-                    setState(() {
-                      _rememberMe = newValue ?? false;
-                    });
-                  },
-                  title: const Text("Remember Me"),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-
-                  // ✅ Custom colors
-                  activeColor: Colors.green,      // Checkbox fill color when checked
-                  checkColor: Colors.white,       // Tick icon color
-                ),
-
-
-                MaterialButton(
-                  onPressed: _submitForm,
-                  color: Colors.blue,
-                  textColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: const SizedBox(
-                      width: 250, child: Center(child: Text('Login'))),
-                ),
-              ],
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Role selector
+          const Text(
+            'Select your role',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Palette.textSecondary,
             ),
           ),
-        ),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: Palette.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Palette.border, width: 1),
+            ),
+            child: Row(
+              children: List.generate(_toggleText.length, (index) {
+                final isSelected = _selectedIndex == index;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedIndex = index;
+                        _selectedToggle[index] = true;
+                        _selectedToggle[1 - index] = false;
+                        _emailController.text = '';
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Palette.primaryColor : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: isSelected
+                            ? [BoxShadow(color: Palette.primaryColor.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
+                            : [],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            index == 0 ? Icons.business_center_rounded : Icons.local_shipping_rounded,
+                            size: 16,
+                            color: isSelected ? Colors.white : Palette.textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _toggleText[index],
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? Colors.white : Palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+          const Text(
+            'Welcome back',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Palette.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Sign in to continue',
+            style: TextStyle(fontSize: 14, color: Palette.textSecondary),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Email field
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: emailHint,
+              prefixIcon: const Icon(Icons.email_outlined),
+            ),
+            validator: (value) => Validator.validateEmail(email: value ?? ''),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Password field
+          PasswordField(controller: _passwordController),
+
+          const SizedBox(height: 8),
+
+          // Remember Me
+          Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: Checkbox(
+                  value: _rememberMe,
+                  onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                  activeColor: Palette.primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  side: const BorderSide(color: Palette.border, width: 1.5),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Remember Me',
+                style: TextStyle(fontSize: 13, color: Palette.textSecondary, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 28),
+
+          // Login button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _submitForm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Palette.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+              ),
+              child: const Text('Sign In'),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }

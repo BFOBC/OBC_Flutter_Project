@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:broker_flutter_pp/data/bridges/AirportService.dart';
 import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/auth/screens/Login.dart';
 import 'package:broker_flutter_pp/ui/broker/BrokerProfileScreen.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
@@ -23,14 +24,40 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _slideAnim;
+
   @override
   void initState() {
     super.initState();
-    // Delay to simulate splash screen duration
+
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: const Interval(0.0, 0.7, curve: Curves.easeOut));
+    _scaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack)),
+    );
+    _slideAnim = Tween<double>(begin: 30, end: 0).animate(
+      CurvedAnimation(parent: _animController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
+    );
+
+    _animController.forward();
+
     Future.delayed(const Duration(seconds: 3), () {
       _checkSyncStatusAndNavigate();
     });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkSyncStatusAndNavigate() async {
@@ -56,35 +83,20 @@ class _SplashScreenState extends State<SplashScreen> {
       String password = prefs.getString('password') ?? '';
       String? roleStr = prefs.getString('role');
 
-      print("✅ Current Shared Preferences:");
-      print("Email: ${prefs.getString('email')}");
-      print("Password: ${prefs.getString('password')}");
-      print("Role: ${prefs.getString('role')}");
-      print("Remember Me: ${prefs.getBool('rememberMe')}");
-
       try {
-        UserCredential userCredential =
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(email: email, password: password);
 
         final user = userCredential.user;
         if (user == null) throw Exception("User is null");
 
         if (roleStr != null) {
-          final roleProvider =
-          Provider.of<RoleProvider>(context, listen: false);
-          final role =
-          roleStr == 'Broker' ? UserRole.broker : UserRole.courier;
+          final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+          final role = roleStr == 'Broker' ? UserRole.broker : UserRole.courier;
           roleProvider.setRole(role);
 
-          final collectionName =
-          role == UserRole.broker ? 'broker' : 'courier';
-
-          final docRef = FirebaseFirestore.instance
-              .collection(collectionName)
-              .doc(user.uid);
+          final collectionName = role == UserRole.broker ? 'broker' : 'courier';
+          final docRef = FirebaseFirestore.instance.collection(collectionName).doc(user.uid);
           final docSnap = await docRef.get();
 
           if (!docSnap.exists) {
@@ -93,7 +105,6 @@ class _SplashScreenState extends State<SplashScreen> {
           }
 
           final data = docSnap.data() as Map<String, dynamic>;
-
           if (!data.containsKey('isProfileCompleted')) {
             await docRef.update({'isProfileCompleted': false});
           }
@@ -126,17 +137,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToProfileScreen(BuildContext context, UserRole role) {
-    final brokerProfile =
-        Provider.of<RoleProvider>(context, listen: false).brokerProfile;
-
+    final brokerProfile = Provider.of<RoleProvider>(context, listen: false).brokerProfile;
     if (role == UserRole.broker) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-            builder: (_) => BrokerProfileScreen(brokerProfile: brokerProfile)),
+        MaterialPageRoute(builder: (_) => BrokerProfileScreen(brokerProfile: brokerProfile)),
       );
     } else {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) =>  CourierProfile()),
+        MaterialPageRoute(builder: (_) => CourierProfile()),
       );
     }
   }
@@ -144,20 +152,92 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // optional
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            /// 🌀 GIF Animation (add your file in assets)
-            Image.asset(
-              'assets/splash_animation_slow.gif',
-              width: 120,
-              height: 120,
-              fit: BoxFit.contain,
-            ),
+      body: Container(
+        decoration: const BoxDecoration(gradient: Palette.heroGradient),
+        child: SafeArea(
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _animController,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _fadeAnim.value,
+                  child: Transform.translate(
+                    offset: Offset(0, _slideAnim.value),
+                    child: Transform.scale(
+                      scale: _scaleAnim.value,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // App icon
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Image.asset(
+                                'assets/splash_animation_slow.gif',
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
 
-          ],
+                          const SizedBox(height: 32),
+
+                          // App name
+                          const Text(
+                            'OBC SMART',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 3,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            'Logistics Courier Platform',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.75),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+
+                          const SizedBox(height: 64),
+
+                          // Loading indicator
+                          SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.6)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

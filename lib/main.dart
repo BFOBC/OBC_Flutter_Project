@@ -2,6 +2,7 @@
 import 'dart:convert';
 
 import 'package:broker_flutter_pp/data/notification/NotificationService.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/LoggingNavigatorObserver.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
@@ -181,10 +182,7 @@ class MyApp extends StatelessWidget {
       navigatorObservers: [loggingObserver],
       title: 'OBC SMART',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: AppTheme.light,
       home: const SplashScreen(),
     );
   }

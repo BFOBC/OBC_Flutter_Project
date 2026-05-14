@@ -118,13 +118,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Palette.backgroundLight,
       appBar: AppBar(
-        automaticallyImplyLeading: false, // 🔹 removes back button
-        title: Text(
-          'Chats',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Palette.googleBackground,
+        automaticallyImplyLeading: false,
+        backgroundColor: Palette.primaryColor,
+        elevation: 0,
+        title: const Text('Messages', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -133,7 +132,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Palette.primaryColor));
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -141,28 +140,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 80,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No chats yet',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: Palette.primaryColor.withOpacity(0.08),
+                      shape: BoxShape.circle,
                     ),
+                    child: const Icon(Icons.chat_bubble_outline_rounded, size: 44, color: Palette.primaryColor),
                   ),
+                  const SizedBox(height: 20),
+                  const Text('No conversations yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Palette.textPrimary)),
                   const SizedBox(height: 8),
-                  Text(
-                    'Start a conversation to see it here.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
+                  const Text('Start a conversation to see it here.', style: TextStyle(fontSize: 13, color: Palette.textSecondary)),
                 ],
               ),
             );
@@ -173,66 +163,63 @@ class _ChatListScreenState extends State<ChatListScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Warning banner
               Container(
                 width: double.infinity,
-                color: Colors.yellow[100],
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Text(
-                  '⚠️ Your chats will be deleted in 3 days.',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Palette.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Palette.warning.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: Palette.warning, size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Chats are automatically deleted after 3 days.',
+                        style: TextStyle(color: Palette.warning, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
               Expanded(
                 child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   itemCount: chatDocs.length,
                   itemBuilder: (context, index) {
                     var chat = chatDocs[index];
                     String chatId = chat.id;
                     String lastMessage = chat['lastMessage'] ?? 'No message';
-                    Timestamp timestamp =
-                        chat['lastMessageTimestamp'] ?? Timestamp.now();
+                    Timestamp timestamp = chat['lastMessageTimestamp'] ?? Timestamp.now();
                     DateTime date = timestamp.toDate();
-                    String formattedDate =
-                    DateFormat('MMMM d, y \'at\' h:mm a').format(date);
+                    String formattedDate = _formatChatTime(date);
 
                     List<String> users = List<String>.from(chat['users']);
                     users.remove(widget.userId);
-                    String otherUserId =
-                    users.isNotEmpty ? users.first : 'Unknown';
-
-                    print("otherUserId $otherUserId");
+                    String otherUserId = users.isNotEmpty ? users.first : 'Unknown';
 
                     return FutureBuilder<Map<String, String>>(
                       future: _getUserDetails(otherUserId, context),
                       builder: (context, userSnapshot) {
-                        if (userSnapshot.connectionState ==
-                            ConnectionState.waiting) {
+                        if (userSnapshot.connectionState == ConnectionState.waiting) {
                           return _buildLoadingTile();
                         }
-
                         if (userSnapshot.hasError || !userSnapshot.hasData) {
                           return _buildErrorTile();
                         }
 
-                        String otherUserName =
-                            userSnapshot.data!['name'] ?? 'Unknown';
+                        String otherUserName = userSnapshot.data!['name'] ?? 'Unknown';
                         String otherUserUid = userSnapshot.data!['uid'] ?? '';
                         String? countryCode = userSnapshot.data!['countryCode'];
                         String? phoneNumber = userSnapshot.data!['phoneNumber'];
-                        String? completePhoneNumber = '$countryCode$phoneNumber';
-                        String? profilePictureUrl =
-                        userSnapshot.data!['profilePictureUrl'];
-                        String displayLetter =
-                        (otherUserName.isNotEmpty) ? otherUserName[0].toUpperCase() : '?';
-                        // Stateful widget ke andar declare karo
-                        int _unreadCount = 0; // local state for badge
-
-
-                        print('userId: $widget.userId');
+                        String? profilePictureUrl = userSnapshot.data!['profilePictureUrl'];
+                        String displayLetter = otherUserName.isNotEmpty ? otherUserName[0].toUpperCase() : '?';
+                        int _unreadCount = 0;
 
                         return StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
@@ -245,192 +232,131 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           builder: (context, unreadSnapshot) {
                             if (unreadSnapshot.hasData) {
                               _unreadCount = unreadSnapshot.data!.docs.length;
-                              print('chatId: $chatId, unreadCount: $_unreadCount');
                             }
 
-                            return Column(
-                              children: [
-                                Stack(
-                                  children: [
-                                    ListTile(
-                                      contentPadding: EdgeInsets.only(right: 90, left: 16),
-                                      leading: GestureDetector(
-                                        onTap: () {
-                                          if (profilePictureUrl != null && profilePictureUrl.isNotEmpty) {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                contentPadding: EdgeInsets.zero,
-                                                backgroundColor: Colors.transparent,
-                                                content: ClipRRect(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  child: Image.network(
-                                                    profilePictureUrl!,
-                                                    width: 200,
-                                                    height: 200,
-                                                    fit: BoxFit.cover,
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Material(
+                                color: Palette.surface,
+                                borderRadius: BorderRadius.circular(14),
+                                elevation: 1,
+                                shadowColor: Palette.primaryColor.withOpacity(0.06),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatDetailScreen(userID: otherUserUid),
+                                      ),
+                                    );
+                                  },
+                                  onLongPress: () => _showDeleteDialog(context, chatId),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    child: Row(
+                                      children: [
+                                        // Avatar
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (profilePictureUrl != null && profilePictureUrl.isNotEmpty) {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  contentPadding: EdgeInsets.zero,
+                                                  backgroundColor: Colors.transparent,
+                                                  content: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: Image.network(profilePictureUrl!, width: 200, height: 200, fit: BoxFit.cover),
                                                   ),
                                                 ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: CircleAvatar(
-                                          backgroundColor: Colors.blue[200],
-                                          backgroundImage: (profilePictureUrl != null && profilePictureUrl.isNotEmpty)
-                                              ? NetworkImage(profilePictureUrl)
-                                              : null,
-                                          child: (profilePictureUrl == null || profilePictureUrl.isEmpty)
-                                              ? Text(
-                                            displayLetter,
-                                            style: TextStyle(color: Colors.white),
-                                          )
-                                              : null,
-                                        ),
-                                      ),
-                                      title: Text(otherUserName),
-                                      subtitle: Text(lastMessage),
-                                      onTap: () {
-                                        // Navigate to detail
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ChatDetailScreen(userID: otherUserUid),
-                                          ),
-                                        );
-                                      },
-                                      onLongPress: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(20)),
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(20.0),
-                                                child: Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(Icons.warning_amber_rounded,
-                                                        size: 50, color: Colors.redAccent),
-                                                    const SizedBox(height: 15),
-                                                    Text("Delete Chat",
-                                                        style: TextStyle(
-                                                            fontSize: 16, fontWeight: FontWeight.bold)),
-                                                    const SizedBox(height: 10),
-                                                    Text(
-                                                        "Are you sure you want to delete this chat?",
-                                                        textAlign: TextAlign.center),
-                                                    const SizedBox(height: 20),
-                                                    Row(
-                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                      children: [
-                                                        ElevatedButton(
-                                                          style: ElevatedButton.styleFrom(
-                                                              backgroundColor: Colors.green),
-                                                          onPressed: () => Navigator.of(context).pop(),
-                                                          child: Text("Cancel"),
-                                                        ),
-                                                        ElevatedButton(
-                                                          style: ElevatedButton.styleFrom(
-                                                              backgroundColor: Colors.redAccent),
-                                                          onPressed: () async {
-                                                            Navigator.of(context).pop();
-                                                            await _deleteChatFromFirebase(chatId);
-                                                            Fluttertoast.showToast(
-                                                                msg: "✅Chat deleted successfully!");
-                                                          },
-                                                          child: Text("Delete"),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
+                                              );
+                                            }
                                           },
-                                        );
-                                      },
-                                    ),
-
-                                    // 📅 Date
-                                    Positioned(
-                                      bottom: 1,
-                                      right: 16,
-                                      child: Text(
-                                        formattedDate,
-                                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                      ),
-                                    ),
-
-                                    // 📞 Call Buttons
-/*                                    if (completePhoneNumber != null && completePhoneNumber.isNotEmpty)
-                                      Positioned(
-                                        top: 10,
-                                        right: 16,
-                                        child: Row(
-                                          children: [
-                                            IconButton(
-                                              icon: Icon(Icons.phone, color: Colors.green, size: 20),
-                                              onPressed: () async {
-                                                final Uri uri = Uri(
-                                                    scheme: 'tel', path: completePhoneNumber);
-                                                try {
-                                                  bool launched = await launchUrl(
-                                                      uri, mode: LaunchMode.externalApplication);
-                                                  if (!launched)
-                                                    Fluttertoast.showToast(msg: "Could not launch dialer");
-                                                } catch (e) {
-                                                  Fluttertoast.showToast(msg: "Error: $e");
-                                                }
-                                              },
-                                            ),
-                                            IconButton(
-                                              icon: Icon(Icons.add, color: Colors.teal, size: 20),
-                                              onPressed: () async {
-                                                String completePhoneNumber =
-                                                '${countryCode ?? ''}${phoneNumber ?? ''}'
-                                                    .replaceAll('+', '')
-                                                    .replaceAll(' ', '')
-                                                    .trim();
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ),*/
-
-                                    // 🔴 Unread Badge
-                                    if (/*_unreadCount > 0*/false )
-                                      Positioned(
-                                        right: 16,
-                                        top: 12,
-                                        child: Container(
-                                          padding: EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Text(
-                                            _unreadCount.toString(),
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                          child: Stack(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 26,
+                                                backgroundColor: Palette.primaryColor.withOpacity(0.15),
+                                                backgroundImage: (profilePictureUrl != null && profilePictureUrl.isNotEmpty)
+                                                    ? NetworkImage(profilePictureUrl)
+                                                    : null,
+                                                child: (profilePictureUrl == null || profilePictureUrl.isEmpty)
+                                                    ? Text(displayLetter, style: const TextStyle(color: Palette.primaryColor, fontWeight: FontWeight.w700, fontSize: 18))
+                                                    : null,
+                                              ),
+                                              if (_unreadCount > 0)
+                                                Positioned(
+                                                  right: 0,
+                                                  top: 0,
+                                                  child: Container(
+                                                    width: 16,
+                                                    height: 16,
+                                                    decoration: const BoxDecoration(color: Palette.errorColor, shape: BoxShape.circle),
+                                                    child: Center(
+                                                      child: Text(_unreadCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                  ],
+
+                                        const SizedBox(width: 12),
+
+                                        // Name + message
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      otherUserName,
+                                                      style: TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight: _unreadCount > 0 ? FontWeight.w700 : FontWeight.w600,
+                                                        color: Palette.textPrimary,
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    formattedDate,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: _unreadCount > 0 ? Palette.primaryColor : Palette.textSecondary,
+                                                      fontWeight: _unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                lastMessage,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: _unreadCount > 0 ? Palette.textPrimary : Palette.textSecondary,
+                                                  fontWeight: _unreadCount > 0 ? FontWeight.w500 : FontWeight.w400,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.chevron_right_rounded, color: Palette.textDisabled, size: 20),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                                  child: Divider(color: Palette.firebaseGrey),
-                                ),
-                              ],
+                              ),
                             );
                           },
                         );
-
                       },
                     );
                   },
@@ -443,35 +369,119 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  String _formatChatTime(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inDays == 0) return DateFormat('h:mm a').format(date);
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return DateFormat('EEE').format(date);
+    return DateFormat('MMM d').format(date);
+  }
+
+  void _showDeleteDialog(BuildContext context, String chatId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(color: Palette.errorColor.withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.delete_outline_rounded, color: Palette.errorColor, size: 28),
+                ),
+                const SizedBox(height: 16),
+                const Text('Delete Chat', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Palette.textPrimary)),
+                const SizedBox(height: 8),
+                const Text('Are you sure you want to delete this conversation?', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Palette.textSecondary)),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Palette.textSecondary,
+                          side: const BorderSide(color: Palette.border),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await _deleteChatFromFirebase(chatId);
+                          Fluttertoast.showToast(msg: "Chat deleted successfully!");
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Palette.errorColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildLoadingTile() {
-    return Column(
-      children: [
-        ListTile(
-          leading: CircleAvatar(child: Icon(Icons.person)),
-          title: Text('Loading...'),
-          subtitle: Text('Fetching user info...'),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(color: Palette.surface, borderRadius: BorderRadius.circular(14)),
+        child: Row(
+          children: [
+            Container(width: 52, height: 52, decoration: BoxDecoration(color: Palette.border, shape: BoxShape.circle)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 14, width: 120, decoration: BoxDecoration(color: Palette.border, borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 6),
+                  Container(height: 11, width: 180, decoration: BoxDecoration(color: Palette.surfaceVariant, borderRadius: BorderRadius.circular(4))),
+                ],
+              ),
+            ),
+          ],
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Divider(color: Colors.grey),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildErrorTile() {
-    return Column(
-      children: [
-        ListTile(
-          leading: CircleAvatar(child: Icon(Icons.error)),
-          title: Text('Error loading user'),
-          subtitle: Text('Could not retrieve user details'),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Palette.surface, borderRadius: BorderRadius.circular(14)),
+        child: const Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: Palette.errorColor, size: 20),
+            SizedBox(width: 10),
+            Text('Could not load conversation', style: TextStyle(color: Palette.textSecondary, fontSize: 13)),
+          ],
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Divider(color: Colors.grey),
-        ),
-      ],
+      ),
     );
   }
 

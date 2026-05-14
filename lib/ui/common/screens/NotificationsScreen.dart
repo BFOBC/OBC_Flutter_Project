@@ -1,5 +1,6 @@
 
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/screens/NotificationDetailScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:flutter/material.dart';
@@ -151,28 +152,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60.0),
-        child: AppBar(
-          automaticallyImplyLeading: false, // 🔹 removes back button
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.green, Colors.blueAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          title: const Text(
-            'Notifications',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          centerTitle: true,
-        ),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Palette.primaryColor,
+        elevation: 0,
+        title: const Text('Notifications', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),

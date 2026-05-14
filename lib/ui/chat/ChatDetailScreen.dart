@@ -231,65 +231,62 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Palette.backgroundLight,
       appBar: AppBar(
-        automaticallyImplyLeading: true,
-        backgroundColor: Palette.googleBackground,
-        iconTheme: const IconThemeData(
-          color: Colors.white, // Back button white
-        ),
+        backgroundColor: Palette.primaryColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: FutureBuilder<Map<String, String>>(
           future: _getUserDetails(widget.userID, context),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Text(
-                'Loading...',
-                style: TextStyle(color: Colors.white, fontSize: 14),
-              );
-            }
-
-            if (snapshot.hasError || !snapshot.hasData) {
-              return const Text(
-                'Unknown User',
-                style: TextStyle(color: Colors.white, fontSize: 14),
-              );
-            }
-
-            String userName = snapshot.data!['name'] ?? 'Unknown User';
-
-            // 🔹 Get current user role
-            final roleProvider =
-                Provider.of<RoleProvider>(context, listen: false);
+            final roleProvider = Provider.of<RoleProvider>(context, listen: false);
             final isBroker = roleProvider.role == UserRole.broker;
 
-            // 🔹 Clickable only if broker is logged in
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Row(
+                children: [
+                  const CircleAvatar(radius: 18, backgroundColor: Colors.white24),
+                  const SizedBox(width: 10),
+                  Container(width: 80, height: 12, decoration: BoxDecoration(color: Colors.white30, borderRadius: BorderRadius.circular(4))),
+                ],
+              );
+            }
+
+            final userName = snapshot.data?['name'] ?? 'Unknown User';
+            final profileUrl = snapshot.data?['profilePictureUrl'] ?? '';
+            final displayLetter = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
+
             return GestureDetector(
               onTap: isBroker
-                  ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              SearchCourier(courierKey: widget.userID),
-                        ),
-                      );
-                    }
-                  : null, // 🚫 No redirection if courier logged in
-              child: Text(
-                userName,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                  ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => SearchCourier(courierKey: widget.userID)))
+                  : null,
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.white24,
+                    backgroundImage: profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
+                    child: profileUrl.isEmpty ? Text(displayLetter, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)) : null,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userName, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                        if (isBroker)
+                          Text('Tap to view profile', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           },
         ),
       ),
-      body: chatId
-              .isEmpty // Add check to show loading state until chatId is available
-          ? const Center(
-              child: CircularProgressIndicator()) // Show a loading spinner
+      body: chatId.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: Palette.primaryColor))
           : Column(
               children: [
                 Expanded(
@@ -302,72 +299,49 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(child: CircularProgressIndicator(color: Palette.primaryColor));
                       }
                       final messages = snapshot.data!.docs;
 
                       return ListView.builder(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         reverse: true,
                         itemCount: messages.length,
                         itemBuilder: (context, index) {
-                          // 🧱 Always work with Map safely
                           final messageDoc = messages[index];
-                          final data =
-                              (messageDoc.data() ?? {}) as Map<String, dynamic>;
+                          final data = (messageDoc.data() ?? {}) as Map<String, dynamic>;
                           final messageId = messageDoc.id;
 
-                          // 🧩 Safely extract values with fallback
                           final text = data['messageText']?.toString() ?? '';
                           final senderId = data['senderId']?.toString() ?? '';
-                          final isSender = senderId ==
-                              (FirebaseAuth.instance.currentUser?.uid ?? '');
-                          final isDownloaded = data['isDownloaded'] is bool
-                              ? data['isDownloaded']
-                              : false;
+                          final isSender = senderId == (FirebaseAuth.instance.currentUser?.uid ?? '');
+                          final isDownloaded = data['isDownloaded'] is bool ? data['isDownloaded'] : false;
 
                           final timestamp = (data['timestamp'] is Timestamp)
                               ? (data['timestamp'] as Timestamp).toDate()
                               : DateTime.now();
 
-                          // 🕒 Compare minute-level timestamps
                           bool showTime = true;
                           if (lastShownTime != null) {
-                            final diff =
-                                lastShownTime!.difference(timestamp).abs();
+                            final diff = lastShownTime!.difference(timestamp).abs();
                             if (diff.inMinutes < 1) showTime = false;
                           }
                           lastShownTime = timestamp;
 
-                          // 📁 Safe file path check
                           String fileUrl = '';
                           if (isSender) {
-                            fileUrl =
-                                data['localFilePathSender']?.toString() ?? '';
+                            fileUrl = data['localFilePathSender']?.toString() ?? '';
                           } else {
                             fileUrl = data['fileUrl']?.toString() ?? '';
                           }
+                          if (fileUrl.isEmpty) fileUrl = data['fileUrl']?.toString() ?? '';
 
-                          // fallback agar dono empty hon
-                          if (fileUrl.isEmpty) {
-                            fileUrl = data['fileUrl']?.toString() ?? '';
-                          }
-
-                          print('fileUrl: $fileUrl');
-                          print('isSender: $isSender');
-                          print('isDownloaded: $isDownloaded');
-
-                          // 🧠 Auto-download safely (avoid crash)
-                          if (!isSender &&
-                              !isDownloaded &&
-                              (data['fileUrl']?.toString().isNotEmpty ??
-                                  false)) {
+                          if (!isSender && !isDownloaded && (data['fileUrl']?.toString().isNotEmpty ?? false)) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               _downloadFileAndUpdate(messageDoc, context);
                             });
                           }
 
-                          // 💬 Safe ChatBubble creation
                           return ChatBubble(
                             senderId: senderId,
                             chatId: chatId,
@@ -383,45 +357,76 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     },
                   ),
                 ),
-                SafeArea(
-                  bottom: true,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _textController,
-                            decoration: InputDecoration(
-                              hintText: 'Enter message...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: const BorderSide(
-                                  color: Colors.grey,
+
+                // Message input bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Palette.surface,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -2))],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Attachment
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Palette.surfaceVariant,
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: AttachmentButton(chatId: chatId),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Text input
+                          Expanded(
+                            child: Container(
+                              constraints: const BoxConstraints(maxHeight: 120),
+                              decoration: BoxDecoration(
+                                color: Palette.surfaceVariant,
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(color: Palette.border, width: 1),
+                              ),
+                              child: TextField(
+                                controller: _textController,
+                                maxLines: null,
+                                keyboardType: TextInputType.multiline,
+                                style: const TextStyle(fontSize: 14, color: Palette.textPrimary),
+                                decoration: const InputDecoration(
+                                  hintText: 'Type a message...',
+                                  hintStyle: TextStyle(color: Palette.textDisabled, fontSize: 14),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  filled: false,
                                 ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 10),
-                              prefixIcon: AttachmentButton(
-                                  chatId: chatId), // 👈 inside input
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        FloatingActionButton(
-                          onPressed: _sendMessage,
-                          backgroundColor: Palette.primaryColor,
-                          mini: true,
-                          child: const Icon(
-                            Icons.send,
-                            color: Colors.white, // 👈 white color set
+                          const SizedBox(width: 8),
+
+                          // Send button
+                          GestureDetector(
+                            onTap: _sendMessage,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: const BoxDecoration(
+                                color: Palette.primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
     );
