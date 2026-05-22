@@ -905,31 +905,38 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     print(newRequest.startTimeDate.toString());
 
     // Get courier and broker data for notification
-    final User currentUser = FirebaseAuth.instance.currentUser!;
+    final User? currentUser = FirebaseAuth.instance.currentUser;
     final courierData =
     await NotificationService.getCourierNameAndTokenById(widget.courierKey);
-    final brokerData =
-    await NotificationService.getBrokerNameAndTokenById(currentUser.uid);
+    final brokerData = currentUser != null
+        ? await NotificationService.getBrokerNameAndTokenById(currentUser.uid)
+        : null;
 
     print("User FCM Info: $courierData");
 
     // Save the request and send notification concurrently
     String? requestId;
-    await Future.wait([
-      // Save the request and capture the requestId
+    final String? courierToken = courierData?['token'] as String?;
+
+    final List<Future> tasks = [
       firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID).then((id) {
-        requestId = id; // Store the requestId
+        requestId = id;
       }),
-      // Send notification
-      if (courierData != null)
+    ];
+
+    if (courierToken != null && courierToken.isNotEmpty) {
+      tasks.add(
         NotificationService.sendNotification(
           title: "New Request",
-          toToken: courierData['token']!,
+          toToken: courierToken,
           type: "broker_request",
           screen: "DrawerScreen",
           extraData: {"senderName": brokerData?['name']},
         ),
-    ]);
+      );
+    }
+
+    await Future.wait(tasks);
 
     // Step 3: Hide loading dialog
     Navigator.of(context).pop();
