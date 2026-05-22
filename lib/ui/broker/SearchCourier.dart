@@ -324,15 +324,12 @@ class _SearchCourierState extends State<SearchCourier> {
 
             // 🔹 Fixed bottom buttons
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Chat button
-                  SizedBox(
-                    width: 150,
-                    child: ElevatedButton.icon(
+                  Expanded(
+                    child: OutlinedButton.icon(
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -342,49 +339,45 @@ class _SearchCourierState extends State<SearchCourier> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.chat, color: Colors.white),
-                      label: const Text("Chat"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[500],
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(
-                            fontWeight: FontWeight.bold),
+                      icon: const Icon(Icons.chat_rounded, size: 18),
+                      label: const Text("Chat", style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Palette.primaryColor,
+                        side: const BorderSide(color: Palette.primaryColor, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
 
                   // Place Job button
-                  SizedBox(
-                    width: 150,
+                  Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => SubmissionScreen(
-                              brokerKey:
-                              AuthUtils.getCurrentUserId2()
-                                  .toString(),
+                              brokerKey: AuthUtils.getCurrentUserId2().toString(),
                               courierKey: widget.courierKey,
                               onSave: (Task) {},
                             ),
                           ),
                         );
                       },
-                      icon: const Icon(Icons.work, color: Colors.white),
-                      label: const Text("Place Job"),
+                      icon: const Icon(Icons.work_rounded, size: 18, color: Colors.white),
+                      label: const Text("Place Job", style: TextStyle(fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Palette.secondaryColor,
+                        backgroundColor: Palette.primaryColor,
                         foregroundColor: Colors.white,
-                        textStyle: const TextStyle(
-                            fontWeight: FontWeight.bold),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                     ),
