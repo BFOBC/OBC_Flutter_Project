@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/broker/SearchCourier.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -611,6 +612,11 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
                     decoration: const InputDecoration(
                       hintText: '3 Letter Airport Code',
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
                     ),
                     onSubmitted: (value) {
                       if (value.length == 3) {
@@ -624,7 +630,7 @@ class _BrokerMapState extends State<BrokerMap> with SingleTickerProviderStateMix
 
                 /// 👉 Added Search Button
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.blue),
+                  icon: const Icon(Icons.send, color: Palette.primaryColor),
                   onPressed: () {
                     final value = _searchController.text.trim();
                     if (value.length == 3) {
