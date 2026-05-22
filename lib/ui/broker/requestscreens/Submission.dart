@@ -376,7 +376,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
           "Request New Job",
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.lightGreen,
+        backgroundColor: Palette.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         foregroundColor:
             Colors.white, // Ensures status bar icons/text are white
@@ -385,7 +385,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (!validate()) return;
 
               bool allMilestonesValid = true;
