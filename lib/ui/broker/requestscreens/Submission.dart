@@ -1,5 +1,6 @@
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/EmptyLegRequest.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
@@ -505,24 +506,39 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (_) => const Center(
-                    child: CircularProgressIndicator(color: Colors.green),
+                  builder: (_) => Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Palette.primaryColor),
+                          SizedBox(height: 16),
+                          Text('Sending request...', style: TextStyle(fontSize: 14, color: Palette.textSecondary)),
+                        ],
+                      ),
+                    ),
                   ),
                 );
-                sendEmptyLegRequest(context);
-                // Navigator.pop(context);
+                try {
+                  await sendEmptyLegRequest(context);
+                } catch (e) {
+                  if (context.mounted) Navigator.of(context).pop();
+                  Fluttertoast.showToast(msg: 'Failed to send request. Please try again.');
+                }
               }
             },
             style: TextButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: Palette.primaryColor,
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20), // makes it rounded
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
             child: const Text(
               'Request Job',
-              style: TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -928,49 +944,55 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     // Show success dialog
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.green,
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80, height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Palette.primaryColor.withOpacity(0.1),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.check_circle_rounded, color: Palette.primaryColor, size: 48),
                 ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.check, color: Colors.white, size: 40),
-              ),
-              const SizedBox(height: 10),
-              const Text('Job request sent successfully'),
-            ],
-          ),
-          actions: [
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                margin: const EdgeInsets.all(8.0),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5.0),
+                const SizedBox(height: 20),
+                const Text(
+                  'Request Sent!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Palette.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Your job request has been sent successfully.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Palette.textSecondary, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Palette.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                  ),
-                  onPressed: () async {
-                    Navigator.of(context).pop(); // Close the dialog
-                    _navigateToDrawerPage(); // Navigate to the Drawer page
-                  },
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(color: Colors.white),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _navigateToDrawerPage();
+                    },
+                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );

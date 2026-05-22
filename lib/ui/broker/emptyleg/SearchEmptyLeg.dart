@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/broker/emptyleg/AddNewMilestoneEmptLeg.dart';
 import 'package:broker_flutter_pp/ui/broker/mission/BrokerMissions.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart';
@@ -323,7 +324,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                             child: FloatingActionButton(
                               heroTag: 'chatBtn',
                               mini: true,
-                              backgroundColor: Colors.blue,
+                              backgroundColor: Palette.primaryColor,
                               onPressed: () {
                                 print('Chatttttttttttt');
                                 print(flight.courierID);
@@ -349,7 +350,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       Center(
                         child: isBooked
                             ? const Icon(Icons.airplane_ticket,
-                                size: 40, color: Colors.green)
+                                size: 40, color: Palette.primaryColor)
                             : ElevatedButton.icon(
                                 onPressed: () {
                                   departureLocation =
@@ -368,7 +369,7 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                                     color: Colors.white, size: 14),
                                 label: const Text('Add Mile Stones'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
+                                  backgroundColor: Palette.primaryColor,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 45, vertical: 8),
@@ -419,168 +420,88 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Palette.backgroundLight,
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Arrival Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25.0),
-                border: Border.all(color: Colors.blue, width: 1),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: TextField(
-                controller: _searchController2,
-                decoration: InputDecoration(
-                  hintText: 'Arrival',
-                  border: InputBorder.none,
-                  icon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: _searchController2.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            _searchController2.clear();
-                          },
-                        )
-                      : null,
-                ),
-                onChanged: (String value) {
-                  print("Arrival text changed: $value");
-                  _fetchFromAirportData(value);
-                },
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
-                  // ✅ Letters + spaces only
-                ],
-              ),
+            _buildSearchField(
+              controller: _searchController2,
+              hint: 'Arrival Airport',
+              onChanged: (v) { _fetchFromAirportData(v); },
+              onClear: () { setState(() { _searchController2.clear(); }); },
             ),
 
-            // Show suggestions below 'From Location'
             if (fromAirportSuggestions.isNotEmpty)
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: fromAirportSuggestions.length,
-                itemBuilder: (context, index) {
-                  final airport = fromAirportSuggestions[index];
-                  return ListTile(
-                    title: Text(airport.name ?? 'Unknown'),
-                    onTap: () {
-                      setState(() {
-                        FocusScope.of(context).unfocus();
-                        _searchController2.text = airport.name ?? '';
-                        selectedFromAirport = airport;
-                        fromAirportSuggestions = [];
-                      });
-                    },
-                  );
-                },
-              ),
-            const SizedBox(height: 15),
+              _buildSuggestionList(fromAirportSuggestions, (airport) {
+                setState(() {
+                  FocusScope.of(context).unfocus();
+                  _searchController2.text = airport.name ?? '';
+                  selectedFromAirport = airport;
+                  fromAirportSuggestions = [];
+                });
+              }),
+
+            const SizedBox(height: 12),
 
             // Departure Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25.0),
-                border: Border.all(color: Colors.green, width: 1),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: TextField(
-                controller: _searchController1,
-                decoration: InputDecoration(
-                  hintText: 'Departure',
-                  border: InputBorder.none,
-                  icon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: _searchController1.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            _searchController1.clear(); // Clear text input
-                          },
-                        )
-                      : null, // Don't show the icon if text is empty
-                ),
-                onChanged: (String value) {
-                  // This callback is triggered every time the user types.
-                  print("Departure text changed: $value");
-
-                  _fetchToAirportData(value);
-                },
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
-                  // Allows only letters and spaces
-                ],
-              ),
+            _buildSearchField(
+              controller: _searchController1,
+              hint: 'Departure Airport',
+              onChanged: (v) { _fetchToAirportData(v); },
+              onClear: () { setState(() { _searchController1.clear(); }); },
             ),
-            // Show suggestions below 'From Location'
+
             if (toAirportSuggestions.isNotEmpty)
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: toAirportSuggestions.length,
-                itemBuilder: (context, index) {
-                  final airport = toAirportSuggestions[index];
-                  return ListTile(
-                    title: Text(airport.name ?? 'Unknown'),
-                    onTap: () {
-                      setState(() {
-                        FocusScope.of(context).unfocus();
-                        _searchController1.text = airport.name ?? '';
-                        selectedToAirport = airport;
-                        toAirportSuggestions = [];
-                      });
-                    },
-                  );
-                },
-              ),
-            const SizedBox(height: 15),
-            // Search Button
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              _buildSuggestionList(toAirportSuggestions, (airport) {
+                setState(() {
+                  FocusScope.of(context).unfocus();
+                  _searchController1.text = airport.name ?? '';
+                  selectedToAirport = airport;
+                  toAirportSuggestions = [];
+                });
+              }),
+
+            const SizedBox(height: 14),
+
+            // Search & Reset buttons row
+            Row(
               children: [
-                SizedBox(
-                  width: 120,
-                  height: 35,
-                  child: ElevatedButton(
+                Expanded(
+                  child: ElevatedButton.icon(
                     onPressed: _filterFlights,
+                    icon: const Icon(Icons.search_rounded, size: 16),
+                    label: const Text('Search'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(40.0),
-                      ),
-                    ),
-                    child: const Text(
-                      'Search',
-                      style: TextStyle(fontSize: 14, color: Colors.white),
+                      backgroundColor: Palette.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
                   ),
                 ),
-                const SizedBox(height: 10), // بٹنوں کے درمیان فاصلہ
-                SizedBox(
-                  width: 120, // برابر width
-                  height: 35, // برابر height
-                  child: ElevatedButton(
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
                     onPressed: _resetFlights,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(40.0),
-                      ),
-                    ),
-                    child: const Text(
-                      'Reset',
-                      style: TextStyle(fontSize: 14, color: Colors.white),
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: const Text('Reset'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Palette.textSecondary,
+                      side: const BorderSide(color: Palette.border, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 5),
+            const SizedBox(height: 12),
 
-            // Filtered Items List
             // Filtered Items List
             Expanded(
               child: filteredFlights.isEmpty
@@ -588,136 +509,211 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
                       child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.airplanemode_inactive,
-                            color: Colors.red, size: 50),
-                        const SizedBox(height: 10),
+                        Container(
+                          width: 72, height: 72,
+                          decoration: BoxDecoration(color: Palette.errorColor.withOpacity(0.08), shape: BoxShape.circle),
+                          child: const Icon(Icons.airplanemode_inactive_rounded, color: Palette.errorColor, size: 36),
+                        ),
+                        const SizedBox(height: 14),
                         const Text(
                           'No Empty Legs Available',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Colors.red,
+                            color: Palette.textSecondary,
                           ),
                         ),
                       ],
                     ))
                   : ListView.builder(
-                itemCount: filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = filteredFlights[index];
+                    padding: const EdgeInsets.only(bottom: 16),
+                    itemCount: filteredFlights.length,
+                    itemBuilder: (context, index) {
+                      final flight = filteredFlights[index];
 
-                  // 🕒 Convert UTC → Local
-                  final DateTime startLocal = flight.fromDateTime.toLocal();
-                  final DateTime endLocal = flight.toDateTime.toLocal();
-                  final DateTime now = DateTime.now();
+                      final DateTime startLocal = flight.fromDateTime.toLocal();
+                      final DateTime endLocal = flight.toDateTime.toLocal();
+                      final DateTime now = DateTime.now();
 
-                  // ❌ Skip expired flights (end time passed)
-                  if (now.isAfter(endLocal)) {
-                    return const SizedBox.shrink();
-                  }
+                      if (now.isAfter(endLocal)) return const SizedBox.shrink();
 
-                  // 🔹 Calculate progress
-                  double progress = _calculateProgress(startLocal, endLocal);
+                      double progress = _calculateProgress(startLocal, endLocal);
+                      String startDate = DateFormat('dd MMM yyyy, hh:mm a').format(startLocal);
+                      String endDate = DateFormat('dd MMM yyyy, hh:mm a').format(endLocal);
 
-                  // 🔹 Format dates for UI
-                  String startDate = DateFormat('dd MMM yyyy, hh:mm a').format(startLocal);
-                  String endDate = DateFormat('dd MMM yyyy, hh:mm a').format(endLocal);
-
-                  return GestureDetector(
-                    onTap: () => _showFlightDialog(context, flight),
-                    child: Card(
-                      color: Colors.white,
-                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Blue Vertical Line
-                            Container(
-                              width: 4,
-                              height: 190,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 10),
-
-                            // Flight Info
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Arrival:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      return GestureDetector(
+                        onTap: () => _showFlightDialog(context, flight),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Palette.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [BoxShadow(color: Palette.primaryColor.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Colored left accent
+                                Container(
+                                  width: 4,
+                                  height: 130,
+                                  decoration: BoxDecoration(
+                                    color: Palette.primaryColor,
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  Text(
-                                    flight.toLocation,
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
+                                ),
+                                const SizedBox(width: 12),
 
-                                  const SizedBox(height: 8),
-
-                                  Text(
-                                    'Departure:',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    flight.fromLocation,
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-
-                                  const SizedBox(height: 8),
-
-                                  // Progress Bar
-                                  LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor: Colors.grey[300],
-                                    color: Colors.red,
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // 🗓️ Start Date
-                                  Row(
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.calendar_today,
-                                          size: 18, color: Colors.green),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Start: $startDate',
-                                        style: const TextStyle(fontSize: 14),
+                                      // Route row
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.flight_land_rounded, size: 15, color: Palette.secondaryColor),
+                                          const SizedBox(width: 5),
+                                          const Text('Arrival', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Palette.textSecondary)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(flight.toLocation, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Palette.textPrimary)),
+
+                                      const SizedBox(height: 8),
+
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.flight_takeoff_rounded, size: 15, color: Palette.primaryColor),
+                                          const SizedBox(width: 5),
+                                          const Text('Departure', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Palette.textSecondary)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(flight.fromLocation, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Palette.textPrimary)),
+
+                                      const SizedBox(height: 10),
+
+                                      // Progress bar
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: progress,
+                                          backgroundColor: Palette.border,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            progress < 0.5 ? Palette.success : (progress < 0.8 ? Palette.warning : Palette.errorColor),
+                                          ),
+                                          minHeight: 6,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 10),
+
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.schedule_rounded, size: 14, color: Palette.secondaryColor),
+                                          const SizedBox(width: 5),
+                                          Expanded(child: Text('Start: $startDate', style: const TextStyle(fontSize: 12, color: Palette.textSecondary))),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.event_rounded, size: 14, color: Palette.errorColor),
+                                          const SizedBox(width: 5),
+                                          Expanded(child: Text('End: $endDate', style: const TextStyle(fontSize: 12, color: Palette.textSecondary))),
+                                        ],
                                       ),
                                     ],
                                   ),
+                                ),
 
-                                  const SizedBox(height: 6),
-
-                                  // 🗓️ End Date
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.calendar_month,
-                                          size: 18, color: Colors.red),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'End: $endDate',
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                const Icon(Icons.chevron_right_rounded, color: Palette.textDisabled, size: 20),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
 
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSearchField({
+    required TextEditingController controller,
+    required String hint,
+    required ValueChanged<String> onChanged,
+    required VoidCallback onClear,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Palette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Palette.border, width: 1.2),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+      ),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(fontSize: 14, color: Palette.textPrimary),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Palette.textDisabled, fontSize: 14),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          prefixIcon: const Icon(Icons.search_rounded, color: Palette.primaryColor, size: 20),
+          suffixIcon: controller.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Palette.textSecondary, size: 18),
+                  onPressed: onClear,
+                  splashRadius: 18,
+                )
+              : null,
+        ),
+        onChanged: onChanged,
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]'))],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionList(List<AirportModel> airports, Function(AirportModel) onSelect) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 160),
+      margin: const EdgeInsets.only(top: 4),
+      decoration: BoxDecoration(
+        color: Palette.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Palette.border),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8)],
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: airports.length,
+        itemBuilder: (context, index) {
+          final airport = airports[index];
+          return InkWell(
+            onTap: () => onSelect(airport),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.flight_rounded, size: 14, color: Palette.primaryColor),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(airport.name ?? 'Unknown', style: const TextStyle(fontSize: 13, color: Palette.textPrimary))),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -787,54 +783,52 @@ class _SearchEmptyLegScreenState extends State<SearchEmptyLegScreen> {
             Navigator.of(dialogContext).pop(); // Close the dialog on back press
             return false; // prevent pushing anything else
           },
-          child: AlertDialog(
-            content: Column(
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   width: 80,
                   height: 80,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.green,
+                    color: Palette.primaryColor.withOpacity(0.1),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.check, color: Colors.white, size: 40),
+                  child: const Icon(Icons.check_circle_rounded, color: Palette.primaryColor, size: 48),
                 ),
-                const SizedBox(height: 10),
-                Text(message),
-              ],
-            ),
-            actions: [
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  margin: const EdgeInsets.all(8.0),
+                const SizedBox(height: 20),
+                Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Palette.textSecondary, height: 1.5)),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Palette.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5.0),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(dialogContext).pop(); // Close dialog
+                      Navigator.of(dialogContext).pop();
                       Navigator.pushReplacement(
-                        // ✅ replace so it doesn't go back
                         context,
                         MaterialPageRoute(
                           builder: (context) => BrokerMissions(),
                         ),
                       );
                     },
-                    child: const Text(
-                      'OK',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
           ),
         );
       },
