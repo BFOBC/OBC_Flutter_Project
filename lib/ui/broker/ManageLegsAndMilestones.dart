@@ -176,7 +176,7 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
                     _placeJob();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Palette.secondaryColor,
+                    backgroundColor: Palette.primaryColor,
                     foregroundColor: Colors.white,
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.bold,

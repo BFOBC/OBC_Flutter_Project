@@ -177,15 +177,13 @@ class _SearchCourierState extends State<SearchCourier> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Palette.secondaryColor,
-                    // Set the button color to green
+                    backgroundColor: Palette.primaryColor,
                     foregroundColor: Colors.white,
-                    // Set the text color to white
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0), // Rounded corners
+                      borderRadius: BorderRadius.circular(16.0),
                     ),
                   ),
                   child: const Text('Place the Job'),
