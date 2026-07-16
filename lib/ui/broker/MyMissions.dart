@@ -1,8 +1,8 @@
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:broker_flutter_pp/ui/broker/viewmodels/TaskViewModel.dart';
-import 'data/Task.dart';
+import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'ManageLegsAndMilestones.dart';
 import 'CircularRating.dart';
 
