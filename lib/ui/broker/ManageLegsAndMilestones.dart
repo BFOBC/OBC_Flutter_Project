@@ -3,8 +3,8 @@ import 'package:broker_flutter_pp/ui/common/utils/CustomDialog.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import '../common/screens/DrawerScreen.dart';
-import 'PlaceNewJob.dart';  // Import the Add New Empty Leg screen
-import 'AddNewMilestone.dart';      // Import the Add New Milestone screen
+import 'package:broker_flutter_pp/ui/broker/mission/PlaceNewJob.dart';
+import 'package:broker_flutter_pp/ui/broker/requestscreens/AddNewMilestone.dart';
 
 class ManageLegsAndMilestones extends StatefulWidget {
   final Task? data; // Replace YourDataType with the actual type of your data object

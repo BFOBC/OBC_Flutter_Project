@@ -3,8 +3,8 @@ import 'package:broker_flutter_pp/ui/common/utils/CustomDialog.dart';
 import 'package:flutter/material.dart';
 import '../../res/custom_colors.dart';
 import '../common/screens/DrawerScreen.dart';
-import 'ViewJob.dart';
-import 'ViewMilestone.dart';
+import 'package:broker_flutter_pp/ui/courier/ViewJob.dart';
+import 'package:broker_flutter_pp/ui/broker/mission/ViewMilestone.dart';
 
 class ViewCourierMission extends StatefulWidget {
   final Task? data; // Replace YourDataType with the actual type of your data object
