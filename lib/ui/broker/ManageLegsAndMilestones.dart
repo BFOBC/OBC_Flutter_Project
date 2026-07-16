@@ -7,8 +7,15 @@ import 'package:broker_flutter_pp/ui/broker/mission/PlaceNewJob.dart';
 import 'package:broker_flutter_pp/ui/broker/requestscreens/AddNewMilestone.dart';
 
 class ManageLegsAndMilestones extends StatefulWidget {
-  final Task? data; // Replace YourDataType with the actual type of your data object
-  const ManageLegsAndMilestones({Key? key, this.data}) : super(key: key);
+  final Task? data;
+  final String brokerKey;
+  final String courierKey;
+  const ManageLegsAndMilestones({
+    Key? key,
+    this.data,
+    this.brokerKey = '',
+    this.courierKey = '',
+  }) : super(key: key);
 
   @override
   _ManageLegsAndMilestonesState createState() => _ManageLegsAndMilestonesState();
@@ -159,8 +166,17 @@ class _ManageLegsAndMilestonesState extends State<ManageLegsAndMilestones> {
 
               Expanded(
                 child: _selectedIndex == 0
-                    ? PlaceNewJob(data: widget.data) // Pass Task data to PlaceNewJob
-                    : AddNewMilestone(data: widget.data), // Pass Task data to AddNewMilestone
+                    ? PlaceNewJob(
+                        data: widget.data,
+                        brokerKey: widget.brokerKey,
+                        courierKey: widget.courierKey,
+                        onSave: (task) {},
+                      )
+                    : AddNewMilestone(
+                        data: widget.data,
+                        brokerKey: widget.brokerKey,
+                        courierKey: widget.courierKey,
+                      ),
               ),
             ],
           ),
