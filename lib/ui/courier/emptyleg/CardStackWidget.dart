@@ -1,146 +1,172 @@
-import 'package:flutter/cupertino.dart';
+
+import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'EmptyLegMainScreen.dart';
+class CardStackWidget extends StatefulWidget {
+  const CardStackWidget({
+    Key? key,
+  }) : super(key: key);
 
-class CardStackWidget extends StatelessWidget {
-  final List<FlightDetails> flightDetailsList;
+  @override
+  _CardStackWidgetState createState() => _CardStackWidgetState();
+}
 
-  const CardStackWidget({Key? key, required this.flightDetailsList}) : super(key: key);
+class _CardStackWidgetState extends State<CardStackWidget> {
+  List<Map<String, dynamic>> brokerRequests = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBrokerRequests();
+  }
+
+  Future<void> _fetchBrokerRequests() async {
+    try {
+      var _currentUser = FirebaseAuth.instance.currentUser!;
+      FirestoreService firestoreService = FirestoreService(context);
+      List<Map<String, dynamic>> requests =
+      await firestoreService.getEmptyLegRequestsWithBrokers(_currentUser.uid);
+
+      List<Map<String, dynamic>> formattedRequests = requests.map((request) {
+        return {
+          'brokerName': request['broker']?['name'] ?? 'N/A',
+          'profileUrl': request['broker']?['profilePictureUrl'] ??
+              'https://via.placeholder.com/50',
+          'fromLocation': request['departureLocation'] ?? 'Unknown',
+          'toLocation': request['arrivalLocation'] ?? 'Unknown',
+          'requestDate': request['requestDateTime']?.split('T')[0] ?? 'N/A',
+          'capacity': request['courierCapacity']?.toString() ?? 'N/A',
+          'rating': (request['broker']?['rating'] ?? 0).toInt(),
+        };
+      }).toList();
+      print('Broker Requests');
+      print(requests);
+
+      setState(() {
+        brokerRequests = formattedRequests;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching broker requests: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height; // Get screen height
-    final screenWidth = MediaQuery.of(context).size.width; // Get screen width
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 8), // Spacing between title and cards
-        SizedBox(
-          height: screenHeight * 0.25, // Adjust height based on screen size
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: flightDetailsList.length,
-            itemBuilder: (context, index) {
-              return _buildCard(flightDetailsList[index], screenWidth);
-            },
-          ),
-        ),
-      ],
+    return isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : brokerRequests.isEmpty
+        ? const Center(child: Text("No requests found"))
+        : Container(
+      height: MediaQuery.of(context).size.height * 0.3, // 30% of screen height
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: brokerRequests.length,
+        itemBuilder: (context, index) {
+          return _buildBrokerCard(brokerRequests[index], screenWidth);
+        },
+      ),
     );
   }
 
-  Widget _buildCard(FlightDetails details, double screenWidth) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(right: 8.0),
-      child: Container(
-        width: screenWidth * 0.7, // Adjusted width for cards
-        padding: const EdgeInsets.all(8.0), // Padding inside the card
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCardHeader(details), // Add header with user details
-            SizedBox(height: 8), // Spacing below the header
-            Expanded(
-              child: SingleChildScrollView(
-                child: _buildFlightDetails(details), // Flight details
+  Widget _buildBrokerCard(Map<String, dynamic> brokerDetails, double screenWidth) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BrokerDetailsScreen(brokerDetails: brokerDetails),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 4,
+        child: Container(
+          width: screenWidth * 0.75, // 75% of screen width for better fitting
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 30.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // Prevent unnecessary space
+            children: [
+              // Broker name and details
+              Text(
+                brokerDetails['brokerName'],
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              Text('From: ${brokerDetails['fromLocation']}'),
+              Text('To: ${brokerDetails['toLocation']}'),
+              Text('Date: ${brokerDetails['requestDate']}'),
+              Text('Capacity: ${brokerDetails['capacity']}'),
+
+              // Rating stars
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < brokerDetails['rating'] ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
+                  );
+                }),
+              ),
+              const SizedBox(height: 5),  // This ensures no extra space below the content
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFlightDetails(FlightDetails details) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+}
+
+class BrokerDetailsScreen extends StatelessWidget {
+  final Map<String, dynamic> brokerDetails;
+
+  const BrokerDetailsScreen({Key? key, required this.brokerDetails})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(brokerDetails['brokerName'])),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // From Label and Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'From:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text('Location: ${details.fromLocation}', style: TextStyle(fontSize: 12)),
-                  Text('Date: ${details.fromDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Time: ${details.toDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Flight Number: ${details.flightNumber}', style: TextStyle(fontSize: 12)),
-                  Text('Capacity: ${details.capacity}', style: TextStyle(fontSize: 12)),
-                ],
+            Center(
+              child: ClipOval(
+                child: Image.network(
+                  brokerDetails['profileUrl'],
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-            SizedBox(width: 16), // Space between From and To columns
-            // To Label and Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'To:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text('Location: ${details.toLocation}', style: TextStyle(fontSize: 12)),
-                  Text('Date: ${details.toDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Time: ${details.fromDateTime}', style: TextStyle(fontSize: 12)),
-                  Text('Flight Number: ${details.flightNumber}', style: TextStyle(fontSize: 12)),
-                  Text('Capacity: ${details.capacity}', style: TextStyle(fontSize: 12)),
-                ],
-              ),
+            const SizedBox(height: 20),
+            Text(
+              'Name: ${brokerDetails['brokerName']}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 10),
+            Text('Rating: ${brokerDetails['rating']}'),
+            const Divider(height: 20),
+            Text('Request Details:',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('From: ${brokerDetails['fromLocation']}'),
+            Text('To: ${brokerDetails['toLocation']}'),
+            Text('Date: ${brokerDetails['requestDate']}'),
+            Text('Capacity: ${brokerDetails['capacity']}'),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildCardHeader(FlightDetails details) {
-    return Row(
-      children: [
-        ClipOval(
-          child: Image.asset(
-            'assets/avatar.png', // Replace with your image asset path
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-          ),
-        ),
-        SizedBox(width: 8), // Spacing between image and text
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                details.userName,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ), // User name
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < details.rating ? Icons.star : Icons.star_border,
-                    color: index < details.rating ? Colors.amber : Colors.grey,
-                    size: 16,
-                  );
-                }),
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: Icon(Icons.chat, color: Colors.blue),
-          onPressed: () {
-            // Action for chat button
-            // Navigate to chat screen or show chat dialog
-          },
-        ),
-      ],
+      ),
     );
   }
 }

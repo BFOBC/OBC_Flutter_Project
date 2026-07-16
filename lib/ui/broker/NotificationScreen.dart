@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({Key? key}) : super(key: key);
+  const NotificationScreen({super.key});
 
   @override
   _NotificationScreenState createState() => _NotificationScreenState();
@@ -76,7 +76,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 // Show Snackbar with Undo action
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Notification dismissed'),
+                    content: const Text('Notification dismissed'),
                     action: SnackBarAction(
                       label: 'Undo',
                       onPressed: () {

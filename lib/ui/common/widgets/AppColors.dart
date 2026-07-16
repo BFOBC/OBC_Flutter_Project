@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 
+// Thin alias — use Palette directly for new code
 class AppColors {
-  static const Color primaryColor = Color(0xFF00796B);
-  static const Color accentColor = Color(0xFFFF5722);
-  static const Color textColor = Color(0xFF333333);
-// Add more color constants as needed
+  static const Color primaryColor = Palette.primaryColor;
+  static const Color accentColor = Palette.accentColor;
+  static const Color textColor = Palette.textPrimary;
+  static const Color secondaryColor = Palette.secondaryColor;
+  static const Color success = Palette.success;
+  static const Color warning = Palette.warning;
+  static const Color error = Palette.errorColor;
 }

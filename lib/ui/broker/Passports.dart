@@ -1,26 +1,14 @@
 import 'package:flutter/material.dart';
+import '../common/models/Passport.dart';
 
-class Passport {
-  final String name;
-  final String passportNumber;
-  final String issueDate;
-  final String expiryDate;
-
-  Passport({
-    required this.name,
-    required this.passportNumber,
-    required this.issueDate,
-    required this.expiryDate,
-  });
-}
 
 class Passports extends StatelessWidget {
   final List<Passport> passports;
 
   const Passports({
-    Key? key,
+    super.key,
     required this.passports,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +50,13 @@ class Passports extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Name: ${passport.name}',
+            'Name: ${passport.countryName}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16.0,
             ),
           ),
-          Text(
+/*          Text(
             'Passport Number: ${passport.passportNumber}',
             style: const TextStyle(
               fontSize: 16.0,
@@ -79,7 +67,7 @@ class Passports extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16.0,
             ),
-          ),
+          ),*/
           Text(
             'Expiry Date: ${passport.expiryDate}',
             style: const TextStyle(

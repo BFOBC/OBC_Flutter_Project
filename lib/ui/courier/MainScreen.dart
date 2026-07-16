@@ -1,10 +1,8 @@
 import 'package:broker_flutter_pp/ui/chat/profileScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
-import '../common/charts/CircularChartScreen.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-import '../broker/PlaceNewJob.dart';
 
 class MainScreen extends StatefulWidget {
   final String userName;
@@ -12,11 +10,11 @@ class MainScreen extends StatefulWidget {
   final String userImage;
 
   const MainScreen({
-    Key? key,
+    super.key,
     required this.userName,
     required this.rating,
     required this.userImage,
-  }) : super(key: key);
+  });
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -26,7 +24,7 @@ class _MainScreenState extends State<MainScreen> {
   bool _showPieChart = true;
   bool _showProfile = false;
 
-  // Sample data for the pie chart
+  // Sample model for the pie chart
   final Map<String, double> dataMap = {
     "Red": 40,
     "Green": 30,
@@ -126,7 +124,7 @@ class CircularChart extends StatelessWidget {
   final Map<String, double> dataMap;
   final List<Color> colorList;
 
-  CircularChart({required this.dataMap, required this.colorList});
+  const CircularChart({super.key, required this.dataMap, required this.colorList});
 
   @override
   Widget build(BuildContext context) {

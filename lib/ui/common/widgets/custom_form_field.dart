@@ -2,7 +2,7 @@ import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:flutter/material.dart';
 class CustomFormField extends StatelessWidget {
   const CustomFormField({
-    Key? key,
+    super.key,
     required TextEditingController controller,
     required FocusNode focusNode,
     required TextInputType keyboardType,
@@ -20,8 +20,7 @@ class CustomFormField extends StatelessWidget {
         _inputAction = inputAction,
         _label = label,
         _hint = hint,
-        _validator = validator,
-        super(key: key);
+        _validator = validator;
 
   final TextEditingController _emailController;
   final FocusNode _emailFocusNode;
@@ -50,7 +49,7 @@ class CustomFormField extends StatelessWidget {
       validator: (value) => _validator(value!),
       decoration: InputDecoration(
         labelText: isLabelEnabled ? _label : null,
-        labelStyle: TextStyle(color: Palette.firebaseYellow),
+        labelStyle: const TextStyle(color: Palette.firebaseYellow),
         hintText: _hint,
         hintStyle: TextStyle(
           color: Palette.firebaseGrey.withOpacity(0.5),
@@ -61,7 +60,7 @@ class CustomFormField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: Palette.firebaseAmber,
             width: 2,
           ),

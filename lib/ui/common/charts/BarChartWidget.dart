@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class BarChartWidget extends StatelessWidget {
-  const BarChartWidget({Key? key}) : super(key: key);
+  const BarChartWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +23,8 @@ class BarChartWidget extends StatelessWidget {
           for (int i = 1; i <= numberOfBars; i++) // Generate bars dynamically
             BarChartGroupData(x: i, barRods: [
               BarChartRodData(
-                toY: (i * 2 + 10).toDouble(), // Example data
-                gradient: LinearGradient(
+                toY: (i).toDouble(), // Example data
+                gradient: const LinearGradient(
                   colors: [Colors.green, Colors.blue], // Gradient colors
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
@@ -44,15 +44,15 @@ class BarChartWidget extends StatelessWidget {
               },
             ),
           ),
-          bottomTitles: AxisTitles(
+          bottomTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false), // Hide bottom titles
           ),
-          rightTitles: AxisTitles(
+          rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false), // Hide right titles
           ),
         ),
         borderData: FlBorderData(show: true),
-        gridData: FlGridData(show: true),
+        gridData: const FlGridData(show: true),
       ),
     );
   }

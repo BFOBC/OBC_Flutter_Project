@@ -1,26 +1,13 @@
+import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:flutter/material.dart';
-
-class Visa {
-  final String country;
-  final String countryFlagUrl;
-  final String visaExpiryDate;
-  final String visaIssueDate;
-
-  Visa({
-    required this.country,
-    required this.countryFlagUrl,
-    required this.visaExpiryDate,
-    required this.visaIssueDate,
-  });
-}
 
 class Visas extends StatelessWidget {
   final List<Visa> visas;
 
   const Visas({
-    Key? key,
+    super.key,
     required this.visas,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,33 +49,33 @@ class Visas extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Country: ${visa.country}',
+            'Country: ${visa.countryName}',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16.0,
             ),
           ),
           const SizedBox(height: 5),
-          Text(
+/*          Text(
             'Flag URL: ${visa.countryFlagUrl}', // Replace with actual flag widget if needed
             style: const TextStyle(
               fontSize: 16.0,
             ),
-          ),
+          ),*/
           const SizedBox(height: 5),
           Text(
-            'Visa Expiry Date: ${visa.visaExpiryDate}',
+            'Visa Expiry Date: ${visa.expiryDate}',
             style: const TextStyle(
               fontSize: 16.0,
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            'Visa Issue Date: ${visa.visaIssueDate}',
+/*          Text(
+            'Visa Issue Date: ${visa.expiryDate}',
             style: const TextStyle(
               fontSize: 16.0,
             ),
-          ),
+          ),*/
         ],
       ),
     );

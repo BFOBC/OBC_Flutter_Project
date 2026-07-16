@@ -1,36 +1,188 @@
-import 'package:broker_flutter_pp/ui/broker/viewmodels/TaskViewModel.dart';
+
+import 'dart:convert';
+
+import 'package:broker_flutter_pp/data/notification/NotificationService.dart';
+import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/screens/DataSyncScreen.dart';
+import 'package:broker_flutter_pp/ui/common/utils/LoggingNavigatorObserver.dart';
+import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
+import 'package:broker_flutter_pp/ui/common/viewmodels/TaskViewModel.dart';
 import 'package:broker_flutter_pp/ui/common/screens/SplashScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:workmanager/workmanager.dart';
+import 'firebase_options.dart';
 
-void main() async{
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+final GlobalKey<NavigatorState> navigatorKeyMain = GlobalKey<NavigatorState>();
+final loggingObserver = LoggingNavigatorObserver();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensures binding is initialized
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await FirebaseMessaging.instance.requestPermission(); // Important for iOS
+
+  // 🔹 Register background handler BEFORE runApp
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  setupFCM();
+
+  initializeWorkManager();
+  notificationListner();
+  WidgetsFlutterBinding.ensureInitialized(); // <-- VERY IMPORTANT
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => RoleProvider()),  // Initialize RoleProvider
+        ChangeNotifierProvider(create: (_) => RoleProvider()), // Initialize RoleProvider
         ChangeNotifierProvider(create: (context) => TaskViewModel()), // Initialize TaskViewModel
+        ChangeNotifierProvider(create: (_) => OnlineStatusProvider()),
       ],
       child: const MyApp(),
     ),
   );
+  // Check pending payload after app is built
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.handlePendingPayload();
+  });
+}
+void initializeWorkManager() {
+  // ✅ Initialize WorkManager
+  Workmanager().initialize(
+    callbackDispatcher, // use only one dispatcher
+    isInDebugMode: false, // 👈 Disable debug logging + notification
+  );
+  // ✅ Register periodic task here
+  Workmanager().registerPeriodicTask(
+    'deleteExpiredRecordsTask',
+    'checkAndDeleteExpiredDocuments',
+    frequency: Duration(hours: 24), // 🔁 Daily cleanup
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    ),
+    backoffPolicy: BackoffPolicy.linear,
+    backoffPolicyDelay: Duration(minutes: 5),
+    initialDelay: Duration(minutes: 1),
+  );
+}
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+      await Firebase.initializeApp();
+
+      // ✅ Set up local notifications
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+      const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+      final InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+      );
+
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+      // ✅ Show persistent notification for foreground service
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+        'cleanup_foreground',
+        'Cleanup Foreground',
+        channelDescription: 'Runs background cleanup in foreground',
+        importance: Importance.low,
+        priority: Priority.low,
+        ongoing: true, // keeps notification visible
+        onlyAlertOnce: true,
+      );
+
+      const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      // 🔁 Show foreground-style notification
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'OBC App',
+        'Running cleanup task...',
+        platformChannelSpecifics,
+      );
+
+      // 🔥 Perform the cleanup
+      final firestore = FirebaseFirestore.instance;
+      final now = DateTime.now().toUtc();
+      final snapshot = await firestore.collection('emptyLegs').get();
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final toDateTimeStr = data['toDateTime'];
+        final toDateTime = DateTime.tryParse(toDateTimeStr ?? '');
+        if (toDateTime != null && toDateTime.isBefore(now)) {
+          await doc.reference.delete();
+        }
+      }
+
+      // ✅ Dismiss notification after work is done
+      await flutterLocalNotificationsPlugin.cancel(0);
+
+      return Future.value(true);
+    } catch (e, stack) {
+      print('❌ Error in background task: $e');
+      return Future.value(false);
+    }
+  });
+}
+Future<void> notificationListner() async {
+  await NotificationService.init(); // ✅ Init all listeners
+}
+
+/// Background handler
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("📩 Background/Terminated message received: ${message.data}");
+
+  // Show local notification (optional)
+  await NotificationService.showNotification(
+    title: message.data['title'] ?? "No Title",
+    body: message.data['body'] ?? "No Body",
+    payload: jsonEncode(message.data), // important for tap navigation
+  );
+}
+
+Future<void> setupFCM() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    // Request permission (iOS)
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Get APNs token (iOS only)
+    String? apnsToken = await messaging.getAPNSToken();
+    print('APNS TOKEN: $apnsToken');
+
+    // Get FCM token
+    String? fcmToken = await messaging.getToken();
+    print('FCM TOKEN: $fcmToken');
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Broker App',
+      navigatorKey: navigatorKeyMain, // 👈 Add this line
+      navigatorObservers: [loggingObserver],
+      title: 'OBC SMART',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: AppTheme.light,
       home: const SplashScreen(),
     );
   }

@@ -1,46 +1,50 @@
-import 'package:broker_flutter_pp/ui/courier/emptyleg/EmptyLegMainScreen.dart';
 import 'package:flutter/material.dart';
 
-import 'AddEmptyLegDialog.dart';
-
 class FlightDetailsCard extends StatelessWidget {
-  final FlightDetails flightDetails;
-  final VoidCallback onViewDetails;
+  final String brokerName;
+  final String brokerProfileUrl;
+  final double brokerRating;
+  final VoidCallback onTap;
 
-  const FlightDetailsCard({required this.flightDetails, required this.onViewDetails, Key? key}) : super(key: key);
+  FlightDetailsCard({
+    required this.brokerName,
+    required this.brokerProfileUrl,
+    required this.brokerRating,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Departure: ${flightDetails.fromLocation}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text('Arrival: ${flightDetails.toLocation}'),
-            const SizedBox(height: 8),
-            Text('Courier ID: ${flightDetails.flightNumber}'),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                onPressed: onViewDetails,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue, // Rectangle blue background
-                ),
-                child: const Text('View Details'),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        margin: EdgeInsets.all(10),
+        child: Container(
+          width: 250,
+          padding: EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              
+              SizedBox(height: 10),
+              Text(
+                brokerName,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (index) => Icon(
+                    index < brokerRating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

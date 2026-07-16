@@ -1,43 +1,99 @@
-import 'dart:ffi';
-import 'Passport.dart';
-import 'Visa.dart';
+/*
+import 'package:broker_flutter_pp/ui/common/models/Passport.dart';
+import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 
 class CourierProfileData {
-  final String courierID; // read only
-  final String name; // read only
-  final String password;
-  final String email; // read only
-  final String profilePicture;
-  final String phoneNumber;
-  final Double jobCompleted; // Number of jobs completed first get from DB then increment
-  final Double currentLocation; // get from map or GPS
-  final Double baseLocation; // can add or change by courier from airport list on map
-  final Bool isOnline; // can change by courier nav drawer
-  final Bool availabilityStatus; // true - false
-  final Bool isAllowedToOperate; // admin will allow
-  final Bool haveDrivingLicense;
-  final Bool willingToFirstLastMile;
-  final Bool haveCar;
-  final List<Visa> visa;
-  final List<Passport> passport;
+  String courierID;
+  String name;
+  String email;
+  String _profilePictureUrl; // Private field for profilePictureUrl
+  List<Visa> visas;
+  List<Passport> passports;
 
   CourierProfileData({
     required this.courierID,
     required this.name,
-    required this.password,
-    required this.visa,
-    required this.passport,
     required this.email,
-    required this.haveDrivingLicense,
-    required this.willingToFirstLastMile,
-    required this.haveCar,
-    required this.jobCompleted,
-    required this.currentLocation,
-    required this.baseLocation,
-    required this.isOnline,
-    required this.availabilityStatus,
-    required this.isAllowedToOperate,
-    required this.profilePicture,
-    required this.phoneNumber
-  });
+    required this.visas,
+    required this.passports,
+    String profilePictureUrl = "",  // Default value
+  }) : _profilePictureUrl = profilePictureUrl;
+
+  // Getter for profilePictureUrl
+  String get profilePictureUrl => _profilePictureUrl;
+
+  // Setter for profilePictureUrl
+  set profilePictureUrl(String url) {
+    _profilePictureUrl = url;
+  }
+
+  factory CourierProfileData.fromMap(Map<String, dynamic> map) {
+    return CourierProfileData(
+      courierID: map['courierID'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      profilePictureUrl: map['profilePictureUrl'] ?? '',  // From map
+      visas: (map['visas'] as List<dynamic>? ?? [])
+          .map((e) => Visa.fromMap(e as Map<String, dynamic>))
+          .toList(),
+      passports: (map['passports'] as List<dynamic>? ?? [])
+          .map((e) => Passport.fromMap(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'courierID': courierID,
+      'name': name,
+      'email': email,
+      'profilePictureUrl': _profilePictureUrl,  // Use private field
+      'visas': visas.map((e) => e.toMap()).toList(),
+      'passports': passports.map((e) => e.toMap()).toList(),
+    };
+  }
 }
+
+class Passport {
+  final String id;
+  final String country;
+
+  Passport({required this.id, required this.country});
+
+  factory Passport.fromMap(Map<String, dynamic> map) {
+    return Passport(
+      id: map['id'] ?? '',
+      country: map['country'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'country': country,
+    };
+  }
+}
+
+class Visa {
+  final String expiryDate;
+  final String countryName;
+
+  Visa({required this.expiryDate, required this.countryName});
+
+  factory Visa.fromMap(Map<String, dynamic> map) {
+    return Visa(
+      expiryDate: map['expiry date'] ?? '',
+      countryName: map['country'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': expiryDate,
+      'country': countryName,
+    };
+  }
+}
+
+*/

@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 class ProfileScreen extends StatelessWidget {
   final String name;
 
-  ProfileScreen({required this.name});
+  const ProfileScreen({super.key, required this.name});
 
   @override
   Widget build(BuildContext context) {

@@ -1,3 +1,5 @@
+/*
+import 'package:broker_flutter_pp/ui/courier/emptyleg/JobCardStackWidget.dart';
 import 'package:flutter/material.dart';
 import '../../common/charts/BarChartWidget.dart';
 import '../../common/utils/CustomDialog.dart';
@@ -6,27 +8,13 @@ import 'AddEmptyLegDialog.dart';
 import 'CardStackWidget.dart';
 
 class EmptyLegMainScreen extends StatefulWidget {
-  const EmptyLegMainScreen({Key? key}) : super(key: key);
+  const EmptyLegMainScreen({super.key});
 
   @override
   _EmptyLegMainScreenState createState() => _EmptyLegMainScreenState();
 }
 
 class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
-  // List of original flight details (existing flights)
-  List<FlightDetails> flightDetailsList = [
-    FlightDetails(
-      fromLocation: 'City A',
-      toLocation: 'City B',
-      fromDateTime: '10/10/2024 10:00 AM',
-      toDateTime: '10/10/2024 ',
-      flightNumber: 'F123',
-      capacity: '100kg',
-      userName: 'John Doe',
-      rating: 4,
-    ),
-  ];
-
   // List of user-entered flight details
   List<FlightDetails> userEnteredFlightDetailsList = [];
 
@@ -60,19 +48,23 @@ class _EmptyLegMainScreenState extends State<EmptyLegMainScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Expanded(
+            const Expanded(
               child: BarChartWidget(), // Custom widget
             ),
             const SizedBox(height: 16),
-            if (flightDetailsList.isNotEmpty)
-              CardStackWidget(flightDetailsList: flightDetailsList), // Custom widget
-            const SizedBox(height: 16),
+            //if (flightDetailsList.isNotEmpty)
+              //CardStackWidget(), // Custom widget
+            const JobCardStackWidget(),
+
+*/
+/*            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 _showBottomSheet(context); // View user-entered flight details
               },
               child: const Text('View Flight Details'),
-            ),
+            ),*//*
+
           ],
         ),
       ),
@@ -228,4 +220,18 @@ class FlightDetails {
       rating: 0,
     );
   }
+
+  factory FlightDetails.fromMap(Map<String, dynamic> map) {
+    return FlightDetails(
+      userName: map['userName'] ?? 'Unknown',
+      rating: (map['rating'] ?? 0).toDouble(),
+      fromLocation: map['fromLocation'] ?? 'N/A',
+      toLocation: map['toLocation'] ?? 'N/A',
+      fromDateTime: map['fromDateTime'] ?? 'N/A',
+      toDateTime: map['toDateTime'] ?? 'N/A',
+      flightNumber: map['flightNumber'] ?? 'N/A',
+      capacity: map['capacity'] ?? 0,
+    );
+  }
 }
+*/

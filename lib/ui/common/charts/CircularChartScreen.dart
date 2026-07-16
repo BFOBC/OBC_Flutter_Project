@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
 
 class CircularChartScreen extends StatelessWidget {
-  // Dynamic data for the chart
+  // Dynamic model for the chart
   final Map<String, double> dataMap;
   final List<Color> colorList;
 
-  // Constructor to accept data
+  // Constructor to accept model
   const CircularChartScreen({
-    Key? key,
+    super.key,
     required this.dataMap,
     required this.colorList,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Circular Chart Example'),
+        title: const Text('Circular Chart Example'),
       ),
       body: Center(
         child: PieChart(

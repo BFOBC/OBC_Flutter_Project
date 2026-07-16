@@ -27,33 +27,60 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
-dependency_overrides:
-  firebase_auth_platform_interface: ^6.15.3
-
 dependencies:
   flutter:
     sdk: flutter
-  firebase_auth: ^4.3.0
-  firebase_core: ^2.32.0  # Change to this or the latest compatible version.
-  firebase_database: ^10.5.7
-  firebase_auth_web: ^5.7.3
-  cloud_firestore: ^4.13.6
+  path_provider: ^2.0.14
+  shared_preferences: ^2.4.0
+  cloud_firestore: ^5.5.0
   font_awesome_flutter: ^10.6.0
   pin_code_fields: ^8.0.1
-  #location: ^5.0.0
+  firebase_database: ^11.1.6
   permission_handler: ^11.3.1
   sqflite: ^2.3.3+1
+  http: ^1.0.0
   path: ^1.8.3
-  #fluttertoast: ^8.2.8
   pie_chart: ^5.4.0
   flutter_rating_bar: ^4.0.0
-  flutter_map: ^4.0.0 # Add the latest version of flutter_map
-  latlong2: ^0.8.1 # Required for coordinates
-  provider: ^6.1.2  # Make sure to use the latest version
-  card_stack_widget: 0.1.5
-  fl_chart: ^0.69.0 # or the latest version available
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  provider: ^6.1.2
+  card_stack_widget: ^0.1.6
+  fl_chart: ^0.69.0
+  firebase_auth: ^5.3.3
+  firebase_storage: ^12.3.6
+  image_picker: ^1.1.2
+  google_maps_flutter: ^2.3.0 # Use the latest stable version
+  intl_phone_field: ^3.2.0
+  connectivity_plus: ^5.0.2
+  geolocator: ^10.1.0
+  fluttertoast: ^8.1.1  # Latest version
+  geocoding: ^2.1.0
+  firebase_messaging: ^15.2.5
+  lottie: ^2.6.0
+  google_maps_cluster_manager: ^3.0.0
+  workmanager: ^0.5.1
+  flutter_local_notifications: ^17.1.2
+  intl: ^0.18.1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  file_picker: ^6.1.1
+  url_launcher: ^6.1.11
+  open_file: ^3.2.1
+  video_player: ^2.8.2 #not using
+  chewie: ^1.7.4 # not using
+  device_info_plus: ^10.0.1
+  android_intent_plus: ^4.0.3
+  dio: ^5.3.2
 
-# The following adds the Cupertino Icons font to your application.
+
+
+
+
+  #  jitsi_meet: ^4.0.0 # Make sure to use the latest version
+
+
+  # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
 
@@ -66,7 +93,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
