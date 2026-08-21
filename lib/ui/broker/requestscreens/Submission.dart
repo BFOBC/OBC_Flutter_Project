@@ -14,7 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../../data/notification/NotificationService.dart';
 import 'milestoneinputform.dart'; // make sure this is the correct path
 
@@ -63,15 +62,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   final List<String> _units = ['kg', 'g', 'lb', 'ton'];
   String? _selectedCurrency;
 
-  // ── Voice assistant ───────────────────────────────────────────────────────
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  bool _speechAvailable = false;
-  String? _activeField;
-
   @override
   void initState() {
     super.initState();
-    _initSpeech();
     if (widget.data != null) {
       _submissionStartDateController.text = widget.data!.startDateTime ?? '';
       _submissionEndDateController.text = widget.data!.endDateTime ?? '';
@@ -81,119 +74,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _submissionBidController.text = widget.data!.bid ?? '';
     }
   }
-
-  Future<void> _initSpeech() async {
-    final available = await _speech.initialize(
-      onError: (_) => setState(() => _activeField = null),
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          setState(() => _activeField = null);
-        }
-      },
-    );
-    setState(() => _speechAvailable = available);
-  }
-
-  Future<void> _listenForField(
-    String fieldId,
-    TextEditingController controller, {
-    bool isDateTime = false,
-    void Function(String text)? afterSpeak,
-  }) async {
-    if (!_speechAvailable) {
-      Fluttertoast.showToast(msg: 'Microphone not available');
-      return;
-    }
-    if (_speech.isListening) {
-      await _speech.stop();
-      setState(() => _activeField = null);
-      return;
-    }
-    setState(() => _activeField = fieldId);
-    await _speech.listen(
-      onResult: (result) {
-        if (result.finalResult) {
-          final text = result.recognizedWords;
-          if (isDateTime) {
-            controller.text = _parseSpokenDateTime(text) ?? text;
-          } else {
-            controller.text = text;
-          }
-          setState(() => _activeField = null);
-          if (afterSpeak != null) afterSpeak(controller.text);
-        }
-      },
-      listenFor: const Duration(seconds: 15),
-      pauseFor: const Duration(seconds: 3),
-      localeId: 'en_US',
-    );
-  }
-
-  // Parses "June 24 2026 6 PM" → "2026-06-24 18:00:00.000"
-  String? _parseSpokenDateTime(String text) {
-    final months = {
-      'january': 1, 'february': 2, 'march': 3, 'april': 4,
-      'may': 5, 'june': 6, 'july': 7, 'august': 8,
-      'september': 9, 'october': 10, 'november': 11, 'december': 12,
-      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
-      'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-    };
-    final lower = text.toLowerCase();
-    int? month, day, year, hour = 0, minute = 0;
-    final bool pm = lower.contains('pm');
-    final bool am = lower.contains('am');
-    for (final entry in months.entries) {
-      if (lower.contains(entry.key)) { month = entry.value; break; }
-    }
-    final nums = RegExp(r'\d+').allMatches(lower).map((m) => int.parse(m.group(0)!)).toList();
-    if (month != null) {
-      for (final n in nums) {
-        if (n >= 2000 && n <= 2100) { year = n; continue; }
-        if (n >= 1 && n <= 31 && day == null) { day = n; continue; }
-        if (n >= 0 && n <= 23 && hour == 0) { hour = n; continue; }
-        if (n >= 0 && n <= 59 && minute == 0) { minute = n; }
-      }
-    } else if (nums.length >= 3) {
-      day = nums[0]; month = nums[1]; year = nums[2];
-      if (nums.length > 3) hour = nums[3];
-      if (nums.length > 4) minute = nums[4];
-    }
-    if (pm && hour! < 12) hour = hour! + 12;
-    if (am && hour == 12) hour = 0;
-    if (year != null && month != null && day != null) {
-      try {
-        return DateTime(year!, month!, day!, hour ?? 0, minute ?? 0).toString();
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  Widget _micButton(
-    String fieldId,
-    TextEditingController controller, {
-    bool isDateTime = false,
-    void Function(String)? afterSpeak,
-  }) {
-    final isActive = _activeField == fieldId;
-    return IconButton(
-      icon: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: Icon(
-          isActive ? Icons.mic : Icons.mic_none,
-          key: ValueKey(isActive),
-          color: isActive ? Colors.red : Palette.primaryColor,
-          size: 22,
-        ),
-      ),
-      tooltip: isActive ? 'Tap to stop' : 'Tap to speak',
-      onPressed: () => _listenForField(
-        fieldId, controller,
-        isDateTime: isDateTime,
-        afterSpeak: afterSpeak,
-      ),
-    );
-  }
-  // ─────────────────────────────────────────────────────────────────────────
 
   Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
     final dbHelper = DatabaseOperation();
@@ -390,40 +270,23 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   Widget _buildTextField(
       TextEditingController controller, String label, bool readOnly) {
-    final isNumberField = controller == _submissionCourierController ||
-        controller == _submissionBidController;
-    final fieldId = controller == _submissionStartDateController
-        ? 'start'
-        : controller == _submissionEndDateController
-            ? 'end'
-            : controller == _submissionDepartureController
-                ? 'dep'
-                : controller == _submissionArrivalController
-                    ? 'arr'
-                    : 'field';
-    final isActive = _activeField == fieldId;
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: controller,
         readOnly: readOnly,
-        keyboardType: isNumberField ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
-          helperText: isActive ? 'Listening… speak now' : null,
-          helperStyle: const TextStyle(color: Colors.red, fontSize: 11),
           suffixIcon: readOnly
-              ? Row(
+              ? const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _micButton(fieldId, controller, isDateTime: true),
-                    const Icon(Icons.calendar_today),
-                    const SizedBox(width: 8),
+                    Icon(Icons.calendar_today),
+                    SizedBox(width: 8),
                   ],
                 )
-              : _micButton(fieldId, controller),
+              : null,
         ),
         onTap: readOnly
             ? () async {
@@ -457,7 +320,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   @override
   void dispose() {
-    _speech.stop();
     _submissionStartDateController.dispose();
     _submissionEndDateController.dispose();
     _submissionDepartureController.dispose();
@@ -542,7 +404,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                         milestoneEnd.isAfter(submissionEnd!)) {
                       allMilestonesValid = false;
                       Fluttertoast.showToast(
-                        msg: "Milestone #${i + 1} (${title}) dates must be within submission date range.",
+                        msg: "Milestone #${i + 1} ($title) dates must be within submission date range.",
                         backgroundColor: Colors.red,
                         textColor: Colors.white,
                         gravity: ToastGravity.TOP,
@@ -651,8 +513,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               child: _buildTextField2(
                 _submissionDepartureController,
                 'From Location',
-                suffixIcon: _micButton('dep', _submissionDepartureController,
-                    afterSpeak: (text) => _fetchFromAirportData(text)),
                 onChanged: (value) {
                   if (value.length == 3) _fetchFromAirportData(value);
                 },
@@ -670,8 +530,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               child: _buildTextField2(
                 _submissionArrivalController,
                 'To Location',
-                suffixIcon: _micButton('arr', _submissionArrivalController,
-                    afterSpeak: (text) => _fetchToAirportData(text)),
                 onChanged: (value) {
                   if (value.length == 3) _fetchToAirportData(value);
                 },
@@ -827,7 +685,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   }
 
   Widget _buildBidField() {
-    final isActive = _activeField == 'bid';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -838,14 +695,11 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             child: TextField(
               controller: _submissionBidController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Bid Amount',
-                border: const OutlineInputBorder(),
+                border: OutlineInputBorder(),
                 contentPadding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                helperText: isActive ? 'Listening…' : null,
-                helperStyle: const TextStyle(color: Colors.red, fontSize: 11),
-                suffixIcon: _micButton('bid', _submissionBidController),
+                    EdgeInsets.symmetric(vertical: 12, horizontal: 10),
               ),
             ),
           ),
@@ -884,7 +738,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   }
 
   Widget _buildCapacityField() {
-    final isActive = _activeField == 'cap';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -894,12 +747,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             child: TextField(
               controller: _submissionCourierController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Courier Capacity',
-                border: const OutlineInputBorder(),
-                helperText: isActive ? 'Listening…' : null,
-                helperStyle: const TextStyle(color: Colors.red, fontSize: 11),
-                suffixIcon: _micButton('cap', _submissionCourierController),
+                border: OutlineInputBorder(),
               ),
             ),
           ),
