@@ -34,7 +34,7 @@ class Milestoneinputform extends StatefulWidget {
 class _MilestoneinputformState extends State<Milestoneinputform> {
   late String mileStoneNodeID;
 
-  // ── Voice assistant ───────────────────────────────────────────────────────
+  // Voice assistant — used for Title and Description fields only
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _speechAvailable = false;
   String? _activeField;
@@ -57,8 +57,7 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
     setState(() => _speechAvailable = available);
   }
 
-  Future<void> _listenForField(String fieldId, TextEditingController controller,
-      {bool isDateTime = false}) async {
+  Future<void> _listenForField(String fieldId, TextEditingController controller) async {
     if (!_speechAvailable) return;
     if (_speech.isListening) {
       await _speech.stop();
@@ -69,12 +68,7 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
     await _speech.listen(
       onResult: (result) {
         if (result.finalResult) {
-          if (isDateTime) {
-            controller.text = _parseSpokenDateTime(result.recognizedWords) ??
-                result.recognizedWords;
-          } else {
-            controller.text = result.recognizedWords;
-          }
+          controller.text = result.recognizedWords;
           setState(() => _activeField = null);
         }
       },
@@ -84,46 +78,7 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
     );
   }
 
-  String? _parseSpokenDateTime(String text) {
-    final months = {
-      'january': 1, 'february': 2, 'march': 3, 'april': 4,
-      'may': 5, 'june': 6, 'july': 7, 'august': 8,
-      'september': 9, 'october': 10, 'november': 11, 'december': 12,
-      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
-      'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-    };
-    final lower = text.toLowerCase();
-    int? month, day, year, hour = 0, minute = 0;
-    final bool pm = lower.contains('pm');
-    final bool am = lower.contains('am');
-    for (final entry in months.entries) {
-      if (lower.contains(entry.key)) { month = entry.value; break; }
-    }
-    final nums = RegExp(r'\d+').allMatches(lower).map((m) => int.parse(m.group(0)!)).toList();
-    if (month != null) {
-      for (final n in nums) {
-        if (n >= 2000 && n <= 2100) { year = n; continue; }
-        if (n >= 1 && n <= 31 && day == null) { day = n; continue; }
-        if (n >= 0 && n <= 23 && hour == 0) { hour = n; continue; }
-        if (n >= 0 && n <= 59 && minute == 0) { minute = n; }
-      }
-    } else if (nums.length >= 3) {
-      day = nums[0]; month = nums[1]; year = nums[2];
-      if (nums.length > 3) hour = nums[3];
-      if (nums.length > 4) minute = nums[4];
-    }
-    if (pm && hour! < 12) hour = hour! + 12;
-    if (am && hour == 12) hour = 0;
-    if (year != null && month != null && day != null) {
-      try {
-        return DateTime(year!, month!, day!, hour ?? 0, minute ?? 0).toString();
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  Widget _micButton(String fieldId, TextEditingController controller,
-      {bool isDateTime = false}) {
+  Widget _micButton(String fieldId, TextEditingController controller) {
     final isActive = _activeField == fieldId;
     return IconButton(
       icon: AnimatedSwitcher(
@@ -136,8 +91,7 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
         ),
       ),
       tooltip: isActive ? 'Tap to stop' : 'Tap to speak',
-      onPressed: () =>
-          _listenForField(fieldId, controller, isDateTime: isDateTime),
+      onPressed: () => _listenForField(fieldId, controller),
     );
   }
 
@@ -146,7 +100,6 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
     _speech.stop();
     super.dispose();
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -210,22 +163,14 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
                 TextField(
                   controller: widget.startController,
                   readOnly: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Start Time and Date',
-                    border: const OutlineInputBorder(),
-                    helperText: _activeField == 'mstart_${widget.index}'
-                        ? 'Listening… say e.g. "June 24 2026 6 PM"'
-                        : null,
-                    helperStyle:
-                        const TextStyle(color: Colors.red, fontSize: 11),
+                    border: OutlineInputBorder(),
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _micButton(
-                            'mstart_${widget.index}', widget.startController,
-                            isDateTime: true),
-                        const Icon(Icons.calendar_today),
-                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today),
+                        SizedBox(width: 8),
                       ],
                     ),
                   ),
@@ -237,22 +182,14 @@ class _MilestoneinputformState extends State<Milestoneinputform> {
                 TextField(
                   controller: widget.endController,
                   readOnly: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'End Time and Date',
-                    border: const OutlineInputBorder(),
-                    helperText: _activeField == 'mend_${widget.index}'
-                        ? 'Listening… say e.g. "June 24 2026 6 PM"'
-                        : null,
-                    helperStyle:
-                        const TextStyle(color: Colors.red, fontSize: 11),
+                    border: OutlineInputBorder(),
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _micButton(
-                            'mend_${widget.index}', widget.endController,
-                            isDateTime: true),
-                        const Icon(Icons.calendar_today),
-                        const SizedBox(width: 8),
+                        Icon(Icons.calendar_today),
+                        SizedBox(width: 8),
                       ],
                     ),
                   ),
