@@ -1,13 +1,14 @@
+import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/models/Milestone.dart';
 import 'package:broker_flutter_pp/ui/common/utils/DateTimePicker.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
-class Milestoneinputform extends StatelessWidget {
+class Milestoneinputform extends StatefulWidget {
   final int index;
-  late String mileStoneNodeID;
   final TextEditingController titleController;
   final TextEditingController descriptionController;
   final TextEditingController startController;
@@ -15,7 +16,7 @@ class Milestoneinputform extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onDelete;
 
-  Milestoneinputform({
+  const Milestoneinputform({
     super.key,
     required this.index,
     required this.titleController,
@@ -25,6 +26,127 @@ class Milestoneinputform extends StatelessWidget {
     required this.onSave,
     required this.onDelete,
   });
+
+  @override
+  State<Milestoneinputform> createState() => _MilestoneinputformState();
+}
+
+class _MilestoneinputformState extends State<Milestoneinputform> {
+  late String mileStoneNodeID;
+
+  // ── Voice assistant ───────────────────────────────────────────────────────
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  String? _activeField;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _activeField = null),
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _activeField = null);
+        }
+      },
+    );
+    setState(() => _speechAvailable = available);
+  }
+
+  Future<void> _listenForField(String fieldId, TextEditingController controller,
+      {bool isDateTime = false}) async {
+    if (!_speechAvailable) return;
+    if (_speech.isListening) {
+      await _speech.stop();
+      setState(() => _activeField = null);
+      return;
+    }
+    setState(() => _activeField = fieldId);
+    await _speech.listen(
+      onResult: (result) {
+        if (result.finalResult) {
+          if (isDateTime) {
+            controller.text = _parseSpokenDateTime(result.recognizedWords) ??
+                result.recognizedWords;
+          } else {
+            controller.text = result.recognizedWords;
+          }
+          setState(() => _activeField = null);
+        }
+      },
+      listenFor: const Duration(seconds: 15),
+      pauseFor: const Duration(seconds: 3),
+      localeId: 'en_US',
+    );
+  }
+
+  String? _parseSpokenDateTime(String text) {
+    final months = {
+      'january': 1, 'february': 2, 'march': 3, 'april': 4,
+      'may': 5, 'june': 6, 'july': 7, 'august': 8,
+      'september': 9, 'october': 10, 'november': 11, 'december': 12,
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
+      'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    };
+    final lower = text.toLowerCase();
+    int? month, day, year, hour = 0, minute = 0;
+    final bool pm = lower.contains('pm');
+    final bool am = lower.contains('am');
+    for (final entry in months.entries) {
+      if (lower.contains(entry.key)) { month = entry.value; break; }
+    }
+    final nums = RegExp(r'\d+').allMatches(lower).map((m) => int.parse(m.group(0)!)).toList();
+    if (month != null) {
+      for (final n in nums) {
+        if (n >= 2000 && n <= 2100) { year = n; continue; }
+        if (n >= 1 && n <= 31 && day == null) { day = n; continue; }
+        if (n >= 0 && n <= 23 && hour == 0) { hour = n; continue; }
+        if (n >= 0 && n <= 59 && minute == 0) { minute = n; }
+      }
+    } else if (nums.length >= 3) {
+      day = nums[0]; month = nums[1]; year = nums[2];
+      if (nums.length > 3) hour = nums[3];
+      if (nums.length > 4) minute = nums[4];
+    }
+    if (pm && hour! < 12) hour = hour! + 12;
+    if (am && hour == 12) hour = 0;
+    if (year != null && month != null && day != null) {
+      try {
+        return DateTime(year!, month!, day!, hour ?? 0, minute ?? 0).toString();
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Widget _micButton(String fieldId, TextEditingController controller,
+      {bool isDateTime = false}) {
+    final isActive = _activeField == fieldId;
+    return IconButton(
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Icon(
+          isActive ? Icons.mic : Icons.mic_none,
+          key: ValueKey(isActive),
+          color: isActive ? Colors.red : Palette.primaryColor,
+          size: 20,
+        ),
+      ),
+      tooltip: isActive ? 'Tap to stop' : 'Tap to speak',
+      onPressed: () =>
+          _listenForField(fieldId, controller, isDateTime: isDateTime),
+    );
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    super.dispose();
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +162,7 @@ class Milestoneinputform extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Milestone #$index',
+                  'Milestone #${widget.index}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -51,53 +173,92 @@ class Milestoneinputform extends StatelessWidget {
 
                 /// Title
                 TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
+                  controller: widget.titleController,
+                  decoration: InputDecoration(
                     labelText: 'Title',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    suffixIcon:
+                        _micButton('title_${widget.index}', widget.titleController),
+                    helperText: _activeField == 'title_${widget.index}'
+                        ? 'Listening…'
+                        : null,
+                    helperStyle:
+                        const TextStyle(color: Colors.red, fontSize: 11),
                   ),
                 ),
-
                 const SizedBox(height: 5),
 
                 /// Description
                 TextField(
-                  controller: descriptionController,
+                  controller: widget.descriptionController,
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Description',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _micButton(
+                        'desc_${widget.index}', widget.descriptionController),
+                    helperText: _activeField == 'desc_${widget.index}'
+                        ? 'Listening…'
+                        : null,
+                    helperStyle:
+                        const TextStyle(color: Colors.red, fontSize: 11),
                   ),
                 ),
                 const SizedBox(height: 5),
 
                 /// Start Date
                 TextField(
-                  controller: startController,
+                  controller: widget.startController,
                   readOnly: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Start Time and Date',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
+                    border: const OutlineInputBorder(),
+                    helperText: _activeField == 'mstart_${widget.index}'
+                        ? 'Listening… say e.g. "June 24 2026 6 PM"'
+                        : null,
+                    helperStyle:
+                        const TextStyle(color: Colors.red, fontSize: 11),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _micButton(
+                            'mstart_${widget.index}', widget.startController,
+                            isDateTime: true),
+                        const Icon(Icons.calendar_today),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
                   ),
-                  onTap: () => _selectDateTime(context, startController),
+                  onTap: () => _selectDateTime(context, widget.startController),
                 ),
                 const SizedBox(height: 5),
 
                 /// End Date
                 TextField(
-                  controller: endController,
+                  controller: widget.endController,
                   readOnly: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'End Time and Date',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
+                    border: const OutlineInputBorder(),
+                    helperText: _activeField == 'mend_${widget.index}'
+                        ? 'Listening… say e.g. "June 24 2026 6 PM"'
+                        : null,
+                    helperStyle:
+                        const TextStyle(color: Colors.red, fontSize: 11),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _micButton(
+                            'mend_${widget.index}', widget.endController,
+                            isDateTime: true),
+                        const Icon(Icons.calendar_today),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
                   ),
-                  onTap: () => _selectDateTime(context, endController),
+                  onTap: () => _selectDateTime(context, widget.endController),
                 ),
-
                 const SizedBox(height: 10),
-
               ],
             ),
           ),
@@ -109,9 +270,7 @@ class Milestoneinputform extends StatelessWidget {
             child: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: 'Delete Milestone',
-              onPressed: () {
-                _confirmDelete(context);
-              },
+              onPressed: () => _confirmDelete(context),
             ),
           ),
         ],
@@ -124,16 +283,17 @@ class Milestoneinputform extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Milestone?'),
-        content: const Text('Are you sure you want to delete this milestone?'),
+        content:
+            const Text('Are you sure you want to delete this milestone?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(), // Cancel
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              onDelete(); // Trigger delete callback
+              Navigator.of(context).pop();
+              widget.onDelete();
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -150,13 +310,11 @@ class Milestoneinputform extends StatelessWidget {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-
     if (pickedDate != null) {
       TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
-
       if (pickedTime != null) {
         final dt = DateTime(
           pickedDate.year,

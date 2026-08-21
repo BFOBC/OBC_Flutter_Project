@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../../data/notification/NotificationService.dart';
 import 'milestoneinputform.dart'; // make sure this is the correct path
 
@@ -56,16 +57,21 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   String emptyLegRequestID = "";
   late List<String> milestoneNodeID = [];
 
-  List<AirportModel> fromAirportSuggestions =
-      []; // Suggestions for "From Location"
-  List<AirportModel> toAirportSuggestions = []; // Suggestions for "To Location"
+  List<AirportModel> fromAirportSuggestions = [];
+  List<AirportModel> toAirportSuggestions = [];
   String? _selectedUnit;
   final List<String> _units = ['kg', 'g', 'lb', 'ton'];
-  String? _selectedCurrency; // for dropdown selection
+  String? _selectedCurrency;
+
+  // ── Voice assistant ───────────────────────────────────────────────────────
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  String? _activeField;
 
   @override
   void initState() {
     super.initState();
+    _initSpeech();
     if (widget.data != null) {
       _submissionStartDateController.text = widget.data!.startDateTime ?? '';
       _submissionEndDateController.text = widget.data!.endDateTime ?? '';
@@ -75,6 +81,119 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _submissionBidController.text = widget.data!.bid ?? '';
     }
   }
+
+  Future<void> _initSpeech() async {
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _activeField = null),
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _activeField = null);
+        }
+      },
+    );
+    setState(() => _speechAvailable = available);
+  }
+
+  Future<void> _listenForField(
+    String fieldId,
+    TextEditingController controller, {
+    bool isDateTime = false,
+    void Function(String text)? afterSpeak,
+  }) async {
+    if (!_speechAvailable) {
+      Fluttertoast.showToast(msg: 'Microphone not available');
+      return;
+    }
+    if (_speech.isListening) {
+      await _speech.stop();
+      setState(() => _activeField = null);
+      return;
+    }
+    setState(() => _activeField = fieldId);
+    await _speech.listen(
+      onResult: (result) {
+        if (result.finalResult) {
+          final text = result.recognizedWords;
+          if (isDateTime) {
+            controller.text = _parseSpokenDateTime(text) ?? text;
+          } else {
+            controller.text = text;
+          }
+          setState(() => _activeField = null);
+          if (afterSpeak != null) afterSpeak(controller.text);
+        }
+      },
+      listenFor: const Duration(seconds: 15),
+      pauseFor: const Duration(seconds: 3),
+      localeId: 'en_US',
+    );
+  }
+
+  // Parses "June 24 2026 6 PM" → "2026-06-24 18:00:00.000"
+  String? _parseSpokenDateTime(String text) {
+    final months = {
+      'january': 1, 'february': 2, 'march': 3, 'april': 4,
+      'may': 5, 'june': 6, 'july': 7, 'august': 8,
+      'september': 9, 'october': 10, 'november': 11, 'december': 12,
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
+      'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    };
+    final lower = text.toLowerCase();
+    int? month, day, year, hour = 0, minute = 0;
+    final bool pm = lower.contains('pm');
+    final bool am = lower.contains('am');
+    for (final entry in months.entries) {
+      if (lower.contains(entry.key)) { month = entry.value; break; }
+    }
+    final nums = RegExp(r'\d+').allMatches(lower).map((m) => int.parse(m.group(0)!)).toList();
+    if (month != null) {
+      for (final n in nums) {
+        if (n >= 2000 && n <= 2100) { year = n; continue; }
+        if (n >= 1 && n <= 31 && day == null) { day = n; continue; }
+        if (n >= 0 && n <= 23 && hour == 0) { hour = n; continue; }
+        if (n >= 0 && n <= 59 && minute == 0) { minute = n; }
+      }
+    } else if (nums.length >= 3) {
+      day = nums[0]; month = nums[1]; year = nums[2];
+      if (nums.length > 3) hour = nums[3];
+      if (nums.length > 4) minute = nums[4];
+    }
+    if (pm && hour! < 12) hour = hour! + 12;
+    if (am && hour == 12) hour = 0;
+    if (year != null && month != null && day != null) {
+      try {
+        return DateTime(year!, month!, day!, hour ?? 0, minute ?? 0).toString();
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Widget _micButton(
+    String fieldId,
+    TextEditingController controller, {
+    bool isDateTime = false,
+    void Function(String)? afterSpeak,
+  }) {
+    final isActive = _activeField == fieldId;
+    return IconButton(
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Icon(
+          isActive ? Icons.mic : Icons.mic_none,
+          key: ValueKey(isActive),
+          color: isActive ? Colors.red : Palette.primaryColor,
+          size: 22,
+        ),
+      ),
+      tooltip: isActive ? 'Tap to stop' : 'Tap to speak',
+      onPressed: () => _listenForField(
+        fieldId, controller,
+        isDateTime: isDateTime,
+        afterSpeak: afterSpeak,
+      ),
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   Future<List<AirportModel>> fetchAirportsFromDatabase(String query) async {
     final dbHelper = DatabaseOperation();
@@ -88,50 +207,36 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     }
   }
 
-  // Fetch airports that match the query for From Location
   Future<void> _fetchFromAirportData(String query) async {
     if (query.isNotEmpty) {
       try {
         final airports = await fetchAirportsFromDatabase(query);
-        setState(() {
-          fromAirportSuggestions = airports;
-        });
+        setState(() { fromAirportSuggestions = airports; });
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error fetching airports: $e')));
       }
     } else {
-      setState(() {
-        fromAirportSuggestions = [];
-      });
+      setState(() { fromAirportSuggestions = []; });
     }
   }
 
-  // Fetch airports that match the query for To Location
   Future<void> _fetchToAirportData(String query) async {
     if (query.isNotEmpty) {
       try {
         final airports = await fetchAirportsFromDatabase(query);
-        setState(() {
-          toAirportSuggestions = airports;
-        });
+        setState(() { toAirportSuggestions = airports; });
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error fetching airports: $e')));
       }
     } else {
-      setState(() {
-        toAirportSuggestions = [];
-      });
+      setState(() { toAirportSuggestions = []; });
     }
   }
 
   void _addMilestoneForm() {
-    setState(() {
-      milestoneForms.add(MilestoneFormData());
-    });
-
-    // Smooth scroll after delay
+    setState(() { milestoneForms.add(MilestoneFormData()); });
     Future.delayed(Duration(milliseconds: 300), () {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -143,29 +248,23 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   void _removeMilestoneForm(int index) {
     print("🚨 _removeMilestoneForm called with index: $index");
-
     try {
       print("📋 milestoneForms.length: ${milestoneForms.length}");
       print("📋 milestoneNodeID.length: ${milestoneNodeID.length}");
-
       if (index < 0 || index >= milestoneForms.length) {
         print("❌ Invalid index: $index in milestoneForms");
         return;
       }
-
       setState(() {
         final nodeID =
             (index < milestoneNodeID.length) ? milestoneNodeID[index] : null;
-
         milestoneForms.removeAt(index);
-
         if (index < milestoneNodeID.length) {
           milestoneNodeID.removeAt(index);
           print("🧾 nodeID to delete: $nodeID");
-          deleteMilestoneByID(nodeID.toString()); // uncomment if needed
+          deleteMilestoneByID(nodeID.toString());
           print("✅ deleteMilestoneByID($nodeID) called");
         }
-
         print("✅ Removed from UI");
       });
     } catch (e, stack) {
@@ -176,11 +275,10 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   }
 
   bool validate() {
-    // Basic input field validation
     if (_submissionStartDateController.text.isEmpty ||
         _submissionEndDateController.text.isEmpty ||
         _submissionDepartureController.text.isEmpty ||
-        _submissionArrivalController.text.isEmpty ){
+        _submissionArrivalController.text.isEmpty) {
       Fluttertoast.showToast(
         msg: "Please fill all fields correctly.",
         backgroundColor: Colors.red,
@@ -189,11 +287,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-
-    // ✅ Bid amount validation
     final bidText = _submissionBidController.text.trim();
     final bidValue = double.tryParse(bidText);
-
     if (bidValue == null || bidValue <= 0) {
       Fluttertoast.showToast(
         msg: "Please enter a valid bid amount.",
@@ -203,7 +298,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-    // ✅ Currency validation
     if (_selectedCurrency == null || _selectedCurrency!.isEmpty) {
       Fluttertoast.showToast(
         msg: "Please select a currency.",
@@ -213,12 +307,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-
-    // ✅ Capacity validation
     final capacityText = _submissionCourierController.text.trim();
     final capacity = double.tryParse(capacityText);
-
-    if (capacity == null  || capacity <= 0) {
+    if (capacity == null || capacity <= 0) {
       Fluttertoast.showToast(
         msg: "Please enter a valid courier capacity.",
         backgroundColor: Colors.red,
@@ -227,7 +318,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-
     if (capacity > 5000) {
       Fluttertoast.showToast(
         msg: "Courier capacity cannot exceed 5000.",
@@ -237,15 +327,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-
-
-
-
-    // ✅ Date validation
     try {
       final start = DateTime.parse(_submissionStartDateController.text);
       final end = DateTime.parse(_submissionEndDateController.text);
-
       if (!start.isBefore(end)) {
         Fluttertoast.showToast(
           msg: "Start date must be before end date.",
@@ -263,8 +347,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-
-    // ✅ Milestone presence check
     if (milestoneForms.isEmpty) {
       Fluttertoast.showToast(
         msg: "At least one milestone is required.",
@@ -274,7 +356,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       );
       return false;
     }
-
     return true;
   }
 
@@ -284,15 +365,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     ValueChanged<String>? onChanged,
     ValueChanged<String>? onFieldSubmitted,
     List<TextInputFormatter>? inputFormatters,
-    TextInputType keyboardType = TextInputType.text, // ✅ Default to text
+    TextInputType keyboardType = TextInputType.text,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      // ✅ Use it here
       decoration: InputDecoration(
         labelText: labelText,
         border: const OutlineInputBorder(),
+        suffixIcon: suffixIcon,
       ),
       onChanged: onChanged,
       onFieldSubmitted: onFieldSubmitted,
@@ -310,6 +392,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       TextEditingController controller, String label, bool readOnly) {
     final isNumberField = controller == _submissionCourierController ||
         controller == _submissionBidController;
+    final fieldId = controller == _submissionStartDateController
+        ? 'start'
+        : controller == _submissionEndDateController
+            ? 'end'
+            : controller == _submissionDepartureController
+                ? 'dep'
+                : controller == _submissionArrivalController
+                    ? 'arr'
+                    : 'field';
+    final isActive = _activeField == fieldId;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -320,7 +412,18 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
-          suffixIcon: readOnly ? const Icon(Icons.calendar_today) : null,
+          helperText: isActive ? 'Listening… speak now' : null,
+          helperStyle: const TextStyle(color: Colors.red, fontSize: 11),
+          suffixIcon: readOnly
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _micButton(fieldId, controller, isDateTime: true),
+                    const Icon(Icons.calendar_today),
+                    const SizedBox(width: 8),
+                  ],
+                )
+              : _micButton(fieldId, controller),
         ),
         onTap: readOnly
             ? () async {
@@ -354,17 +457,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   @override
   void dispose() {
+    _speech.stop();
     _submissionStartDateController.dispose();
     _submissionEndDateController.dispose();
     _submissionDepartureController.dispose();
     _submissionArrivalController.dispose();
     _submissionBidController.dispose();
     _submissionCourierController.dispose();
-
     for (var form in milestoneForms) {
       form.dispose();
     }
-
     super.dispose();
   }
 
@@ -378,8 +480,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
         backgroundColor: Palette.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
-        foregroundColor:
-            Colors.white, // Ensures status bar icons/text are white
+        foregroundColor: Colors.white,
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -389,7 +490,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               if (!validate()) return;
 
               bool allMilestonesValid = true;
-
               DateTime? submissionStart;
               DateTime? submissionEnd;
 
@@ -398,11 +498,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                     DateTime.parse(_submissionStartDateController.text);
                 submissionEnd =
                     DateTime.parse(_submissionEndDateController.text);
-
                 if (submissionStart.isAfter(submissionEnd)) {
                   Fluttertoast.showToast(
-                    msg:
-                        "Submission start date must be before or equal to end date.",
+                    msg: "Submission start date must be before or equal to end date.",
                     backgroundColor: Colors.red,
                     textColor: Colors.white,
                     gravity: ToastGravity.TOP,
@@ -422,10 +520,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
               if (allMilestonesValid) {
                 for (int i = 0; i < milestoneForms.length; i++) {
                   final form = milestoneForms[i];
-
                   final title = form.titleController.text.trim();
-
-                  // Check for empty fields
                   if (title.isEmpty ||
                       form.startController.text.isEmpty ||
                       form.endController.text.isEmpty) {
@@ -438,20 +533,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                     );
                     break;
                   }
-
-                  // Validate milestone dates
                   try {
                     final milestoneStart =
                         DateTime.parse(form.startController.text);
                     final milestoneEnd =
                         DateTime.parse(form.endController.text);
-
                     if (milestoneStart.isBefore(submissionStart!) ||
                         milestoneEnd.isAfter(submissionEnd!)) {
                       allMilestonesValid = false;
                       Fluttertoast.showToast(
-                        msg:
-                            "Milestone #${i + 1} (${title}) dates must be within submission date range.",
+                        msg: "Milestone #${i + 1} (${title}) dates must be within submission date range.",
                         backgroundColor: Colors.red,
                         textColor: Colors.white,
                         gravity: ToastGravity.TOP,
@@ -483,14 +574,11 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                   departureFrom: _submissionDepartureController.text,
                   arriveAt: _submissionArrivalController.text,
                   bid: finalBid,
-                  courierCapacity: finalCapacity, // 👈 updated field
+                  courierCapacity: finalCapacity,
                 );
-
                 widget.onSave(task);
-                // ✅ Now store all milestoneForms to Firebase
                 for (int i = 0; i < milestoneForms.length; i++) {
                   final form = milestoneForms[i];
-
                   final newMilestone = Milestone(
                       title: form.titleController.text,
                       description: form.descriptionController.text,
@@ -500,7 +588,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                       milestoneNodeID: null,
                       brokerID: widget.brokerKey,
                       emptyLegRequestID: null);
-
                   _saveMilestoneToFirebase(newMilestone);
                 }
                 showDialog(
@@ -544,7 +631,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        controller: _scrollController, // <--- ADD THIS
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,21 +642,17 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-
-            // 🔹 Block B (Updated with From/To Location from Block A)
             const SizedBox(height: 10),
-
-// Start & End Date/Time
             _buildTextField(
                 _submissionStartDateController, 'Start Time And Date', true),
             _buildTextField(
                 _submissionEndDateController, 'End Time And Date', true),
-
-// From Location
             _buildStyledField(
               child: _buildTextField2(
                 _submissionDepartureController,
                 'From Location',
+                suffixIcon: _micButton('dep', _submissionDepartureController,
+                    afterSpeak: (text) => _fetchFromAirportData(text)),
                 onChanged: (value) {
                   if (value.length == 3) _fetchFromAirportData(value);
                 },
@@ -583,11 +666,12 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             _buildSuggestionList(
                 fromAirportSuggestions, _submissionDepartureController,
                 isFrom: true),
-// To Location
             _buildStyledField(
               child: _buildTextField2(
                 _submissionArrivalController,
                 'To Location',
+                suffixIcon: _micButton('arr', _submissionArrivalController,
+                    afterSpeak: (text) => _fetchToAirportData(text)),
                 onChanged: (value) {
                   if (value.length == 3) _fetchToAirportData(value);
                 },
@@ -601,15 +685,9 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
             _buildSuggestionList(
                 toAirportSuggestions, _submissionArrivalController,
                 isFrom: false),
-            //_buildTextField(_submissionCourierController, 'Bid', false),
             _buildBidField(),
-            //_buildTextField(_submissionBidController, 'Courier Capacity', false),
             _buildCapacityField(),
-            // 👈 yeh naya method use kia
-
             const SizedBox(height: 10),
-
-            /// Add Milestone Button (centered + rectangular)
             Center(
               child: ElevatedButton.icon(
                 onPressed: _addMilestoneForm,
@@ -621,14 +699,12 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20), // Rounded button
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
-
-            /// Milestone Forms
             AnimatedSwitcher(
               duration: Duration(milliseconds: 400),
               transitionBuilder: (Widget child, Animation<double> animation) {
@@ -645,7 +721,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 children: milestoneForms.asMap().entries.map((entry) {
                   int i = entry.key;
                   final form = entry.value;
-
                   return KeyedSubtree(
                     key: ValueKey("milestone_$i"),
                     child: Milestoneinputform(
@@ -660,8 +735,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                             form.startController.text.isEmpty ||
                             form.endController.text.isEmpty) {
                           Fluttertoast.showToast(
-                            msg:
-                                "Please complete all required fields for milestone #${i + 1}.",
+                            msg: "Please complete all required fields for milestone #${i + 1}.",
                             backgroundColor: Colors.red,
                             textColor: Colors.white,
                             gravity: ToastGravity.TOP,
@@ -723,7 +797,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     try {
       final CollectionReference milestonesCollection =
           FirebaseFirestore.instance.collection('milestones');
-
       DocumentReference docRef = milestonesCollection.doc();
       milestone.milestoneNodeID = docRef.id;
       milestone.milestoneStatus = "pending";
@@ -732,15 +805,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
           milestone.milestoneStartDateTime.toString());
       milestone.milestoneEndDateTime = convertToUTCFromStandardFormat(
           milestone.milestoneEndDateTime.toString());
-
-      await docRef.set(milestone.toMap()); // Make sure Milestone has toMap()
-
-/*      Fluttertoast.showToast(
-        msg: "Milestone '${milestone.title}' saved.",
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-        gravity: ToastGravity.TOP,
-      );*/
+      await docRef.set(milestone.toMap());
     } catch (e) {
       Fluttertoast.showToast(
         msg: "Error saving milestone: $e",
@@ -752,52 +817,50 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 
   Future<void> deleteMilestoneByID(String milestoneID) async {
     try {
-      // Reference to the document in the milestones collection
       DocumentReference docRef =
           FirebaseFirestore.instance.collection('milestones').doc(milestoneID);
-
-      // Delete the document
       await docRef.delete();
-
       print('Milestone with ID $milestoneID deleted successfully.');
     } catch (e) {
       print('Error deleting milestone: $e');
     }
   }
-// --- Bid Field Widget ---
+
   Widget _buildBidField() {
+    final isActive = _activeField == 'bid';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- Bid Amount Field ---
           Expanded(
             flex: 2,
             child: TextField(
               controller: _submissionBidController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Bid Amount',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                border: const OutlineInputBorder(),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                helperText: isActive ? 'Listening…' : null,
+                helperStyle: const TextStyle(color: Colors.red, fontSize: 11),
+                suffixIcon: _micButton('bid', _submissionBidController),
               ),
             ),
           ),
-
           const SizedBox(width: 8),
-
-          // --- Currency Dropdown ---
           Expanded(
             flex: 1,
             child: DropdownButtonHideUnderline(
               child: DropdownButtonFormField<String>(
                 value: _selectedCurrency,
-                isExpanded: true, // 👈 important fix
+                isExpanded: true,
                 hint: const Text('Currency'),
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                 ),
                 items: const [
                   DropdownMenuItem(
@@ -810,9 +873,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                   ),
                 ],
                 onChanged: (value) {
-                  setState(() {
-                    _selectedCurrency = value;
-                  });
+                  setState(() { _selectedCurrency = value; });
                 },
               ),
             ),
@@ -823,26 +884,26 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   }
 
   Widget _buildCapacityField() {
+    final isActive = _activeField == 'cap';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         children: [
-          // --- Capacity Field ---
           Expanded(
             flex: 2,
             child: TextField(
               controller: _submissionCourierController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Courier Capacity',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                helperText: isActive ? 'Listening…' : null,
+                helperStyle: const TextStyle(color: Colors.red, fontSize: 11),
+                suffixIcon: _micButton('cap', _submissionCourierController),
               ),
             ),
           ),
-
           const SizedBox(width: 10),
-
-          // --- Unit Dropdown ---
           Expanded(
             flex: 1,
             child: DropdownButtonFormField<String>(
@@ -858,9 +919,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 );
               }).toList(),
               onChanged: (value) {
-                setState(() {
-                  _selectedUnit = value;
-                });
+                setState(() { _selectedUnit = value; });
               },
             ),
           ),
@@ -870,17 +929,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   }
 
   Future<void> sendEmptyLegRequest(BuildContext context) async {
-    // Clear milestone list from provider
     Provider.of<RoleProvider>(context, listen: false).clearMilestoneNodeIDS();
     Provider.of<RoleProvider>(context, listen: false).clearTask();
     FirestoreService firestoreService = FirestoreService(context);
-
-    // Create a new EmptyLegRequest with nodeID initially null
     String finalCapacity =
         "${_submissionCourierController.text.trim()} ${_selectedUnit ?? ''}";
     String finalBid =
         "${_submissionBidController.text.trim()} ${_selectedCurrency ?? ''}";
-
     EmptyLegRequest newRequest = EmptyLegRequest(
       brokerID: widget.brokerKey,
       courierID: widget.courierKey,
@@ -901,29 +956,21 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         convertToUTCFromStandardFormat(newRequest.startTimeDate.toString());
     newRequest.endTimeDate =
         convertToUTCFromStandardFormat(newRequest.endTimeDate.toString());
-
     print(newRequest.startTimeDate.toString());
-
-    // Get courier and broker data for notification
     final User? currentUser = FirebaseAuth.instance.currentUser;
     final courierData =
-    await NotificationService.getCourierNameAndTokenById(widget.courierKey);
+        await NotificationService.getCourierNameAndTokenById(widget.courierKey);
     final brokerData = currentUser != null
         ? await NotificationService.getBrokerNameAndTokenById(currentUser.uid)
         : null;
-
     print("User FCM Info: $courierData");
-
-    // Save the request and send notification concurrently
     String? requestId;
     final String? courierToken = courierData?['token'] as String?;
-
     final List<Future> tasks = [
       firestoreService.saveEmptyLegRequest(newRequest, milestoneNodeID).then((id) {
         requestId = id;
       }),
     ];
-
     if (courierToken != null && courierToken.isNotEmpty) {
       tasks.add(
         NotificationService.sendNotification(
@@ -935,20 +982,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         ),
       );
     }
-
     await Future.wait(tasks);
-
-    // Step 3: Hide loading dialog
     Navigator.of(context).pop();
-
-    // Check if request was saved successfully
     if (requestId != null) {
       print("EmptyLegRequest ID: $requestId");
     } else {
       print("Failed to save request.");
     }
-
-    // Show success dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -967,7 +1007,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                     color: Palette.primaryColor.withOpacity(0.1),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.check_circle_rounded, color: Palette.primaryColor, size: 48),
+                  child: const Icon(Icons.check_circle_rounded,
+                      color: Palette.primaryColor, size: 48),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -988,13 +1029,16 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                       backgroundColor: Palette.primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () {
                       Navigator.of(context).pop();
                       _navigateToDrawerPage();
                     },
-                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    child: const Text('OK',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
                   ),
                 ),
               ],
@@ -1003,8 +1047,6 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
         );
       },
     );
-
-    // Navigate back after 10 seconds
     Future.delayed(const Duration(seconds: 10), () {
       if (Navigator.canPop(context)) {
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -1022,18 +1064,12 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
 Widget _buildStyledField({required Widget child}) {
   return Container(
     margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.symmetric(
-      horizontal: 1, // 👈 pehle 12 tha, ab kam kar diya
-      vertical: 4,
-    ),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 4),
+    decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
     child: child,
   );
 }
 
-/// Helper class to hold form controllers
 class MilestoneFormData {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
