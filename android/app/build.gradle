@@ -1,8 +1,8 @@
 plugins {
     id "com.android.application"
-    id "org.jetbrains.kotlin.android"
+    id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services"
+    id 'com.google.gms.google-services' // If you're using Firebase
 }
 
 def localProperties = new Properties()
@@ -26,8 +26,18 @@ if (flutterVersionName == null) {
 android {
     namespace "com.example.broker_flutter_pp"
     compileSdkVersion 35
+    //compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
+
+    defaultConfig{
+        applicationId "com.example.broker_flutter_pp"
+        minSdkVersion 23  // Manually set the minSdkVersion if needed
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true  // Ensures multiDex support for minSdkVersion below 21
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -47,7 +57,6 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        multiDexEnabled true
     }
 
     buildTypes {
