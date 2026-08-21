@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../res/custom_colors.dart';
-import 'data/Task.dart';
+import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 
 class PlaceNewJob extends StatefulWidget {
   final Task? data;
@@ -28,12 +28,12 @@ class PlaceNewJobState extends State<PlaceNewJob> {
     super.initState();
     _initSpeech();
     if (widget.data != null) {
-      _field1Controller.text = widget.data!.startDateTime;
-      _field2Controller.text = widget.data!.endDateTime;
-      _field3Controller.text = widget.data!.departureFrom;
-      _field4Controller.text = widget.data!.arriveAt;
-      _fieldBidController.text = widget.data!.bid;
-      _field5Controller.text = widget.data!.flightNumber;
+      _field1Controller.text = widget.data!.startDateTime ?? '';
+      _field2Controller.text = widget.data!.endDateTime ?? '';
+      _field3Controller.text = widget.data!.departureFrom ?? '';
+      _field4Controller.text = widget.data!.arriveAt ?? '';
+      _fieldBidController.text = widget.data!.bid ?? '';
+      _field5Controller.text = widget.data!.flightNumber ?? '';
     }
   }
 
@@ -82,7 +82,6 @@ class PlaceNewJobState extends State<PlaceNewJob> {
     );
   }
 
-  // Parses spoken text like "May 24 2026 6 PM" → "2026-05-24 18:00:00"
   String? _parseSpokenDateTime(String text) {
     final months = {
       'january': 1, 'february': 2, 'march': 3, 'april': 4,

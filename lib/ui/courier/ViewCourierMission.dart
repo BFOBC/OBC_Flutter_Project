@@ -54,7 +54,7 @@ class _ViewCourierMissionState extends State<ViewCourierMission> {
           ),
           Expanded(
             child: _selectedIndex == 0
-                ? ViewJob(data: widget.data)
+                ? const ViewJob()
                 : ViewMilestone(
                     selectedTab: _toggleText[_selectedIndex],
                     task: widget.data ?? Task(),
