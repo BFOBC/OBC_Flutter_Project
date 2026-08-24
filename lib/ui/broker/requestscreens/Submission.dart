@@ -193,39 +193,44 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
   }
 
   Future<void> _listenForVoiceStep(int step) async {
-    if (!_speechAvailable || !mounted || !_voiceMode || _isSpeaking) return;
+    if (!_speechAvailable || !mounted || !_voiceMode) return;
     if (mounted) setState(() => _isListeningVoice = true);
 
-    bool gotResult = false;
+    final resultCompleter = Completer<String?>();
 
-    await _speech.listen(
-      onResult: (result) {
-        if (result.finalResult && mounted && !gotResult) {
-          gotResult = true;
-          if (mounted) setState(() => _isListeningVoice = false);
-          _onVoiceResult(step, result.recognizedWords.trim());
-        }
-      },
-      listenFor: const Duration(seconds: 15),
-      pauseFor: const Duration(seconds: 3),
-      localeId: 'en_US',
-    );
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          if (result.finalResult && !resultCompleter.isCompleted) {
+            resultCompleter.complete(result.recognizedWords.trim());
+          }
+        },
+        listenFor: const Duration(seconds: 15),
+        pauseFor: const Duration(seconds: 3),
+        localeId: 'en_US',
+      );
+    } catch (_) {
+      if (!resultCompleter.isCompleted) resultCompleter.complete(null);
+    }
+
+    // Block here until STT gives a final result or times out
+    String? spokenText;
+    try {
+      spokenText = await resultCompleter.future.timeout(const Duration(seconds: 18));
+    } catch (_) {
+      spokenText = null;
+    }
 
     if (mounted) setState(() => _isListeningVoice = false);
-    if (!gotResult && mounted && _voiceMode) {
-      await _speak('Are you still there? Please try again.');
-      if (mounted && _voiceMode) _listenForVoiceStep(step);
-    }
-  }
-
-  void _onVoiceResult(int step, String text) async {
     if (!mounted || !_voiceMode) return;
-    if (text.isEmpty) {
-      await _speak('I did not hear you. Please try again.');
-      if (mounted && _voiceMode) _askVoiceStep(step);
+
+    if (spokenText == null || spokenText.isEmpty) {
+      await _speak('I did not hear you. Please say something.');
+      if (mounted && _voiceMode) await _listenForVoiceStep(step);
       return;
     }
-    await _handleVoiceResult(step, text);
+
+    await _handleVoiceResult(step, spokenText);
   }
 
   Future<void> _handleVoiceResult(int step, String text) async {
