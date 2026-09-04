@@ -32,14 +32,14 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Template'),
         content: Text('Are you sure you want to delete "$name"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -91,15 +91,16 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
         onPressed: () => _openTemplateForm(),
         backgroundColor: Palette.primaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
-        label:
-            const Text('New Template', style: TextStyle(color: Colors.white)),
+        label: const Text('New Template',
+            style: TextStyle(color: Colors.white)),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _templatesStream(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: Palette.primaryColor));
+                child:
+                    CircularProgressIndicator(color: Palette.primaryColor));
           }
           if (!snap.hasData || snap.data!.docs.isEmpty) {
             return Center(
@@ -131,7 +132,8 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
               return _TemplateCard(
                 template: t,
                 onEdit: () => _openTemplateForm(existing: t),
-                onDelete: () => _confirmDelete(t.templateId!, t.templateName),
+                onDelete: () =>
+                    _confirmDelete(t.templateId!, t.templateName),
               );
             },
           );
@@ -156,7 +158,8 @@ class _TemplateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -200,16 +203,14 @@ class _TemplateCard extends StatelessWidget {
                 '${template.courierCapacity} ${template.unit}'),
             if (template.milestones.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.flag_outlined,
-                      size: 14, color: Colors.grey.shade500),
-                  const SizedBox(width: 6),
-                  Text('${template.milestones.length} milestone(s)',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade600)),
-                ],
-              ),
+              Row(children: [
+                Icon(Icons.flag_outlined,
+                    size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 6),
+                Text('${template.milestones.length} milestone(s)',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey.shade600)),
+              ]),
             ],
           ],
         ),
@@ -219,27 +220,23 @@ class _TemplateCard extends StatelessWidget {
 
   Widget _row(IconData icon, String label, String value) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: Colors.grey.shade500),
-            const SizedBox(width: 6),
-            Text('$label: ',
-                style:
-                    TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            Expanded(
-              child: Text(
-                value.isEmpty ? '—' : value,
+        child: Row(children: [
+          Icon(icon, size: 14, color: Colors.grey.shade500),
+          const SizedBox(width: 6),
+          Text('$label: ',
+              style:
+                  TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Expanded(
+            child: Text(value.isEmpty ? '—' : value,
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w500),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+                overflow: TextOverflow.ellipsis),
+          ),
+        ]),
       );
 }
 
-// ── Milestone entry (with dates) ──────────────────────────────────────────────
+// ── Milestone entry ───────────────────────────────────────────────────────────
 
 class _MilestoneEntry {
   final TextEditingController titleCtrl;
@@ -259,6 +256,12 @@ class _MilestoneEntry {
         descCtrl = TextEditingController(text: desc),
         startCtrl = TextEditingController(text: start),
         endCtrl = TextEditingController(text: end);
+
+  DateTime? get startDate => startCtrl.text.isEmpty
+      ? null
+      : DateTime.tryParse(startCtrl.text);
+  DateTime? get endDate =>
+      endCtrl.text.isEmpty ? null : DateTime.tryParse(endCtrl.text);
 
   void dispose() {
     titleCtrl.dispose();
@@ -299,9 +302,11 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
 
   final List<_MilestoneEntry> _milestones = [];
 
-  // Airport suggestions
   List<AirportModel> _fromSuggestions = [];
   List<AirportModel> _toSuggestions = [];
+
+  // Store the sheet's own scroll controller so we can scroll to bottom
+  ScrollController? _sheetScrollCtrl;
 
   @override
   void initState() {
@@ -313,7 +318,8 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     _fromCtrl = TextEditingController(text: e?.departureFrom ?? '');
     _toCtrl = TextEditingController(text: e?.arriveAt ?? '');
     _bidCtrl = TextEditingController(text: e?.bid ?? '');
-    _capacityCtrl = TextEditingController(text: e?.courierCapacity ?? '');
+    _capacityCtrl =
+        TextEditingController(text: e?.courierCapacity ?? '');
     _currency = (e?.currency.isNotEmpty == true) ? e!.currency : null;
     _unit = (e?.unit.isNotEmpty == true) ? e!.unit : null;
     if (e != null) {
@@ -339,6 +345,122 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     super.dispose();
   }
 
+  // ── Date helpers ────────────────────────────────────────────────────────────
+
+  DateTime? get _templateStart => _startCtrl.text.isEmpty
+      ? null
+      : DateTime.tryParse(_startCtrl.text);
+  DateTime? get _templateEnd => _endCtrl.text.isEmpty
+      ? null
+      : DateTime.tryParse(_endCtrl.text);
+
+  /// Pick a date/time for a milestone field with proper constraints.
+  Future<void> _pickMilestoneDateTime(
+      TextEditingController ctrl, int milestoneIndex, bool isStart) async {
+    final tStart = _templateStart;
+    final tEnd = _templateEnd;
+
+    // Floor: template start or previous milestone's end
+    DateTime firstAllowed = tStart ?? DateTime(2020);
+    if (isStart && milestoneIndex > 0) {
+      final prevEnd = _milestones[milestoneIndex - 1].endDate;
+      if (prevEnd != null &&
+          prevEnd.isAfter(firstAllowed)) {
+        firstAllowed = prevEnd;
+      }
+    }
+    if (!isStart) {
+      // End date must be after this milestone's start date
+      final msStart = _milestones[milestoneIndex].startDate;
+      if (msStart != null && msStart.isAfter(firstAllowed)) {
+        firstAllowed = msStart;
+      }
+    }
+
+    // Ceiling: template end
+    final lastAllowed = tEnd ?? DateTime(2100);
+
+    if (firstAllowed.isAfter(lastAllowed)) {
+      _showError('No valid date range available. '
+          'Check template and previous milestone dates.');
+      return;
+    }
+
+    DateTime initial = firstAllowed;
+    if (initial.isBefore(DateTime.now())) initial = DateTime.now();
+    if (initial.isAfter(lastAllowed)) initial = lastAllowed;
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: firstAllowed,
+      lastDate: lastAllowed,
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+        context: context, initialTime: TimeOfDay.now());
+    if (time == null || !mounted) return;
+
+    final picked = DateTime(
+        date.year, date.month, date.day, time.hour, time.minute);
+
+    // Final guard: within template range
+    if (tStart != null && picked.isBefore(tStart)) {
+      _showError('Milestone date must be within the job date range.');
+      return;
+    }
+    if (tEnd != null && picked.isAfter(tEnd)) {
+      _showError('Milestone date must be within the job date range.');
+      return;
+    }
+
+    ctrl.text = picked.toString();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _pickTemplateDateTime(TextEditingController ctrl) async {
+    final date = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2100));
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+        context: context, initialTime: TimeOfDay.now());
+    if (time == null) return;
+    ctrl.text = DateTime(
+            date.year, date.month, date.day, time.hour, time.minute)
+        .toString();
+    if (mounted) setState(() {});
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.all(12),
+    ));
+  }
+
+  void _addMilestone() {
+    setState(() => _milestones.add(_MilestoneEntry()));
+    // Scroll to bottom so new milestone is visible
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_sheetScrollCtrl?.hasClients == true) {
+        _sheetScrollCtrl!.animateTo(
+          _sheetScrollCtrl!.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  // ── Airport search ──────────────────────────────────────────────────────────
+
   Future<void> _fetchFromAirports(String query) async {
     if (query.isEmpty) {
       if (mounted) setState(() => _fromSuggestions = []);
@@ -363,21 +485,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     } catch (_) {}
   }
 
-  Future<void> _pickDateTime(TextEditingController ctrl) async {
-    final date = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2100));
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-        context: context, initialTime: TimeOfDay.now());
-    if (time == null) return;
-    ctrl.text = DateTime(
-            date.year, date.month, date.day, time.hour, time.minute)
-        .toString();
-    if (mounted) setState(() {});
-  }
+  // ── Save ────────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -435,6 +543,8 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     if (mounted) setState(() => _saving = false);
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
@@ -442,214 +552,226 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
       initialChildSize: 0.93,
       minChildSize: 0.5,
       maxChildSize: 0.97,
-      builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            // Handle
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
-              child: Row(
-                children: [
-                  Text(isEdit ? 'Edit Template' : 'New Template',
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context)),
-                ],
+      builder: (_, scrollCtrl) {
+        _sheetScrollCtrl = scrollCtrl; // capture for programmatic scroll
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2)),
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  controller: scrollCtrl,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+                child: Row(
                   children: [
-                    // Template Name
-                    TextFormField(
-                      controller: _nameCtrl,
-                      decoration: const InputDecoration(
-                          labelText: 'Template Name *',
-                          border: OutlineInputBorder()),
-                      validator: (v) =>
-                          v!.trim().isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Start Date
-                    TextFormField(
-                      controller: _startCtrl,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Start Date & Time',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                    Text(isEdit ? 'Edit Template' : 'New Template',
+                        style: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: ListView(
+                    controller: scrollCtrl, // MUST use sheet's controller
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                    children: [
+                      // Template Name
+                      TextFormField(
+                        controller: _nameCtrl,
+                        decoration: const InputDecoration(
+                            labelText: 'Template Name *',
+                            border: OutlineInputBorder()),
+                        validator: (v) =>
+                            v!.trim().isEmpty ? 'Required' : null,
                       ),
-                      onTap: () => _pickDateTime(_startCtrl),
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                    // End Date
-                    TextFormField(
-                      controller: _endCtrl,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'End Date & Time',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                      // Job Start Date
+                      TextFormField(
+                        controller: _startCtrl,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'Job Start Date & Time',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: _startCtrl.text.isEmpty
+                              ? const Icon(Icons.calendar_today)
+                              : GestureDetector(
+                                  onTap: () => setState(
+                                      () => _startCtrl.clear()),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.red)),
+                        ),
+                        onTap: () =>
+                            _pickTemplateDateTime(_startCtrl),
                       ),
-                      onTap: () => _pickDateTime(_endCtrl),
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                    // From Airport with live search
-                    TextFormField(
-                      controller: _fromCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'From Airport (IATA code or name)',
-                        border: OutlineInputBorder(),
-                        suffixIcon:
-                            Icon(Icons.flight_takeoff, size: 18),
+                      // Job End Date
+                      TextFormField(
+                        controller: _endCtrl,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'Job End Date & Time',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: _endCtrl.text.isEmpty
+                              ? const Icon(Icons.calendar_today)
+                              : GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _endCtrl.clear()),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.red)),
+                        ),
+                        onTap: () => _pickTemplateDateTime(_endCtrl),
                       ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(3),
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'[a-zA-Z]')),
-                        UpperCaseTextFormatter(),
-                      ],
-                      onChanged: _fetchFromAirports,
-                    ),
-                    if (_fromSuggestions.isNotEmpty)
-                      _airportSuggestionList(
-                          _fromSuggestions, _fromCtrl, true),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                    // To Airport with live search
-                    TextFormField(
-                      controller: _toCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'To Airport (IATA code or name)',
-                        border: OutlineInputBorder(),
-                        suffixIcon:
-                            Icon(Icons.flight_land, size: 18),
+                      // From Airport
+                      TextFormField(
+                        controller: _fromCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'From Airport (IATA)',
+                          border: OutlineInputBorder(),
+                          suffixIcon:
+                              Icon(Icons.flight_takeoff, size: 18),
+                        ),
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(3),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z]')),
+                          UpperCaseTextFormatter(),
+                        ],
+                        onChanged: _fetchFromAirports,
                       ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(3),
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'[a-zA-Z]')),
-                        UpperCaseTextFormatter(),
-                      ],
-                      onChanged: _fetchToAirports,
-                    ),
-                    if (_toSuggestions.isNotEmpty)
-                      _airportSuggestionList(
-                          _toSuggestions, _toCtrl, false),
-                    const SizedBox(height: 14),
+                      if (_fromSuggestions.isNotEmpty)
+                        _airportList(_fromSuggestions, _fromCtrl, true),
+                      const SizedBox(height: 14),
 
-                    // Bid + Currency
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: _bidCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Bid Amount',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14, horizontal: 12),
+                      // To Airport
+                      TextFormField(
+                        controller: _toCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'To Airport (IATA)',
+                          border: OutlineInputBorder(),
+                          suffixIcon:
+                              Icon(Icons.flight_land, size: 18),
+                        ),
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(3),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z]')),
+                          UpperCaseTextFormatter(),
+                        ],
+                        onChanged: _fetchToAirports,
+                      ),
+                      if (_toSuggestions.isNotEmpty)
+                        _airportList(_toSuggestions, _toCtrl, false),
+                      const SizedBox(height: 14),
+
+                      // Bid + Currency
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: _bidCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Bid Amount',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 14, horizontal: 12),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            value: _currency,
-                            hint: const Text('Currency',
-                                overflow: TextOverflow.ellipsis),
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14, horizontal: 12),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: _currency,
+                              hint: const Text('Currency',
+                                  overflow: TextOverflow.ellipsis),
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 14, horizontal: 12),
+                              ),
+                              items: widget.currencies
+                                  .map((c) => DropdownMenuItem(
+                                      value: c, child: Text(c)))
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _currency = v),
                             ),
-                            items: widget.currencies
-                                .map((c) => DropdownMenuItem(
-                                    value: c, child: Text(c)))
-                                .toList(),
-                            onChanged: (v) =>
-                                setState(() => _currency = v),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
 
-                    // Capacity + Unit
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: _capacityCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Courier Capacity',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14, horizontal: 12),
+                      // Capacity + Unit
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: _capacityCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Courier Capacity',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 14, horizontal: 12),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            value: _unit,
-                            hint: const Text('Unit',
-                                overflow: TextOverflow.ellipsis),
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14, horizontal: 12),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: _unit,
+                              hint: const Text('Unit',
+                                  overflow: TextOverflow.ellipsis),
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 14, horizontal: 12),
+                              ),
+                              items: widget.units
+                                  .map((u) => DropdownMenuItem(
+                                      value: u, child: Text(u)))
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _unit = v),
                             ),
-                            items: widget.units
-                                .map((u) => DropdownMenuItem(
-                                    value: u, child: Text(u)))
-                                .toList(),
-                            onChanged: (v) =>
-                                setState(() => _unit = v),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
-                    // ── Milestones ──────────────────────────────────────
-                    Row(
-                      children: [
+                      // ── Milestones header ─────────────────────────────
+                      Row(children: [
                         const Icon(Icons.flag_outlined,
                             color: Palette.primaryColor, size: 18),
                         const SizedBox(width: 8),
@@ -659,8 +781,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                                 fontWeight: FontWeight.w700)),
                         const Spacer(),
                         TextButton.icon(
-                          onPressed: () => setState(
-                              () => _milestones.add(_MilestoneEntry())),
+                          onPressed: _addMilestone,
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Add',
                               style: TextStyle(fontSize: 13)),
@@ -670,124 +791,125 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                                 horizontal: 8, vertical: 4),
                           ),
                         ),
-                      ],
-                    ),
-                    if (_milestones.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text('No milestones added',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade500)),
-                      ),
-                    ..._milestones.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final m = entry.value;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              Palette.primaryColor.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: Palette.primaryColor
-                                  .withOpacity(0.2)),
+                      ]),
+                      if (_milestones.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text('No milestones added',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500)),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text('Milestone ${i + 1}',
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Palette.primaryColor)),
-                                const Spacer(),
-                                GestureDetector(
-                                  onTap: () => setState(() {
-                                    m.dispose();
-                                    _milestones.removeAt(i);
-                                  }),
-                                  child: const Icon(Icons.close,
-                                      size: 18, color: Colors.red),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: m.titleCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Title *',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: m.descCtrl,
-                              maxLines: 2,
-                              decoration: const InputDecoration(
-                                labelText: 'Description',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Milestone Start Date
-                            _milestoneDateField(m.startCtrl,
-                                'Start Date & Time', i),
-                            const SizedBox(height: 8),
-                            // Milestone End Date
-                            _milestoneDateField(
-                                m.endCtrl, 'End Date & Time', i),
-                          ],
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 20),
 
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _saving ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Palette.primaryColor,
-                          foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                      // ── Milestone cards ───────────────────────────────
+                      ..._milestones.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final m = entry.value;
+                        return _buildMilestoneCard(i, m);
+                      }),
+
+                      const SizedBox(height: 20),
+
+                      // Save button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _saving ? null : _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Palette.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(12)),
+                          ),
+                          child: _saving
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2))
+                              : Text(
+                                  isEdit
+                                      ? 'Update Template'
+                                      : 'Save Template',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15)),
                         ),
-                        child: _saving
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2))
-                            : Text(
-                                isEdit
-                                    ? 'Update Template'
-                                    : 'Save Template',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15)),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMilestoneCard(int i, _MilestoneEntry m) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Palette.primaryColor.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Palette.primaryColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text('Milestone ${i + 1}',
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Palette.primaryColor)),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => setState(() {
+                m.dispose();
+                _milestones.removeAt(i);
+              }),
+              child: const Icon(Icons.close, size: 18, color: Colors.red),
             ),
-          ],
-        ),
+          ]),
+          const SizedBox(height: 10),
+          TextField(
+            controller: m.titleCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Title *',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: m.descCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Description',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Start date — constrained to [template start OR prev milestone end, template end]
+          _msDateField(m.startCtrl, 'Start Date & Time', i, true),
+          const SizedBox(height: 8),
+          // End date — constrained to [this milestone start, template end]
+          _msDateField(m.endCtrl, 'End Date & Time', i, false),
+        ],
       ),
     );
   }
 
-  Widget _milestoneDateField(
-      TextEditingController ctrl, String label, int index) {
+  Widget _msDateField(TextEditingController ctrl, String label,
+      int msIndex, bool isStart) {
     return TextField(
       controller: ctrl,
       readOnly: true,
@@ -799,15 +921,14 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
             ? const Icon(Icons.calendar_today, size: 16)
             : GestureDetector(
                 onTap: () => setState(() => ctrl.clear()),
-                child:
-                    const Icon(Icons.close, size: 16, color: Colors.red),
+                child: const Icon(Icons.close, size: 16, color: Colors.red),
               ),
       ),
-      onTap: () => _pickDateTime(ctrl),
+      onTap: () => _pickMilestoneDateTime(ctrl, msIndex, isStart),
     );
   }
 
-  Widget _airportSuggestionList(List<AirportModel> suggestions,
+  Widget _airportList(List<AirportModel> suggestions,
       TextEditingController ctrl, bool isFrom) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
