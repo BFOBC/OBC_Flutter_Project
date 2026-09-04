@@ -874,7 +874,6 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
             ],
           ),
         ),
-      ),
     );
   }
 
