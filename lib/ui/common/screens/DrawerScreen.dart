@@ -22,6 +22,7 @@ import '../../../res/strings.dart';
 import '../../broker/BrokerMap.dart';
 import 'SettingScreen.dart';
 import '../../broker/emptyleg/SearchEmptyLeg.dart';
+import '../../broker/requestscreens/ManageTemplatesScreen.dart';
 import '../../courier/missions/CourierMissions.dart';
 import '../../courier/emptyleg/EmptyLegMainScreen.dart';
 import '../utils/RoleProvider.dart';
@@ -62,6 +63,10 @@ class _DrawerScreenState extends State<DrawerScreen> {
       'title': AppStrings.faq,
       'icon': Icons.help_outline_rounded,
     },
+    AppStrings.manageTemplates: {
+      'title': AppStrings.manageTemplates,
+      'icon': Icons.folder_special_outlined,
+    },
     AppStrings.logout: {
       'title': AppStrings.logout,
       'icon': Icons.logout_rounded,
@@ -96,6 +101,15 @@ class _DrawerScreenState extends State<DrawerScreen> {
   }
 
   Future<void> _onItemSelected(String title) async {
+    if (title == AppStrings.manageTemplates) {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ManageTemplatesScreen()),
+      );
+      return;
+    }
+
     final onlineStatus = Provider.of<OnlineStatusProvider>(context, listen: false);
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
 
@@ -279,6 +293,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
                   children: [
                     ..._drawerItems.keys
                         .where((k) => k != AppStrings.logout)
+                        .where((k) => k != AppStrings.manageTemplates || isBroker)
                         .map((String key) => _DrawerNavItem(
                               icon: _drawerItems[key]!['icon'],
                               title: _drawerItems[key]!['title'],
