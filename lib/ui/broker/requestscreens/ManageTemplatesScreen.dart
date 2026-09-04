@@ -305,8 +305,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   List<AirportModel> _fromSuggestions = [];
   List<AirportModel> _toSuggestions = [];
 
-  // Store the sheet's own scroll controller so we can scroll to bottom
-  ScrollController? _sheetScrollCtrl;
+  final ScrollController _scrollCtrl = ScrollController();
 
   @override
   void initState() {
@@ -339,6 +338,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     _toCtrl.dispose();
     _bidCtrl.dispose();
     _capacityCtrl.dispose();
+    _scrollCtrl.dispose();
     for (final m in _milestones) {
       m.dispose();
     }
@@ -469,14 +469,19 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   }
 
   void _addMilestone() {
-    setState(() => _milestones.add(_MilestoneEntry()));
-    // Double post-frame: first frame lays out new widget, second has correct maxScrollExtent
+    final newEntry = _MilestoneEntry();
+    // Auto-fill start date/time from previous milestone's end
+    if (_milestones.isNotEmpty && _milestones.last.endCtrl.text.isNotEmpty) {
+      newEntry.startCtrl.text = _milestones.last.endCtrl.text;
+    }
+    setState(() => _milestones.add(newEntry));
+    // Double post-frame so layout settles before scroll
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_sheetScrollCtrl?.hasClients == true) {
-          _sheetScrollCtrl!.animateTo(
-            _sheetScrollCtrl!.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 450),
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 400),
             curve: Curves.easeOut,
           );
         }
@@ -573,51 +578,48 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
-    return DraggableScrollableSheet(
-      initialChildSize: 0.93,
-      minChildSize: 0.5,
-      maxChildSize: 0.97,
-      builder: (_, scrollCtrl) {
-        _sheetScrollCtrl = scrollCtrl; // capture for programmatic scroll
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 10),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2)),
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.93,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+              child: Row(
+                children: [
+                  Text(isEdit ? 'Edit Template' : 'New Template',
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context)),
+                ],
               ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
-                child: Row(
-                  children: [
-                    Text(isEdit ? 'Edit Template' : 'New Template',
-                        style: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w700)),
-                    const Spacer(),
-                    IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context)),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: ListView(
-                    controller: scrollCtrl, // MUST use sheet's controller
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  controller: _scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                     children: [
                       // Template Name
                       TextFormField(
@@ -871,8 +873,8 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
