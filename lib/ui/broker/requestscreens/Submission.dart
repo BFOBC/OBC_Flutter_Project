@@ -128,11 +128,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _selectedCurrency = t.currency.isEmpty ? null : t.currency;
       _submissionCourierController.text = t.courierCapacity;
       _selectedUnit = t.unit.isEmpty ? null : t.unit;
-      // Populate milestones from template (title + description pre-filled)
+      // Populate milestones from template (all fields pre-filled)
       milestoneForms = t.milestones.map((m) {
         final form = MilestoneFormData();
         form.titleController.text = m.title;
         form.descriptionController.text = m.description;
+        form.startController.text = m.startDateTime;
+        form.endController.text = m.endDateTime;
         return form;
       }).toList();
     });
@@ -689,7 +691,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 _submissionDepartureController,
                 'From Location',
                 onChanged: (value) {
-                  if (value.length == 3) _fetchFromAirportData(value);
+                  if (value.length >= 2) _fetchFromAirportData(value);
+                  else setState(() => fromAirportSuggestions = []);
                 },
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(3),
@@ -705,7 +708,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
                 _submissionArrivalController,
                 'To Location',
                 onChanged: (value) {
-                  if (value.length == 3) _fetchToAirportData(value);
+                  if (value.length >= 2) _fetchToAirportData(value);
+                  else setState(() => toAirportSuggestions = []);
                 },
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(3),

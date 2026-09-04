@@ -1,4 +1,6 @@
+import 'package:broker_flutter_pp/data/sqflitelocal/DatabaseOperation.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/models/AirportModel.dart';
 import 'package:broker_flutter_pp/ui/common/models/TemplateModel.dart';
 import 'package:broker_flutter_pp/ui/courier/emptyleg/UpperCaseTextFormatter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,22 +22,47 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
 
   Stream<QuerySnapshot> _templatesStream() {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    // No orderBy to avoid requiring a composite index
     return FirebaseFirestore.instance
         .collection('broker_templates')
         .where('userId', isEqualTo: uid)
         .snapshots();
   }
 
-  Future<void> _deleteTemplate(String id) async {
-    await FirebaseFirestore.instance
-        .collection('broker_templates')
-        .doc(id)
-        .delete();
-    Fluttertoast.showToast(
-        msg: 'Template deleted',
-        backgroundColor: Colors.red,
-        textColor: Colors.white);
+  Future<void> _confirmDelete(String id, String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Template'),
+        content: Text('Are you sure you want to delete "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await FirebaseFirestore.instance
+          .collection('broker_templates')
+          .doc(id)
+          .delete();
+      Fluttertoast.showToast(
+          msg: 'Template deleted',
+          backgroundColor: Colors.red,
+          textColor: Colors.white);
+    }
   }
 
   void _openTemplateForm({TemplateModel? existing}) {
@@ -72,8 +99,7 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(
-                child:
-                    CircularProgressIndicator(color: Palette.primaryColor));
+                child: CircularProgressIndicator(color: Palette.primaryColor));
           }
           if (!snap.hasData || snap.data!.docs.isEmpty) {
             return Center(
@@ -105,7 +131,7 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
               return _TemplateCard(
                 template: t,
                 onEdit: () => _openTemplateForm(existing: t),
-                onDelete: () => _deleteTemplate(t.templateId!),
+                onDelete: () => _confirmDelete(t.templateId!, t.templateName),
               );
             },
           );
@@ -115,22 +141,22 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
   }
 }
 
+// ── Template Card ─────────────────────────────────────────────────────────────
+
 class _TemplateCard extends StatelessWidget {
   final TemplateModel template;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _TemplateCard({
-    required this.template,
-    required this.onEdit,
-    required this.onDelete,
-  });
+  const _TemplateCard(
+      {required this.template,
+      required this.onEdit,
+      required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -198,7 +224,8 @@ class _TemplateCard extends StatelessWidget {
             Icon(icon, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 6),
             Text('$label: ',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                style:
+                    TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             Expanded(
               child: Text(
                 value.isEmpty ? '—' : value,
@@ -212,36 +239,44 @@ class _TemplateCard extends StatelessWidget {
       );
 }
 
-// ── Template form sheet ───────────────────────────────────────────────────────
+// ── Milestone entry (with dates) ──────────────────────────────────────────────
 
 class _MilestoneEntry {
   final TextEditingController titleCtrl;
   final TextEditingController descCtrl;
+  final TextEditingController startCtrl;
+  final TextEditingController endCtrl;
 
   _MilestoneEntry()
       : titleCtrl = TextEditingController(),
-        descCtrl = TextEditingController();
+        descCtrl = TextEditingController(),
+        startCtrl = TextEditingController(),
+        endCtrl = TextEditingController();
 
-  _MilestoneEntry.prefilled(String title, String desc)
+  _MilestoneEntry.prefilled(
+      String title, String desc, String start, String end)
       : titleCtrl = TextEditingController(text: title),
-        descCtrl = TextEditingController(text: desc);
+        descCtrl = TextEditingController(text: desc),
+        startCtrl = TextEditingController(text: start),
+        endCtrl = TextEditingController(text: end);
 
   void dispose() {
     titleCtrl.dispose();
     descCtrl.dispose();
+    startCtrl.dispose();
+    endCtrl.dispose();
   }
 }
+
+// ── Template Form Sheet ───────────────────────────────────────────────────────
 
 class _TemplateFormSheet extends StatefulWidget {
   final TemplateModel? existing;
   final List<String> units;
   final List<String> currencies;
 
-  const _TemplateFormSheet({
-    this.existing,
-    required this.units,
-    required this.currencies,
-  });
+  const _TemplateFormSheet(
+      {this.existing, required this.units, required this.currencies});
 
   @override
   State<_TemplateFormSheet> createState() => _TemplateFormSheetState();
@@ -249,6 +284,7 @@ class _TemplateFormSheet extends StatefulWidget {
 
 class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   final _formKey = GlobalKey<FormState>();
+
   late final TextEditingController _nameCtrl;
   late final TextEditingController _startCtrl;
   late final TextEditingController _endCtrl;
@@ -256,10 +292,16 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   late final TextEditingController _toCtrl;
   late final TextEditingController _bidCtrl;
   late final TextEditingController _capacityCtrl;
+
   String? _currency;
   String? _unit;
   bool _saving = false;
+
   final List<_MilestoneEntry> _milestones = [];
+
+  // Airport suggestions
+  List<AirportModel> _fromSuggestions = [];
+  List<AirportModel> _toSuggestions = [];
 
   @override
   void initState() {
@@ -271,15 +313,13 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     _fromCtrl = TextEditingController(text: e?.departureFrom ?? '');
     _toCtrl = TextEditingController(text: e?.arriveAt ?? '');
     _bidCtrl = TextEditingController(text: e?.bid ?? '');
-    _capacityCtrl =
-        TextEditingController(text: e?.courierCapacity ?? '');
+    _capacityCtrl = TextEditingController(text: e?.courierCapacity ?? '');
     _currency = (e?.currency.isNotEmpty == true) ? e!.currency : null;
     _unit = (e?.unit.isNotEmpty == true) ? e!.unit : null;
-    // Pre-fill milestones if editing
     if (e != null) {
       for (final m in e.milestones) {
-        _milestones.add(
-            _MilestoneEntry.prefilled(m.title, m.description));
+        _milestones.add(_MilestoneEntry.prefilled(
+            m.title, m.description, m.startDateTime, m.endDateTime));
       }
     }
   }
@@ -299,6 +339,46 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     super.dispose();
   }
 
+  Future<void> _fetchFromAirports(String query) async {
+    if (query.isEmpty) {
+      if (mounted) setState(() => _fromSuggestions = []);
+      return;
+    }
+    try {
+      final list =
+          await DatabaseOperation().fetchAirportsFromDatabase(query);
+      if (mounted) setState(() => _fromSuggestions = list);
+    } catch (_) {}
+  }
+
+  Future<void> _fetchToAirports(String query) async {
+    if (query.isEmpty) {
+      if (mounted) setState(() => _toSuggestions = []);
+      return;
+    }
+    try {
+      final list =
+          await DatabaseOperation().fetchAirportsFromDatabase(query);
+      if (mounted) setState(() => _toSuggestions = list);
+    } catch (_) {}
+  }
+
+  Future<void> _pickDateTime(TextEditingController ctrl) async {
+    final date = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2100));
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+        context: context, initialTime: TimeOfDay.now());
+    if (time == null) return;
+    ctrl.text = DateTime(
+            date.year, date.month, date.day, time.hour, time.minute)
+        .toString();
+    if (mounted) setState(() {});
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -309,6 +389,8 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
         .map((m) => TemplateMilestone(
               title: m.titleCtrl.text.trim(),
               description: m.descCtrl.text.trim(),
+              startDateTime: m.startCtrl.text.trim(),
+              endDateTime: m.endCtrl.text.trim(),
             ))
         .where((m) => m.title.isNotEmpty)
         .toList();
@@ -353,22 +435,6 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     if (mounted) setState(() => _saving = false);
   }
 
-  Future<void> _pickDateTime(TextEditingController ctrl) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-        context: context, initialTime: TimeOfDay.now());
-    if (time == null) return;
-    final dt =
-        DateTime(date.year, date.month, date.day, time.hour, time.minute);
-    ctrl.text = dt.toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
@@ -379,10 +445,12 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
       builder: (_, scrollCtrl) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
+            // Handle
             Container(
               margin: const EdgeInsets.only(top: 10),
               width: 40,
@@ -391,15 +459,14 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2)),
             ),
+            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
               child: Row(
                 children: [
-                  Text(
-                    isEdit ? 'Edit Template' : 'New Template',
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w700),
-                  ),
+                  Text(isEdit ? 'Edit Template' : 'New Template',
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700)),
                   const Spacer(),
                   IconButton(
                       icon: const Icon(Icons.close),
@@ -452,12 +519,14 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                     ),
                     const SizedBox(height: 14),
 
-                    // From Airport
+                    // From Airport with live search
                     TextFormField(
                       controller: _fromCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'From Airport (IATA)',
+                        labelText: 'From Airport (IATA code or name)',
                         border: OutlineInputBorder(),
+                        suffixIcon:
+                            Icon(Icons.flight_takeoff, size: 18),
                       ),
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(3),
@@ -465,15 +534,21 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                             RegExp(r'[a-zA-Z]')),
                         UpperCaseTextFormatter(),
                       ],
+                      onChanged: _fetchFromAirports,
                     ),
+                    if (_fromSuggestions.isNotEmpty)
+                      _airportSuggestionList(
+                          _fromSuggestions, _fromCtrl, true),
                     const SizedBox(height: 14),
 
-                    // To Airport
+                    // To Airport with live search
                     TextFormField(
                       controller: _toCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'To Airport (IATA)',
+                        labelText: 'To Airport (IATA code or name)',
                         border: OutlineInputBorder(),
+                        suffixIcon:
+                            Icon(Icons.flight_land, size: 18),
                       ),
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(3),
@@ -481,10 +556,14 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                             RegExp(r'[a-zA-Z]')),
                         UpperCaseTextFormatter(),
                       ],
+                      onChanged: _fetchToAirports,
                     ),
+                    if (_toSuggestions.isNotEmpty)
+                      _airportSuggestionList(
+                          _toSuggestions, _toCtrl, false),
                     const SizedBox(height: 14),
 
-                    // Bid + Currency — fixed overflow
+                    // Bid + Currency
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -526,7 +605,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Capacity + Unit — fixed overflow
+                    // Capacity + Unit
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -568,7 +647,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Milestones section ──────────────────────────────
+                    // ── Milestones ──────────────────────────────────────
                     Row(
                       children: [
                         const Icon(Icons.flag_outlined,
@@ -605,23 +684,25 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                       final i = entry.key;
                       final m = entry.value;
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
+                        margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Palette.primaryColor.withOpacity(0.04),
+                          color:
+                              Palette.primaryColor.withOpacity(0.04),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                              color:
-                                  Palette.primaryColor.withOpacity(0.2)),
+                              color: Palette.primaryColor
+                                  .withOpacity(0.2)),
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
                                 Text('Milestone ${i + 1}',
                                     style: const TextStyle(
                                         fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.w700,
                                         color: Palette.primaryColor)),
                                 const Spacer(),
                                 GestureDetector(
@@ -630,11 +711,11 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                                     _milestones.removeAt(i);
                                   }),
                                   child: const Icon(Icons.close,
-                                      size: 16, color: Colors.red),
+                                      size: 18, color: Colors.red),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
                             TextField(
                               controller: m.titleCtrl,
                               decoration: const InputDecoration(
@@ -653,13 +734,21 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                                 isDense: true,
                               ),
                             ),
+                            const SizedBox(height: 8),
+                            // Milestone Start Date
+                            _milestoneDateField(m.startCtrl,
+                                'Start Date & Time', i),
+                            const SizedBox(height: 8),
+                            // Milestone End Date
+                            _milestoneDateField(
+                                m.endCtrl, 'End Date & Time', i),
                           ],
                         ),
                       );
                     }),
                     const SizedBox(height: 20),
 
-                    // Save button
+                    // Save Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -693,6 +782,71 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _milestoneDateField(
+      TextEditingController ctrl, String label, int index) {
+    return TextField(
+      controller: ctrl,
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+        suffixIcon: ctrl.text.isEmpty
+            ? const Icon(Icons.calendar_today, size: 16)
+            : GestureDetector(
+                onTap: () => setState(() => ctrl.clear()),
+                child:
+                    const Icon(Icons.close, size: 16, color: Colors.red),
+              ),
+      ),
+      onTap: () => _pickDateTime(ctrl),
+    );
+  }
+
+  Widget _airportSuggestionList(List<AirportModel> suggestions,
+      TextEditingController ctrl, bool isFrom) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: suggestions.length > 5 ? 5 : suggestions.length,
+        itemBuilder: (_, i) {
+          final airport = suggestions[i];
+          return ListTile(
+            dense: true,
+            leading: const Icon(Icons.local_airport,
+                size: 16, color: Palette.primaryColor),
+            title: Text(airport.name ?? '',
+                style: const TextStyle(fontSize: 13)),
+            subtitle: Text(airport.iataCode ?? '',
+                style: TextStyle(
+                    fontSize: 11, color: Colors.grey.shade500)),
+            onTap: () => setState(() {
+              ctrl.text = airport.iataCode ?? airport.name ?? '';
+              if (isFrom) {
+                _fromSuggestions = [];
+              } else {
+                _toSuggestions = [];
+              }
+            }),
+          );
+        },
       ),
     );
   }

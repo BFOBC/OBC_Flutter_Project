@@ -3,18 +3,29 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class TemplateMilestone {
   final String title;
   final String description;
+  final String startDateTime;
+  final String endDateTime;
 
-  TemplateMilestone({required this.title, required this.description});
+  TemplateMilestone({
+    required this.title,
+    required this.description,
+    this.startDateTime = '',
+    this.endDateTime = '',
+  });
 
   Map<String, dynamic> toMap() => {
         'title': title,
         'description': description,
+        'startDateTime': startDateTime,
+        'endDateTime': endDateTime,
       };
 
   factory TemplateMilestone.fromMap(Map<String, dynamic> map) =>
       TemplateMilestone(
         title: map['title'] ?? '',
         description: map['description'] ?? '',
+        startDateTime: map['startDateTime'] ?? '',
+        endDateTime: map['endDateTime'] ?? '',
       );
 }
 
