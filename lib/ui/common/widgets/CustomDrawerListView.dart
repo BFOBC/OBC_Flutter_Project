@@ -1,3 +1,4 @@
+import 'package:broker_flutter_pp/ui/broker/requestscreens/ManageTemplatesScreen.dart';
 import 'package:flutter/material.dart';
 
 class CustomDrawerListView extends StatelessWidget {
@@ -78,6 +79,18 @@ class CustomDrawerListView extends StatelessWidget {
           onTap: () {
             // Handle Settings option
             Navigator.pop(context); // Close the drawer
+          },
+        ),
+        DrawerItem(
+          icon: Icons.folder_special_outlined,
+          title: 'Manage Templates',
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const ManageTemplatesScreen()),
+            );
           },
         ),
         DrawerItem(
