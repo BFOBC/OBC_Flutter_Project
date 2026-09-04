@@ -354,30 +354,35 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
       ? null
       : DateTime.tryParse(_endCtrl.text);
 
-  /// Pick a date/time for a milestone field with proper constraints.
+  String _fmtDt(DateTime dt) =>
+      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+  /// Pick a date/time for a milestone field with full date+time constraints.
   Future<void> _pickMilestoneDateTime(
       TextEditingController ctrl, int milestoneIndex, bool isStart) async {
     final tStart = _templateStart;
     final tEnd = _templateEnd;
 
-    // Floor: template start or previous milestone's end
+    // ── Compute the minimum allowed datetime ──────────────────────────────
     DateTime firstAllowed = tStart ?? DateTime(2020);
+
     if (isStart && milestoneIndex > 0) {
+      // Start of milestone N must be >= end of milestone N-1 (date + time)
       final prevEnd = _milestones[milestoneIndex - 1].endDate;
-      if (prevEnd != null &&
-          prevEnd.isAfter(firstAllowed)) {
+      if (prevEnd != null && prevEnd.isAfter(firstAllowed)) {
         firstAllowed = prevEnd;
       }
     }
     if (!isStart) {
-      // End date must be after this milestone's start date
+      // End of this milestone must be >= start of this milestone (date + time)
       final msStart = _milestones[milestoneIndex].startDate;
       if (msStart != null && msStart.isAfter(firstAllowed)) {
         firstAllowed = msStart;
       }
     }
 
-    // Ceiling: template end
+    // ── Compute the maximum allowed datetime ──────────────────────────────
     final lastAllowed = tEnd ?? DateTime(2100);
 
     if (firstAllowed.isAfter(lastAllowed)) {
@@ -386,32 +391,50 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
       return;
     }
 
-    DateTime initial = firstAllowed;
-    if (initial.isBefore(DateTime.now())) initial = DateTime.now();
-    if (initial.isAfter(lastAllowed)) initial = lastAllowed;
+    // Initial date for picker
+    DateTime initialDt = firstAllowed.isAfter(DateTime.now())
+        ? firstAllowed
+        : DateTime.now();
+    if (initialDt.isAfter(lastAllowed)) initialDt = lastAllowed;
 
+    // ── Date picker (date-level restriction only) ─────────────────────────
     final date = await showDatePicker(
       context: context,
-      initialDate: initial,
-      firstDate: firstAllowed,
-      lastDate: lastAllowed,
+      initialDate: DateTime(initialDt.year, initialDt.month, initialDt.day),
+      firstDate: DateTime(firstAllowed.year, firstAllowed.month, firstAllowed.day),
+      lastDate: DateTime(lastAllowed.year, lastAllowed.month, lastAllowed.day),
     );
     if (date == null || !mounted) return;
 
-    final time = await showTimePicker(
-        context: context, initialTime: TimeOfDay.now());
+    // ── Time picker — initial time set to floor when same day ────────────
+    final sameAsFloor = date.year == firstAllowed.year &&
+        date.month == firstAllowed.month &&
+        date.day == firstAllowed.day;
+    final initialTime = sameAsFloor
+        ? TimeOfDay(hour: firstAllowed.hour, minute: firstAllowed.minute)
+        : TimeOfDay.now();
+
+    final time =
+        await showTimePicker(context: context, initialTime: initialTime);
     if (time == null || !mounted) return;
 
-    final picked = DateTime(
-        date.year, date.month, date.day, time.hour, time.minute);
+    final picked =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
-    // Final guard: within template range
-    if (tStart != null && picked.isBefore(tStart)) {
-      _showError('Milestone date must be within the job date range.');
+    // ── Time-level validation (date picker can't enforce time) ────────────
+    if (picked.isBefore(firstAllowed)) {
+      final boundary = isStart && milestoneIndex > 0
+          ? 'Milestone ${milestoneIndex} ends at ${_fmtDt(firstAllowed)}. '
+              'Milestone ${milestoneIndex + 1} must start at or after that time.'
+          : !isStart
+              ? 'End time must be after start time (${_fmtDt(firstAllowed)}).'
+              : 'Date must be within the job range.';
+      _showError(boundary);
       return;
     }
     if (tEnd != null && picked.isAfter(tEnd)) {
-      _showError('Milestone date must be within the job date range.');
+      _showError(
+          'Milestone date must be within the job end date (${_fmtDt(tEnd)}).');
       return;
     }
 
@@ -447,15 +470,17 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
 
   void _addMilestone() {
     setState(() => _milestones.add(_MilestoneEntry()));
-    // Scroll to bottom so new milestone is visible
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_sheetScrollCtrl?.hasClients == true) {
-        _sheetScrollCtrl!.animateTo(
-          _sheetScrollCtrl!.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-        );
-      }
+    // Double post-frame: first frame lays out new widget, second has correct maxScrollExtent
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_sheetScrollCtrl?.hasClients == true) {
+          _sheetScrollCtrl!.animateTo(
+            _sheetScrollCtrl!.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     });
   }
 
