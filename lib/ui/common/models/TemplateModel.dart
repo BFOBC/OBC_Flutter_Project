@@ -1,5 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+class TemplateMilestone {
+  final String title;
+  final String description;
+
+  TemplateMilestone({required this.title, required this.description});
+
+  Map<String, dynamic> toMap() => {
+        'title': title,
+        'description': description,
+      };
+
+  factory TemplateMilestone.fromMap(Map<String, dynamic> map) =>
+      TemplateMilestone(
+        title: map['title'] ?? '',
+        description: map['description'] ?? '',
+      );
+}
+
 class TemplateModel {
   final String? templateId;
   final String templateName;
@@ -12,6 +30,7 @@ class TemplateModel {
   final String courierCapacity;
   final String unit;
   final String userId;
+  final List<TemplateMilestone> milestones;
 
   TemplateModel({
     this.templateId,
@@ -25,6 +44,7 @@ class TemplateModel {
     required this.courierCapacity,
     required this.unit,
     required this.userId,
+    this.milestones = const [],
   });
 
   Map<String, dynamic> toMap() => {
@@ -38,6 +58,7 @@ class TemplateModel {
         'courierCapacity': courierCapacity,
         'unit': unit,
         'userId': userId,
+        'milestones': milestones.map((m) => m.toMap()).toList(),
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -54,32 +75,9 @@ class TemplateModel {
         courierCapacity: map['courierCapacity'] ?? '',
         unit: map['unit'] ?? '',
         userId: map['userId'] ?? '',
-      );
-
-  TemplateModel copyWith({
-    String? templateId,
-    String? templateName,
-    String? startDateTime,
-    String? endDateTime,
-    String? departureFrom,
-    String? arriveAt,
-    String? bid,
-    String? currency,
-    String? courierCapacity,
-    String? unit,
-    String? userId,
-  }) =>
-      TemplateModel(
-        templateId: templateId ?? this.templateId,
-        templateName: templateName ?? this.templateName,
-        startDateTime: startDateTime ?? this.startDateTime,
-        endDateTime: endDateTime ?? this.endDateTime,
-        departureFrom: departureFrom ?? this.departureFrom,
-        arriveAt: arriveAt ?? this.arriveAt,
-        bid: bid ?? this.bid,
-        currency: currency ?? this.currency,
-        courierCapacity: courierCapacity ?? this.courierCapacity,
-        unit: unit ?? this.unit,
-        userId: userId ?? this.userId,
+        milestones: (map['milestones'] as List<dynamic>? ?? [])
+            .map((m) =>
+                TemplateMilestone.fromMap(m as Map<String, dynamic>))
+            .toList(),
       );
 }

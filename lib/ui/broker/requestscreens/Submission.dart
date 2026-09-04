@@ -91,20 +91,21 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     if (uid == null) return;
     if (mounted) setState(() => _loadingTemplates = true);
     try {
+      // No orderBy — avoids needing a composite Firestore index
       final snap = await FirebaseFirestore.instance
           .collection('broker_templates')
           .where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
           .get();
       if (mounted) {
         setState(() {
           _templates = snap.docs
-              .map((d) =>
-                  TemplateModel.fromMap(d.id, d.data()))
+              .map((d) => TemplateModel.fromMap(d.id, d.data()))
               .toList();
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Template load error: $e');
+    }
     if (mounted) setState(() => _loadingTemplates = false);
   }
 
@@ -112,6 +113,10 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
     if (t == null) {
       setState(() => _selectedTemplate = null);
       return;
+    }
+    // Dispose existing milestone forms
+    for (final f in milestoneForms) {
+      f.dispose();
     }
     setState(() {
       _selectedTemplate = t;
@@ -123,6 +128,13 @@ class _SubmissionScreenState extends State<SubmissionScreen> {
       _selectedCurrency = t.currency.isEmpty ? null : t.currency;
       _submissionCourierController.text = t.courierCapacity;
       _selectedUnit = t.unit.isEmpty ? null : t.unit;
+      // Populate milestones from template (title + description pre-filled)
+      milestoneForms = t.milestones.map((m) {
+        final form = MilestoneFormData();
+        form.titleController.text = m.title;
+        form.descriptionController.text = m.description;
+        return form;
+      }).toList();
     });
     Fluttertoast.showToast(
       msg: 'Template "${t.templateName}" loaded',

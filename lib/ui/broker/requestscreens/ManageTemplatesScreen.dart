@@ -20,10 +20,10 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
 
   Stream<QuerySnapshot> _templatesStream() {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    // No orderBy to avoid requiring a composite index
     return FirebaseFirestore.instance
         .collection('broker_templates')
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -33,10 +33,9 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
         .doc(id)
         .delete();
     Fluttertoast.showToast(
-      msg: 'Template deleted',
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-    );
+        msg: 'Template deleted',
+        backgroundColor: Colors.red,
+        textColor: Colors.white);
   }
 
   void _openTemplateForm({TemplateModel? existing}) {
@@ -65,15 +64,16 @@ class _ManageTemplatesScreenState extends State<ManageTemplatesScreen> {
         onPressed: () => _openTemplateForm(),
         backgroundColor: Palette.primaryColor,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Template',
-            style: TextStyle(color: Colors.white)),
+        label:
+            const Text('New Template', style: TextStyle(color: Colors.white)),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _templatesStream(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: Palette.primaryColor));
+                child:
+                    CircularProgressIndicator(color: Palette.primaryColor));
           }
           if (!snap.hasData || snap.data!.docs.isEmpty) {
             return Center(
@@ -129,7 +129,8 @@ class _TemplateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -142,11 +143,9 @@ class _TemplateCard extends StatelessWidget {
                     color: Palette.primaryColor, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    template.templateName,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
+                  child: Text(template.templateName,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined,
@@ -173,6 +172,19 @@ class _TemplateCard extends StatelessWidget {
                 '${template.bid} ${template.currency}'),
             _row(Icons.inventory_2_outlined, 'Capacity',
                 '${template.courierCapacity} ${template.unit}'),
+            if (template.milestones.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.flag_outlined,
+                      size: 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
+                  Text('${template.milestones.length} milestone(s)',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600)),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -180,14 +192,13 @@ class _TemplateCard extends StatelessWidget {
   }
 
   Widget _row(IconData icon, String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           children: [
             Icon(icon, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 6),
             Text('$label: ',
-                style:
-                    TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             Expanded(
               child: Text(
                 value.isEmpty ? '—' : value,
@@ -199,6 +210,26 @@ class _TemplateCard extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ── Template form sheet ───────────────────────────────────────────────────────
+
+class _MilestoneEntry {
+  final TextEditingController titleCtrl;
+  final TextEditingController descCtrl;
+
+  _MilestoneEntry()
+      : titleCtrl = TextEditingController(),
+        descCtrl = TextEditingController();
+
+  _MilestoneEntry.prefilled(String title, String desc)
+      : titleCtrl = TextEditingController(text: title),
+        descCtrl = TextEditingController(text: desc);
+
+  void dispose() {
+    titleCtrl.dispose();
+    descCtrl.dispose();
+  }
 }
 
 class _TemplateFormSheet extends StatefulWidget {
@@ -228,6 +259,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   String? _currency;
   String? _unit;
   bool _saving = false;
+  final List<_MilestoneEntry> _milestones = [];
 
   @override
   void initState() {
@@ -239,9 +271,17 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     _fromCtrl = TextEditingController(text: e?.departureFrom ?? '');
     _toCtrl = TextEditingController(text: e?.arriveAt ?? '');
     _bidCtrl = TextEditingController(text: e?.bid ?? '');
-    _capacityCtrl = TextEditingController(text: e?.courierCapacity ?? '');
+    _capacityCtrl =
+        TextEditingController(text: e?.courierCapacity ?? '');
     _currency = (e?.currency.isNotEmpty == true) ? e!.currency : null;
     _unit = (e?.unit.isNotEmpty == true) ? e!.unit : null;
+    // Pre-fill milestones if editing
+    if (e != null) {
+      for (final m in e.milestones) {
+        _milestones.add(
+            _MilestoneEntry.prefilled(m.title, m.description));
+      }
+    }
   }
 
   @override
@@ -253,6 +293,9 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     _toCtrl.dispose();
     _bidCtrl.dispose();
     _capacityCtrl.dispose();
+    for (final m in _milestones) {
+      m.dispose();
+    }
     super.dispose();
   }
 
@@ -261,6 +304,14 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     setState(() => _saving = true);
+
+    final milestones = _milestones
+        .map((m) => TemplateMilestone(
+              title: m.titleCtrl.text.trim(),
+              description: m.descCtrl.text.trim(),
+            ))
+        .where((m) => m.title.isNotEmpty)
+        .toList();
 
     final t = TemplateModel(
       templateId: widget.existing?.templateId,
@@ -274,6 +325,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
       courierCapacity: _capacityCtrl.text.trim(),
       unit: _unit ?? '',
       userId: uid,
+      milestones: milestones,
     );
 
     try {
@@ -310,12 +362,10 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
+        context: context, initialTime: TimeOfDay.now());
     if (time == null) return;
-    final dt = DateTime(
-        date.year, date.month, date.day, time.hour, time.minute);
+    final dt =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
     ctrl.text = dt.toString();
   }
 
@@ -323,7 +373,7 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
     return DraggableScrollableSheet(
-      initialChildSize: 0.92,
+      initialChildSize: 0.93,
       minChildSize: 0.5,
       maxChildSize: 0.97,
       builder: (_, scrollCtrl) => Container(
@@ -338,12 +388,11 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
               child: Row(
                 children: [
                   Text(
@@ -353,9 +402,8 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context)),
                 ],
               ),
             ),
@@ -365,16 +413,46 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                 key: _formKey,
                 child: ListView(
                   controller: scrollCtrl,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
                   children: [
-                    _field(_nameCtrl, 'Template Name *',
-                        validator: (v) =>
-                            v!.trim().isEmpty ? 'Required' : null),
+                    // Template Name
+                    TextFormField(
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(
+                          labelText: 'Template Name *',
+                          border: OutlineInputBorder()),
+                      validator: (v) =>
+                          v!.trim().isEmpty ? 'Required' : null,
+                    ),
                     const SizedBox(height: 14),
-                    _dateField(_startCtrl, 'Start Date & Time'),
+
+                    // Start Date
+                    TextFormField(
+                      controller: _startCtrl,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Start Date & Time',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      onTap: () => _pickDateTime(_startCtrl),
+                    ),
                     const SizedBox(height: 14),
-                    _dateField(_endCtrl, 'End Date & Time'),
+
+                    // End Date
+                    TextFormField(
+                      controller: _endCtrl,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'End Date & Time',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      onTap: () => _pickDateTime(_endCtrl),
+                    ),
                     const SizedBox(height: 14),
+
+                    // From Airport
                     TextFormField(
                       controller: _fromCtrl,
                       decoration: const InputDecoration(
@@ -389,6 +467,8 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                       ],
                     ),
                     const SizedBox(height: 14),
+
+                    // To Airport
                     TextFormField(
                       controller: _toCtrl,
                       decoration: const InputDecoration(
@@ -403,26 +483,37 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                       ],
                     ),
                     const SizedBox(height: 14),
+
+                    // Bid + Currency — fixed overflow
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 2,
-                          child: TextFormField(
+                          flex: 3,
+                          child: TextField(
                             controller: _bidCtrl,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
                               labelText: 'Bid Amount',
                               border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 12),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
+                          flex: 2,
                           child: DropdownButtonFormField<String>(
                             value: _currency,
-                            hint: const Text('Currency'),
+                            hint: const Text('Currency',
+                                overflow: TextOverflow.ellipsis),
+                            isExpanded: true,
                             decoration: const InputDecoration(
-                                border: OutlineInputBorder()),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 12),
+                            ),
                             items: widget.currencies
                                 .map((c) => DropdownMenuItem(
                                     value: c, child: Text(c)))
@@ -434,36 +525,141 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                       ],
                     ),
                     const SizedBox(height: 14),
+
+                    // Capacity + Unit — fixed overflow
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 2,
-                          child: TextFormField(
+                          flex: 3,
+                          child: TextField(
                             controller: _capacityCtrl,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
                               labelText: 'Courier Capacity',
                               border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 12),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
+                          flex: 2,
                           child: DropdownButtonFormField<String>(
                             value: _unit,
-                            hint: const Text('Unit'),
+                            hint: const Text('Unit',
+                                overflow: TextOverflow.ellipsis),
+                            isExpanded: true,
                             decoration: const InputDecoration(
-                                border: OutlineInputBorder()),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 12),
+                            ),
                             items: widget.units
                                 .map((u) => DropdownMenuItem(
                                     value: u, child: Text(u)))
                                 .toList(),
-                            onChanged: (v) => setState(() => _unit = v),
+                            onChanged: (v) =>
+                                setState(() => _unit = v),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // ── Milestones section ──────────────────────────────
+                    Row(
+                      children: [
+                        const Icon(Icons.flag_outlined,
+                            color: Palette.primaryColor, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('Milestones',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () => setState(
+                              () => _milestones.add(_MilestoneEntry())),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add',
+                              style: TextStyle(fontSize: 13)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Palette.primaryColor,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_milestones.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text('No milestones added',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500)),
+                      ),
+                    ..._milestones.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final m = entry.value;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Palette.primaryColor.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color:
+                                  Palette.primaryColor.withOpacity(0.2)),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Text('Milestone ${i + 1}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Palette.primaryColor)),
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: () => setState(() {
+                                    m.dispose();
+                                    _milestones.removeAt(i);
+                                  }),
+                                  child: const Icon(Icons.close,
+                                      size: 16, color: Colors.red),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: m.titleCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Title *',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: m.descCtrl,
+                              maxLines: 2,
+                              decoration: const InputDecoration(
+                                labelText: 'Description',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 20),
+
+                    // Save button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -482,7 +678,10 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
                                 width: 18,
                                 child: CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2))
-                            : Text(isEdit ? 'Update Template' : 'Save Template',
+                            : Text(
+                                isEdit
+                                    ? 'Update Template'
+                                    : 'Save Template',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15)),
@@ -497,28 +696,4 @@ class _TemplateFormSheetState extends State<_TemplateFormSheet> {
       ),
     );
   }
-
-  Widget _field(
-    TextEditingController ctrl,
-    String label, {
-    String? Function(String?)? validator,
-  }) =>
-      TextFormField(
-        controller: ctrl,
-        decoration: InputDecoration(
-            labelText: label, border: const OutlineInputBorder()),
-        validator: validator,
-      );
-
-  Widget _dateField(TextEditingController ctrl, String label) =>
-      TextFormField(
-        controller: ctrl,
-        readOnly: true,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          suffixIcon: const Icon(Icons.calendar_today),
-        ),
-        onTap: () => _pickDateTime(ctrl),
-      );
 }
