@@ -258,7 +258,7 @@ class _CardViewState extends State<CardView> {
         if (!data.containsKey('email')) updates['email'] = email;
         if (!data.containsKey('name')) updates['name'] = actualRole == 'courier' ? 'Test Courier' : 'Test Broker';
         if (!data.containsKey('isOnline')) updates['isOnline'] = true;
-        if (!data.containsKey('profilePictureUrl')) updates['profilePictureUrl'] = 'https://mopogotechnologies.com/assets/images/profiles/place_holder_man.png';
+        if (!data.containsKey('profilePictureUrl')) updates['profilePictureUrl'] = 'https://mercivatrust.org/api/uploads/profiles/placeholder.png';
         if (actualRole == 'courier') {
           if (!data.containsKey('courierID')) updates['courierID'] = uid;
           if (!data.containsKey('baseLocationLat')) updates['baseLocationLat'] = 51.1657;
