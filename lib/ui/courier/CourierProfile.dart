@@ -118,7 +118,7 @@ class _CourierProfileState extends State<CourierProfile> {
     _isUploading = true;
 
     try {
-      final url = Uri.parse("https://mopogotechnologies.com/api/uploadImages.php");
+      final url = Uri.parse("https://mercivatrust.org/api/uploadImages.php");
 /*      final request = http.MultipartRequest('POST', url);
       request.fields['user_id'] = userId;
       request.files.add(await http.MultipartFile.fromPath('image', _image!.path));*/

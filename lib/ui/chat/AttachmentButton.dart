@@ -176,7 +176,7 @@ class AttachmentButton extends StatelessWidget {
 
       // =================== POST REQUEST ===================
       final response = await dio.post(
-        'https://mopogotechnologies.com/api/upload_chat_file.php',
+        'https://mercivatrust.org/api/upload_chat_file.php',
         data: formData,
           options: Options(headers: {'Accept': 'application/json'}),
         onSendProgress: (sent, total) {
@@ -317,7 +317,7 @@ class AttachmentButton extends StatelessWidget {
       final mimeType = _getMimeType(ext);
 
       // ── Build multipart request manually ─────────────────────
-      final uri = Uri.parse('https://mopogotechnologies.com/api/upload_chat_file.php');
+      final uri = Uri.parse('https://mercivatrust.org/api/upload_chat_file.php');
 
       final request = http.MultipartRequest('POST', uri)
         ..headers['User-Agent'] = 'PostmanRuntime/7.36.0'

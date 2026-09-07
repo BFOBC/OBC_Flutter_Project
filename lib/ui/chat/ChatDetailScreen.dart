@@ -494,7 +494,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final cleanPath = Uri.parse(fileUrl).path; // /uploads/abc.jpg
 
     final uri =
-        Uri.parse('https://mopogotechnologies.com/api/delete_file_by_url.php');
+        Uri.parse('https://mercivatrust.org/api/delete_file_by_url.php');
 
     try {
       var request = http.MultipartRequest('POST', uri);

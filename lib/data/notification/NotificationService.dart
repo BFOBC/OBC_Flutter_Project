@@ -19,7 +19,7 @@ import 'package:broker_flutter_pp/main.dart';
 
 class NotificationService {
   static const String _serverUrl =
-      "https://mopogotechnologies.com/fcm-server/send_notification.php";
+      "https://mercivatrust.org/fcm-server/send_notification.php";
   static String? currentRoute;
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
