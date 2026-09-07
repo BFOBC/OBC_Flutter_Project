@@ -5,6 +5,7 @@ import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/CountryDialCode.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -345,20 +346,13 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                   children: [
                     Stack(
                       children: [
-                        CircleAvatar(
+                        ProfileAvatar(
+                          url: uploadedImageUrl?.isNotEmpty == true
+                              ? "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}"
+                              : (_profilePictureUrl?.isNotEmpty == true
+                                  ? "${_profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}"
+                                  : null),
                           radius: 50,
-                          backgroundImage:
-                              (uploadedImageUrl?.isNotEmpty == true)
-                                  ? CachedNetworkImageProvider(
-                                      "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
-                                    )
-                                  : (_profilePictureUrl?.isNotEmpty == true)
-                                      ? CachedNetworkImageProvider(
-                                          "${_profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
-                                        )
-                                      : const AssetImage(
-                                              'assets/place_holder_man.png')
-                                          as ImageProvider,
                         ),
                         Positioned(
                           bottom: 0,

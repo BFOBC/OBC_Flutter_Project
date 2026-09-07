@@ -8,6 +8,7 @@ import 'package:broker_flutter_pp/ui/common/models/Visa.dart';
 import 'package:broker_flutter_pp/ui/common/screens/DrawerScreen.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:broker_flutter_pp/ui/common/utils/toast_utils.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -653,17 +654,13 @@ class _CourierProfileState extends State<CourierProfile> {
 // UI
                     Stack(
                       children: [
-                        CircleAvatar(
+                        ProfileAvatar(
+                          url: uploadedImageUrl?.isNotEmpty == true
+                              ? "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}"
+                              : (courierProfile.profilePictureUrl?.isNotEmpty == true
+                                  ? "${courierProfile.profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}"
+                                  : null),
                           radius: 50,
-                          backgroundImage: (uploadedImageUrl?.isNotEmpty == true)
-                              ? CachedNetworkImageProvider(
-                            "${uploadedImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
-                          )
-                              : (courierProfile.profilePictureUrl?.isNotEmpty == true)
-                              ? CachedNetworkImageProvider(
-                            "${courierProfile.profilePictureUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
-                          )
-                              : const AssetImage('assets/place_holder_man.png') as ImageProvider,
                         ),
 
                         Positioned(

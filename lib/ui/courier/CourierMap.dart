@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:broker_flutter_pp/ui/courier/SelectBroker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -1093,10 +1094,7 @@ class _CourierMapState extends State<CourierMap>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundImage: NetworkImage(userImage),
-                ),
+                ProfileAvatar(url: userImage, radius: 30),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Column(

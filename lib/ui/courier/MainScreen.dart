@@ -1,4 +1,5 @@
 import 'package:broker_flutter_pp/ui/chat/profileScreen.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -48,10 +49,7 @@ class _MainScreenState extends State<MainScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Circular Image
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: NetworkImage(widget.userImage),
-            ),
+            ProfileAvatar(url: widget.userImage, radius: 50),
             const SizedBox(height: 10),
 
             // Centered Text for Name

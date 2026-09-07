@@ -229,32 +229,37 @@ class ChatBubble extends StatelessWidget {
         } else if (isVideo) {
           return _buildVideoPlayer(url, isLocal: false);
         } else {
-          return FutureBuilder(
-            future: precacheImage(NetworkImage(url), context),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                return InkWell(
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => Dialog(child: Image.network(url)),
+          return InkWell(
+            onTap: () => showDialog(
+              context: context,
+              builder: (_) => Dialog(
+                child: Image.network(
+                  url,
+                  errorBuilder: (_, __, ___) => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey),
                   ),
-                  child: Image.network(
-                    url,
-                    height: 150,
-                    width: 150,
-                    fit: BoxFit.cover,
-                  ),
-                );
-              } else {
-                return const SizedBox(
-                  height: 150,
-                  width: 150,
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.grey),
-                  ),
-                );
-              }
-            },
+                ),
+              ),
+            ),
+            child: Image.network(
+              url,
+              height: 150,
+              width: 150,
+              fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) => progress == null
+                  ? child
+                  : const SizedBox(
+                      height: 150,
+                      width: 150,
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.grey)),
+                    ),
+              errorBuilder: (_, __, ___) => const SizedBox(
+                height: 150,
+                width: 150,
+                child: Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey)),
+              ),
+            ),
           );
         }
       },
