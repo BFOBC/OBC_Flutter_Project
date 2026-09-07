@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:broker_flutter_pp/ui/common/utils/OnlineStatusProvider.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -72,12 +73,11 @@ class CustomDrawerHeader extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              child: CircleAvatar(
+                              child: ProfileAvatar(
+                                url: imageUrl,
                                 radius: 34,
                                 backgroundColor: Colors.white.withOpacity(0.2),
-                                backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
-                                    ? NetworkImage("$imageUrl?${DateTime.now().millisecondsSinceEpoch}")
-                                    : const AssetImage('assets/place_holder_man.png') as ImageProvider,
+                                iconColor: Colors.white70,
                               ),
                             );
                           },

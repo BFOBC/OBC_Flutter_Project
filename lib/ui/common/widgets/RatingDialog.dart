@@ -1,5 +1,6 @@
 
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
 import 'package:broker_flutter_pp/ui/common/models/Task.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
@@ -44,13 +45,9 @@ class _RatingDialogState extends State<RatingDialog> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircleAvatar(
+                    ProfileAvatar(
+                      url: imageUrl,
                       radius: 50,
-                      backgroundColor: Colors.grey[300],
-                      backgroundImage: imageUrl != null && imageUrl.isNotEmpty
-                          ? NetworkImage(imageUrl)
-                          : const AssetImage('https://via.placeholder.com/150')
-                      as ImageProvider,
                     ),
                     const SizedBox(height: 16),
                     Text(

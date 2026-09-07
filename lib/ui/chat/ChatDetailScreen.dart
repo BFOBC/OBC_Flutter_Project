@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/res/custom_colors.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -262,11 +263,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   : null,
               child: Row(
                 children: [
-                  CircleAvatar(
+                  ProfileAvatar(
+                    url: profileUrl,
                     radius: 18,
                     backgroundColor: Colors.white24,
-                    backgroundImage: profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
-                    child: profileUrl.isEmpty ? Text(displayLetter, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)) : null,
+                    iconColor: Colors.white70,
                   ),
                   const SizedBox(width: 10),
                   Expanded(

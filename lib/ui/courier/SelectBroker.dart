@@ -1,6 +1,7 @@
 
 import 'package:broker_flutter_pp/data/bridges/FirestoreService.dart';
 import 'package:broker_flutter_pp/ui/broker/CircularRating.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:broker_flutter_pp/ui/broker/model/BrokerProfileData.dart';
 import 'package:broker_flutter_pp/ui/common/models/Rating.dart';
 import 'package:flutter/material.dart';
@@ -149,16 +150,9 @@ class _SelectBrokerState extends State<SelectBroker> {
         children: [
           // Fixed Header Section (Profile & Rating)
           const SizedBox(height: 10),
-          CircleAvatar(
+          ProfileAvatar(
+            url: (brokerInfo!.profilePictureUrl == 'N/A') ? null : brokerInfo!.profilePictureUrl,
             radius: 50,
-            backgroundImage: brokerInfo!.profilePictureUrl != null &&
-                brokerInfo!.profilePictureUrl != 'N/A'
-                ? NetworkImage(brokerInfo!.profilePictureUrl!)
-                : null,
-            child: brokerInfo!.profilePictureUrl == null ||
-                brokerInfo!.profilePictureUrl == 'N/A'
-                ? const Icon(Icons.person, size: 50)
-                : null,
           ),
           const SizedBox(height: 10),
           Text(

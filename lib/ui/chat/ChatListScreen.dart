@@ -1,6 +1,7 @@
 
 import 'package:broker_flutter_pp/res/custom_colors.dart';
 import 'package:broker_flutter_pp/ui/common/utils/RoleProvider.dart';
+import 'package:broker_flutter_pp/ui/common/widgets/ProfileAvatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:broker_flutter_pp/ui/chat/ChatDetailScreen.dart'; // Import your ChatDetailScreen
@@ -275,15 +276,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                           },
                                           child: Stack(
                                             children: [
-                                              CircleAvatar(
+                                              ProfileAvatar(
+                                                url: profilePictureUrl,
                                                 radius: 26,
                                                 backgroundColor: Palette.primaryColor.withOpacity(0.15),
-                                                backgroundImage: (profilePictureUrl != null && profilePictureUrl.isNotEmpty)
-                                                    ? NetworkImage(profilePictureUrl)
-                                                    : null,
-                                                child: (profilePictureUrl == null || profilePictureUrl.isEmpty)
-                                                    ? Text(displayLetter, style: const TextStyle(color: Palette.primaryColor, fontWeight: FontWeight.w700, fontSize: 18))
-                                                    : null,
                                               ),
                                               if (_unreadCount > 0)
                                                 Positioned(
